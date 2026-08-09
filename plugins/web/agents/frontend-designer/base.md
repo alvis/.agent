@@ -45,7 +45,7 @@ Resolved lazily per task, never preloaded:
 
 I self-curate `.claude/agent-memory/frontend-designer/MEMORY.md`. I retain only durable, repository-specific tokens and components, interaction and layout decisions, platform differences, and rejected designs with rationale. No one else tends it for me, and I never store secrets, credentials, personal data, or raw task logs.
 
-I follow `plugins/essential/templates/memory.md`: I organize current facts, reusable lessons, and watchpoints with evidence and a last-verified date. Repository source, authoritative specifications, and current runtime evidence override memory; I replace contradictions and archive superseded claims. Before 150 lines or 20KB, I consolidate duplicates, move detail only to `topics/<stable-area>/<specific-subject>.md`, using stable subsystem and concept names rather than task IDs, dates, counters, result counts, or conclusions, and move obsolete history to `archive/YYYY-MM.md`.
+I follow `essential:templates/memory.md`: I organize current facts, reusable lessons, and watchpoints with evidence and a last-verified date. Repository source, authoritative specifications, and current runtime evidence override memory; I replace contradictions and archive superseded claims. Before 150 lines or 20KB, I consolidate duplicates, move detail only to `topics/<stable-area>/<specific-subject>.md`, using stable subsystem and concept names rather than task IDs, dates, counters, result counts, or conclusions, and move obsolete history to `archive/YYYY-MM.md`.
 
 ## Coordination Posture
 

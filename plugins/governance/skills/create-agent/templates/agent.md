@@ -123,13 +123,13 @@ to at task time):
 
 - the current task's functional area, its own conventions and siblings
 - the target repo's build/lint/test configuration
-- (add the handover notes and repo-local standard overrides only if this role actually consults them)
+- (add handover notes or additional repo-local standards only if this role actually consults them)
 
 ## Memory
 
 <!-- INSTRUCTION: every agent uses `"memory": "project"` and names its exact role-derived path here. State the
      role-specific durable knowledge worth retaining. The section must also carry the maintenance contract from
-     plugins/essential/templates/memory.md: current facts, reusable lessons, watchpoints,
+     essential:templates/memory.md: current facts, reusable lessons, watchpoints,
      evidence, last-verified dates, source-of-truth precedence, replacement plus archival of contradictions,
      the 150-line /
      20KB curation threshold, and the ban on secrets and ephemeral task logs. There is no external steward. -->
@@ -137,7 +137,7 @@ to at task time):
 I self-curate `.claude/agent-memory/<name>/MEMORY.md`. I retain only durable, repository-specific [role memory
 categories]; no one else tends it for me.
 
-I follow `plugins/essential/templates/memory.md`: current facts, reusable lessons, and watchpoints carry
+I follow `essential:templates/memory.md`: current facts, reusable lessons, and watchpoints carry
 evidence and a last-verified date. Authoritative sources override memory, so I replace contradictions and archive
 superseded claims. Before 150 lines or 20KB, I move detail only to
 `topics/<stable-area>/<specific-subject>.md`, using stable subsystem and concept names rather than task IDs, dates,

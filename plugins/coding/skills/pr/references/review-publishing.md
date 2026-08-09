@@ -38,6 +38,15 @@ gh api --hostname "$HOST" --method POST \
   values for every `PR_SURFACES` entry. If any value differs from its pinned
   capsule, stop before writing or submitting the payload and return a concurrency
   blocker; never publish against a moved head or base.
+- For a black-zone `APPROVE`, the review workflow must also run
+  `scripts/verify-black-zone-authorization.sh` immediately before payload
+  assembly against those same live head/base OIDs. Parse its compact JSON
+  receipt and require `comment_url`, `comment_id`, `comment_node_id`,
+  `author_login`, `head_oid`, `base_oid`, `authorization_body`, and the three
+  `rationale` strings. Use `authorization_body` and `rationale` as the sole semantic authorization-review input;
+  never substitute an earlier fetched
+  comment or body. Missing authorization or an invalid receipt caps the event
+  at `COMMENT`; it does not prevent `REQUEST_CHANGES`.
 - `line` is the line number in the file at `commit_id`, not a diff offset.
 - `start_line` must be below `line` on the same `side`.
 

@@ -32,7 +32,7 @@ def memory_section(name: str) -> str:
     return (
         f"\n## Memory\n\nI retain durable repository knowledge in "
         f"`.claude/agent-memory/{name}/MEMORY.md`. I follow "
-        "`plugins/essential/templates/memory.md`. Current facts, reusable "
+        "`essential:templates/memory.md`. Current facts, reusable "
         "lessons, and watchpoints carry evidence and a last-verified date. "
         "Sources override memory; I replace contradictions "
         "and archive old claims before 150 lines or 20KB. I move detail only "
@@ -380,7 +380,7 @@ def test_codex_projection_removes_claude_only_agent_behavior(
         "launches to the Project Manager. Harness-neutral behavior remains.\n\n"
         "## Memory\n\n"
         "I use `.claude/agent-memory/test-agent/MEMORY.md` and follow "
-        "`plugins/essential/templates/memory.md` with durable evidence, a "
+        "`essential:templates/memory.md` with durable evidence, a "
         "last-verified date, an archive before 150 lines or 20KB, and "
         "`topics/<stable-area>/<specific-subject>.md`.\n\n"
         "## Delegation Modes\n\n"
@@ -918,7 +918,8 @@ def test_every_distributed_agent_has_project_memory() -> None:
         assert codex == {}, template.name
         assert body.count("\n## Memory\n") == 1, template.name
         assert f".claude/agent-memory/{template.name}/MEMORY.md" in body
-        assert "plugins/essential/templates/memory.md" in body, template.name
+        assert "essential:templates/memory.md" in body, template.name
+        assert "plugins/essential/" + "templates/memory.md" not in body, template.name
         assert "topics/<stable-area>/<specific-subject>.md" in body, template.name
         assert (
             "rather than task IDs, dates, counters, result counts, or conclusions"
@@ -926,8 +927,10 @@ def test_every_distributed_agent_has_project_memory() -> None:
         ), template.name
 
 
-def test_memory_template_is_essential_owned_bounded_and_covers_lifecycle_rules() -> None:
-    path = ROOT / "plugins/essential/templates/memory.md"
+def test_memory_template_is_essential_owned_bounded_and_covers_lifecycle_rules() -> (
+    None
+):
+    path = ROOT / "plugins" / "essential" / "templates" / "memory.md"
     template = path.read_text(encoding="utf-8")
 
     assert not (

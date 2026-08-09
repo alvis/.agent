@@ -22,7 +22,7 @@ rationale. Keep size counts, zone metadata, and review scheduling internal.
 
 - Red PRs that interleave behaviour changes with mechanical edits violate `GIT-PR-TYPE-04`; split before submitting.
 - A red PR whose justification is "feature too large to split" is a yellow-PR-shaped feature in disguise — re-plan as a stack (`GIT-PR-STACK-*`).
-- Override numeric thresholds via `[git.pr.thresholds]` in standard-overrides.
+- The numeric thresholds are fixed; repository configuration cannot move this band.
 
 ## Related
 

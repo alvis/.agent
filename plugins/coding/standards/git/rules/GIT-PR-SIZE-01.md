@@ -25,7 +25,7 @@ Do not add file counts, LOC, or zone bookkeeping to the PR body.
 
 - Generated files (lockfiles, snapshots) inflate LOC without inflating cognitive load. Mark them per `GIT-PR-TYPE-05` and a reviewer may still treat the PR as green in spirit.
 - Tests count toward LOC. A green-LOC PR with a 400-line test file is still green; do not split tests away from the code they cover.
-- Project overrides may relax thresholds via `[git.pr.thresholds]` in standard-overrides. The zone definitions remain ordinal even when numeric bands shift.
+- Generated content may reduce reading effort, but it never changes the fixed zone calculation.
 
 ## Related
 

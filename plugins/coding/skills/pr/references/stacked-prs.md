@@ -7,8 +7,8 @@ a PR shape and the review surface may benefit from a stack.
 ## Suggest a stack
 
 Calculate the active `GIT-PR-SIZE-*` zone from every changed file and net LOC,
-including generated or vendored paths and project threshold overrides. The
-default green zone is at most 15 files and 500 net LOC because that is the
+including generated or vendored paths. The fixed green zone is at most 15
+files and 500 net LOC because that is the
 review surface one reader can hold at once.
 
 Require a split regardless of size or a standalone preference when one PR mixes

@@ -25,7 +25,7 @@ evidence from the change; do not publish size counts or zone bookkeeping.
 
 - A yellow PR composed mostly of generated files may move down to green-equivalent review effort if marked per `GIT-PR-TYPE-05`. The Risk section is still required because the generator change itself is the risk.
 - Yellow PRs that mix migration and logic must be split (`GIT-PR-TYPE-03`); an isolated atomic migration keeps its actual size zone.
-- Override numeric thresholds via `[git.pr.thresholds]` in standard-overrides; the section requirements stay attached to the yellow zone regardless of where the band sits.
+- The numeric thresholds are fixed; repository configuration cannot move this band.
 
 ## Related
 

@@ -21,7 +21,7 @@ If a violation is detected, load the matching rule guide at `./rules/<rule-id>.m
 - DO NOT use PR titles that don't follow the commit message format [`GIT-PR-03`]
 - DO NOT submit a PR outside the green zone without the evidence required by the canonical PR template [`GIT-PR-SIZE-02`]
 - DO NOT submit a red-zone PR without a concise indivisibility rationale [`GIT-PR-SIZE-03`]
-- DO NOT submit a black-zone PR (>60 files OR >2000 LOC) without splitting it or recording a justified threshold override [`GIT-PR-SIZE-04`]
+- DO NOT publish a black-zone draft without specific Risk, Test plan, and Why this size evidence, or approve it without exact-revision OWNER authorization in the PR discussion [`GIT-PR-SIZE-04`]
 - DO NOT publish a PR without exactly one existing GitHub archetype label [`GIT-PR-TYPE-01`]
 - DO NOT mix code spec or scaffolding with implementation in the same PR [`GIT-PR-TYPE-02`]
 - DO NOT mix database or config migrations with logic changes in the same PR [`GIT-PR-TYPE-03`]
@@ -56,7 +56,7 @@ If a violation is detected, load the matching rule guide at `./rules/<rule-id>.m
 | `GIT-PR-SIZE-01` | Green-zone definition not respected | (informational — establishes ≤15 files OR ≤500 LOC baseline) |
 | `GIT-PR-SIZE-02` | Yellow-zone PR missing template-required evidence | 22 files / 900 LOC PR lacking the canonical template's risk evidence |
 | `GIT-PR-SIZE-03` | Red-zone PR without indivisibility rationale | 45 files / 1500 LOC PR with no specific reason it cannot be split |
-| `GIT-PR-SIZE-04` | Unsplit black-zone PR without an override | 80 files / 3500 LOC PR with no justified project threshold override |
+| `GIT-PR-SIZE-04` | Black-zone evidence or approval gate missing | Publishing an 80-file / 3500-LOC rename without Risk and Test plan evidence; approving it before a qualifying OWNER discussion comment |
 | `GIT-PR-TYPE-01` | Missing or ambiguous archetype label | PR with no archetype label, multiple archetype labels, or a label absent from the repository |
 | `GIT-PR-TYPE-02` | Spec or scaffolding mixed with implementation | One PR adds `domain/order.ts` types and the `processOrder()` impl |
 | `GIT-PR-TYPE-03` | Migration mixed with logic, or missing template evidence | Prisma migration + new business rule in same PR; migration PR lacking rollback evidence |

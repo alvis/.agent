@@ -176,10 +176,18 @@ A precise zone policy supersedes the loose Small/Medium/Large bands above when a
 | Black  | > 60          | > 2000  | Split by default                   |
 
 Black-zone PRs produce the single concise finding defined by
-`GIT-PR-SIZE-04`; tooling does not auto-post canned comments. Override the
-thresholds per-project via a `[git.pr.thresholds]` block in standard-overrides
-config (`files_green`, `loc_green`, `files_yellow`, `loc_yellow`, `files_red`,
-`loc_red`).
+`GIT-PR-SIZE-04`. They remain black. A genuinely self-contained unit may be
+published as a draft and tested without prior authorization after its canonical
+body supplies specific Risk, Test plan, and Why this size evidence. Review
+approval requires an OWNER-authored PR discussion comment that explicitly
+authorizes the one-off, explains why this exact surface is indivisible, and
+names its exact full head and base OIDs. Tooling verifies the live comment
+immediately before `APPROVE` but never authors it; either OID changing
+invalidates it. Semantic review consumes only the helper receipt's live
+`authorization_body` and `rationale`; an earlier fetched comment or body cannot
+authorize approval. The five-line contract's rationale is
+`Indivisibility: <atomic subject> because <coupling>; otherwise <consequence>`;
+review blocks generic or tautological claims even when their structure passes.
 
 ### PR Categories (the 12 Archetypes)
 
