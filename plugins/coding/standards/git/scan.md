@@ -5,6 +5,10 @@
 Any single violation blocks submission by default.
 If a violation is detected, load the matching rule guide at `./rules/<rule-id>.md`.
 
+Numeric PR-size examples below are human-readable projections of
+`../../skills/pr/assets/size-thresholds.json`, the sole threshold authority;
+contract verification checks the projections against that asset.
+
 ## Quick Scan
 
 - DO NOT use a wrong or missing commit type prefix [`GIT-MSG-01`]
@@ -21,7 +25,8 @@ If a violation is detected, load the matching rule guide at `./rules/<rule-id>.m
 - DO NOT use PR titles that don't follow the commit message format [`GIT-PR-03`]
 - DO NOT submit a PR outside the green zone without the evidence required by the canonical PR template [`GIT-PR-SIZE-02`]
 - DO NOT submit a red-zone PR without a concise indivisibility rationale [`GIT-PR-SIZE-03`]
-- DO NOT publish a black-zone draft without specific Risk, Test plan, and Why this size evidence, or approve it without exact-revision OWNER authorization in the PR discussion [`GIT-PR-SIZE-04`]
+- DO NOT include generated-artifact additions or deletions in PR net-LOC thresholds, or exclude generated paths from the file count [`GIT-PR-SIZE-01`]
+- DO NOT publish a black-zone draft without specific Risk, Test plan, and Why this size evidence, or approve it without exact-revision OWNER authorization in the PR discussion; draft publication remains allowed for a genuinely self-contained unit [`GIT-PR-SIZE-04`]
 - DO NOT publish a PR without exactly one existing GitHub archetype label [`GIT-PR-TYPE-01`]
 - DO NOT mix code spec or scaffolding with implementation in the same PR [`GIT-PR-TYPE-02`]
 - DO NOT mix database or config migrations with logic changes in the same PR [`GIT-PR-TYPE-03`]
@@ -53,10 +58,10 @@ If a violation is detected, load the matching rule guide at `./rules/<rule-id>.m
 | `GIT-PR-01` | PR not started as draft | Creating PR directly as ready-for-review |
 | `GIT-PR-02` | Canonical PR template violation | PR body missing template-required change evidence |
 | `GIT-PR-03` | PR title format incorrect | `Add new feature`; `Fix: bug in auth` |
-| `GIT-PR-SIZE-01` | Green-zone definition not respected | (informational — establishes ≤15 files OR ≤500 LOC baseline) |
+| `GIT-PR-SIZE-01` | Size inputs or green-zone definition not respected | Counting 2500 generated lockfile lines as LOC, or omitting that lockfile from the changed-file count |
 | `GIT-PR-SIZE-02` | Yellow-zone PR missing template-required evidence | 22 files / 900 LOC PR lacking the canonical template's risk evidence |
 | `GIT-PR-SIZE-03` | Red-zone PR without indivisibility rationale | 45 files / 1500 LOC PR with no specific reason it cannot be split |
-| `GIT-PR-SIZE-04` | Black-zone evidence or approval gate missing | Publishing an 80-file / 3500-LOC rename without Risk and Test plan evidence; approving it before a qualifying OWNER discussion comment |
+| `GIT-PR-SIZE-04` | Black-zone evidence or approval gate missing | Publishing an 80-file / 3500-authored-LOC rename without Risk and Test plan evidence; approving it before a qualifying OWNER discussion comment |
 | `GIT-PR-TYPE-01` | Missing or ambiguous archetype label | PR with no archetype label, multiple archetype labels, or a label absent from the repository |
 | `GIT-PR-TYPE-02` | Spec or scaffolding mixed with implementation | One PR adds `domain/order.ts` types and the `processOrder()` impl |
 | `GIT-PR-TYPE-03` | Migration mixed with logic, or missing template evidence | Prisma migration + new business rule in same PR; migration PR lacking rollback evidence |

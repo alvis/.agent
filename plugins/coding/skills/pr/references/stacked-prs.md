@@ -6,10 +6,21 @@ a PR shape and the review surface may benefit from a stack.
 
 ## Suggest a stack
 
-Calculate the active `GIT-PR-SIZE-*` zone from every changed file and net LOC,
-including generated or vendored paths. The fixed green zone is at most 15
-files and 500 net LOC because that is the
-review surface one reader can hold at once.
+Calculate the active `GIT-PR-SIZE-*` zone with the canonical classifier:
+
+```bash
+uv run --python 3.13 \
+  "${CODING_PR_SKILL_DIR}/scripts/classify-pr-size.py" \
+  --repo "$REPO_ROOT" --base "$BASE_OID" --head "$HEAD_OID"
+```
+
+Its file count includes every changed path, including generated, vendored, and
+binary files. Its authored net LOC excludes additions and deletions from
+recognized package lockfiles and paths marked `linguist-generated` at the base
+or head. The green-zone values shown here—at most 15 files and 500 authored net LOC—are a human-readable projection of `../assets/size-thresholds.json`, the
+sole numeric threshold authority. The classifier loads that asset; contract
+tests verify this projection because it is the review surface one reader can
+hold at once.
 
 Require a split regardless of size or a standalone preference when one PR mixes
 categories that the standard requires isolated, including migration with logic

@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "metrics": {
+    "files_changed": {
+      "unit": "changed paths",
+      "reason": "Every changed path contributes review and integration overhead, including generated files."
+    },
+    "authored_net_loc": {
+      "unit": "lines",
+      "reason": "Authored additions and deletions measure reviewable code after generated-file changes are excluded."
+    }
+  },
+  "zones": [
+    {
+      "name": "green",
+      "max_files_changed": 15,
+      "max_authored_net_loc": 500
+    },
+    {
+      "name": "yellow",
+      "max_files_changed": 30,
+      "max_authored_net_loc": 1200
+    },
+    {
+      "name": "red",
+      "max_files_changed": 60,
+      "max_authored_net_loc": 2000
+    }
+  ]
+}

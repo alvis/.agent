@@ -545,7 +545,7 @@ def test_repository_files_cannot_reclassify_fixed_pr_size_zones() -> None:
 
     assert retired_override_name not in policy
     assert "≤ 60 files" in policy
-    assert "≤ 2000 LOC" in policy
+    assert "≤ 2000 authored net LOC" in policy
     assert "> 60 files" in policy
-    assert "> 2000 LOC" in policy
+    assert "> 2000 authored net LOC" in policy
     assert "repository configuration cannot change these thresholds" in policy
