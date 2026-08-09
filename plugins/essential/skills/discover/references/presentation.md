@@ -212,7 +212,7 @@ workspace_dir = tempfile.mkdtemp(
 ```
 
 One workspace holds every board produced during the session, so boards can
-cross-link with session-relative hrefs (`./sibling.html`). This resolves through
+cross-link with session-relative hrefs (`./sibling.html`). This resolves through <!-- doc-path-gate: ignore -->
 the operating system (`$TMPDIR` on macOS, the configured temp root such as
 `/tmp` on Linux, and `%TEMP%` on Windows) without a shared filename collision.
 Write each board's source directory and any captures inside that workspace, and
