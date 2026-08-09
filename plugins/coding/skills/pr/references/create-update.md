@@ -419,8 +419,8 @@ test "$ACTUAL_ARCHETYPES" = "$EXPECTED_ARCHETYPES"
 ```
 
 Publish a genuinely necessary self-contained black-zone unit as a draft
-without prior authorization only after its canonical body supplies specific
-Risk, Test plan, and Why this size evidence. The draft is the discussion
+without prior authorization only after its canonical body requires specific `## Risk`, `## Test plan`, and `## Why this size`
+evidence for yellow/red/black as applicable. The draft is the discussion
 surface on which a repository owner may later record this exact five-line
 contract:
 
@@ -640,14 +640,24 @@ passes its base; text-only callers default to the first parent. Never invoke `gh
    "heads(::<head-oid> & ::<base-oid>)"` on the jj path or
    `git merge-base <base-oid> <head-oid>` on the git path. Use the empty tree
    only for the root-commit fallback. Calculate the active `GIT-PR-SIZE-*`
-   zone from every changed path and net LOC on that surface, including
-   generated and vendored paths. The canonical thresholds are fixed. Record
-   the required sections for that zone. A black-zone change remains black and
-   requires specific `## Risk`, `## Test plan`, and `## Why this size`
-   evidence. Author them for the exact draft head/base pair that may carry
-   later OWNER discussion authorization. The draft may be pushed and tested
-   without prior authorization; review verifies authorization only before
-   submitting `APPROVE`.
+   zone from that exact surface with:
+
+   ```bash
+   SIZE_JSON=$(uv run --python 3.13 \
+     "${CODING_PR_SKILL_DIR}/scripts/classify-pr-size.py" \
+     --repo "$REPO_ROOT" --base "$BASE_OID" --head "$HEAD_OID")
+   ```
+
+   Read `zone`, `files_changed`, and `net_loc` from `SIZE_JSON`. The classifier's
+   file count includes every changed path and excludes generated-file
+   additions and deletions only from authored net LOC. The canonical thresholds
+   are fixed. Record the required sections for that zone. A black-zone change
+   remains black and requires specific `## Risk`, `## Test plan`, and
+   `## Why this size` evidence. Author them for the exact draft head/base pair
+   that may carry later OWNER discussion
+   authorization. The draft may be pushed and tested without prior
+   authorization; review verifies authorization only before submitting
+   `APPROVE`.
 5. Resolve the template — first hit wins, paths relative to the repo root:
 
    1. `.github/PULL_REQUEST_TEMPLATE.md`

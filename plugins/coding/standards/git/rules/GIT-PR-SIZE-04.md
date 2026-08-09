@@ -6,12 +6,18 @@ warning
 
 ## Intent
 
-A black-zone PR changes **> 60 files** OR **> 2000 LOC**. It remains black:
+A black-zone PR changes **> 60 files** OR **> 2000 authored net LOC**. Every
+changed path contributes to the file threshold; generated-file additions and
+deletions do not contribute to LOC under `GIT-PR-SIZE-01`. It remains black:
 repository configuration cannot change these thresholds. A genuinely
 self-contained unit may be pushed as a draft and tested without prior
 authorization only when its canonical PR body supplies specific Risk, Test
 plan, and Why this size evidence. Review approval blocks until its exact
 surface receives one-off OWNER authorization in the PR discussion.
+
+The limits above are the open-ended projection of the highest bounds in
+`../../../skills/pr/assets/size-thresholds.json`, the sole numeric threshold
+authority, and contract verification checks them against that asset.
 
 ## Fix
 
@@ -44,7 +50,8 @@ The authoring workflow may push the exact draft head/base pair, run CI, and
 dispatch review without prior authorization. Immediately before a black-zone
 review would submit `APPROVE`, it verifies the live comment mechanically with
 `verify-black-zone-authorization.sh`. Failure caps that event at `COMMENT` and
-returns `authorization_required`; it does not suppress review findings or a
+returns `authorization_required` with the exact blocked head/base OIDs; it does
+not suppress review findings or a
 `REQUEST_CHANGES` verdict. The workflow never creates or edits an
 exception/configuration file and never posts the authorization itself. PR
 bodies, reviews, bot or non-OWNER comments, stale OIDs, structurally invalid
@@ -59,7 +66,10 @@ OID change invalidates the comment.
 
 ## Edge Cases
 
-- A black PR that is 95 % `GIT-PR-TYPE-05` generated files (for example, SDK regeneration) may justify authorization, but remains black and receives a full review.
+- A PR with more than 60 generated paths (for example, SDK regeneration)
+  remains black through the unchanged file-count threshold even though those
+  paths contribute no LOC. It may justify authorization, but receives a full
+  review.
 - A black PR opened for "speed of review" contradicts the rule — speed is exactly what the zone threshold protects.
 - Authorization is one-off and revision-bound; it cannot establish a repository-wide exception.
 

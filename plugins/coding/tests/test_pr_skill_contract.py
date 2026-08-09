@@ -1,11 +1,17 @@
 import json
 import os
+import runpy
 import shutil
 import subprocess
+from itertools import pairwise
 from pathlib import Path
+
+import pytest
 
 PLUGIN = Path(__file__).resolve().parents[1]
 WRITE_PR = PLUGIN / "skills" / "pr"
+SIZE_THRESHOLDS = WRITE_PR / "assets" / "size-thresholds.json"
+CLASSIFIER = WRITE_PR / "scripts" / "classify-pr-size.py"
 
 
 def test_authoring_binds_all_deterministic_inputs_and_publication_output() -> None:
@@ -376,6 +382,190 @@ def test_generated_files_section_is_conditional_and_emoji_named() -> None:
     assert "## 🏭 Generated Files" in template
     assert "whenever any generated files exist" in template
     assert "`{{generated_files_body}}`" in workflow
+
+
+def test_pr_size_thresholds_have_one_machine_readable_home_and_matching_docs() -> None:
+    thresholds = json.loads(SIZE_THRESHOLDS.read_text())
+
+    assert thresholds["schema_version"] == 1
+    assert set(thresholds["metrics"]) == {"files_changed", "authored_net_loc"}
+    for metric in thresholds["metrics"].values():
+        assert isinstance(metric["unit"], str) and metric["unit"]
+        assert isinstance(metric["reason"], str) and metric["reason"]
+
+    zones = thresholds["zones"]
+    assert [zone["name"] for zone in zones] == ["green", "yellow", "red"]
+    assert all(
+        set(zone) == {"name", "max_files_changed", "max_authored_net_loc"}
+        for zone in zones
+    )
+    assert all(
+        earlier["max_files_changed"] < later["max_files_changed"]
+        and earlier["max_authored_net_loc"] < later["max_authored_net_loc"]
+        for earlier, later in pairwise(zones)
+    )
+
+    standard = PLUGIN / "standards" / "git"
+    presentations = {
+        standard / "write.md": {"green", "yellow", "red", "black"},
+        standard / "rules" / "GIT-PR-SIZE-01.md": {"green"},
+        standard / "rules" / "GIT-PR-SIZE-02.md": {"yellow"},
+        standard / "rules" / "GIT-PR-SIZE-03.md": {"red"},
+        standard / "rules" / "GIT-PR-SIZE-04.md": {"black"},
+        WRITE_PR / "references" / "stacked-prs.md": {"green"},
+        WRITE_PR / "references" / "review-workflow.md": {
+            "green",
+            "yellow",
+            "red",
+            "black",
+        },
+    }
+    discovered_presentations = {
+        path
+        for root in (standard, WRITE_PR / "references")
+        for path in root.rglob("*.md")
+        if "files" in path.read_text().lower()
+        and "authored" in path.read_text().lower()
+        and (
+            "| Zone" in path.read_text()
+            or (
+                any(
+                    f"{zone['max_files_changed']} files" in path.read_text()
+                    for zone in zones
+                )
+                and any(
+                    f"{zone['max_authored_net_loc']} authored" in path.read_text()
+                    for zone in zones
+                )
+            )
+        )
+    }
+    assert discovered_presentations == set(presentations)
+
+    limits_by_zone = {zone["name"]: zone for zone in zones}
+    black_limits = zones[-1]
+    for path, presented_zones in presentations.items():
+        content = path.read_text().replace(",", "").replace("**", "")
+        for zone_name in presented_zones:
+            limits = limits_by_zone.get(zone_name, black_limits)
+            operator = ">" if zone_name == "black" else "≤"
+            if "| Zone" in content:
+                row = next(
+                    line
+                    for line in content.splitlines()
+                    if line.lower().startswith(f"| {zone_name}")
+                )
+                assert f"{operator} {limits['max_files_changed']}" in row
+                assert f"{operator} {limits['max_authored_net_loc']}" in row
+            elif path.name == "stacked-prs.md":
+                assert (
+                    f"at most {limits['max_files_changed']} files and "
+                    f"{limits['max_authored_net_loc']} authored net LOC" in content
+                )
+            else:
+                assert f"{operator} {limits['max_files_changed']} files" in content
+                assert (
+                    f"{operator} {limits['max_authored_net_loc']} authored" in content
+                )
+
+
+def test_classifier_uses_limits_from_a_controlled_asset(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    subprocess.run(
+        ["git", "init", "--quiet", "--initial-branch=main", str(repo)], check=True
+    )
+    subprocess.run(
+        ["git", "-C", str(repo), "config", "user.email", "test@example.com"],
+        check=True,
+    )
+    subprocess.run(
+        ["git", "-C", str(repo), "config", "user.name", "Test"], check=True
+    )
+    (repo / "README.md").write_text("base\n")
+    subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(repo),
+            "commit",
+            "--quiet",
+            "--no-gpg-sign",
+            "-m",
+            "base",
+        ],
+        check=True,
+    )
+    base = subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    (repo / "app.py").write_text("one\ntwo\n")
+    subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(repo),
+            "commit",
+            "--quiet",
+            "--no-gpg-sign",
+            "-m",
+            "head",
+        ],
+        check=True,
+    )
+    head = subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    controlled_asset = tmp_path / "thresholds.json"
+    thresholds = json.loads(SIZE_THRESHOLDS.read_text())
+    for zone, maximum in zip(thresholds["zones"], (1, 2, 3), strict=True):
+        zone["max_files_changed"] = maximum
+        zone["max_authored_net_loc"] = maximum
+    controlled_asset.write_text(json.dumps(thresholds))
+    namespace = runpy.run_path(str(CLASSIFIER), run_name="controlled_classifier")
+    classifier = namespace["classify"]
+    classifier.__globals__["SIZE_THRESHOLDS"] = controlled_asset
+
+    result = classifier(repo, base, head)
+
+    assert result["files_changed"] == 1
+    assert result["net_loc"] == 2
+    assert result["zone"] == "yellow"
+
+
+@pytest.mark.parametrize(
+    ("zone_index", "field", "invalid_value"),
+    [
+        (0, "max_files_changed", True),
+        (0, "max_authored_net_loc", True),
+        (0, "max_files_changed", 0),
+        (0, "max_authored_net_loc", 0),
+        (0, "max_files_changed", -1),
+        (0, "max_authored_net_loc", -1),
+        (1, "max_files_changed", 15),
+        (1, "max_authored_net_loc", 500),
+    ],
+)
+def test_classifier_rejects_invalid_threshold_limits(
+    tmp_path: Path, zone_index: int, field: str, invalid_value: object
+) -> None:
+    thresholds = json.loads(SIZE_THRESHOLDS.read_text())
+    thresholds["zones"][zone_index][field] = invalid_value
+    malformed_asset = tmp_path / "thresholds.json"
+    malformed_asset.write_text(json.dumps(thresholds))
+    namespace = runpy.run_path(str(CLASSIFIER), run_name="malformed_classifier")
+    load_zone_limits = namespace["load_zone_limits"]
+    load_zone_limits.__globals__["SIZE_THRESHOLDS"] = malformed_asset
+
+    with pytest.raises((TypeError, ValueError)):
+        load_zone_limits()
 
 
 def test_repo_local_templates_enforce_conditional_evidence_before_emission() -> None:

@@ -6,9 +6,15 @@ warning
 
 ## Intent
 
-A yellow-zone PR changes **≤ 30 files** AND nets **≤ 1200 LOC** while exceeding green thresholds. Yellow PRs are mergeable but require the author to surface risk explicitly so a reviewer can focus on what matters.
+A yellow-zone PR changes **≤ 30 files** AND nets **≤ 1200 authored LOC** while
+exceeding green thresholds. File count includes generated paths; LOC excludes
+their additions and deletions under `GIT-PR-SIZE-01`.
 
 The canonical PR template owns the additional evidence required for this zone.
+
+The limits above are a human-readable projection of
+`../../../skills/pr/assets/size-thresholds.json`, the sole numeric threshold
+authority, and contract verification checks them against that asset.
 
 ## Fix
 
@@ -23,9 +29,11 @@ evidence from the change; do not publish size counts or zone bookkeeping.
 
 ## Edge Cases
 
-- A yellow PR composed mostly of generated files may move down to green-equivalent review effort if marked per `GIT-PR-TYPE-05`. The Risk section is still required because the generator change itself is the risk.
+- Generated output can lower the LOC zone, but never the file-count zone. The
+  Risk section remains required whenever either authored LOC or all-path file
+  count places the PR in yellow.
 - Yellow PRs that mix migration and logic must be split (`GIT-PR-TYPE-03`); an isolated atomic migration keeps its actual size zone.
-- The numeric thresholds are fixed; repository configuration cannot move this band.
+- Repository configuration cannot move the asset-defined band.
 
 ## Related
 

@@ -166,14 +166,33 @@ When reviewing PRs:
 
 ### PR Size Zones
 
-A precise zone policy supersedes the loose Small/Medium/Large bands above when an enforced lint or stacked-PR workflow is configured. A PR's zone is the **stricter** of files-changed and net-LOC.
+A precise zone policy supersedes the loose Small/Medium/Large bands above when
+an enforced lint or stacked-PR workflow is configured. A PR's zone is the
+**stricter** of all files changed and authored net LOC.
 
-| Zone   | Files Changed | Net LOC | Reviewer Expectation              |
+The numeric table is a human-readable projection of
+`../../skills/pr/assets/size-thresholds.json`, the sole threshold authority.
+Contract verification checks every projected value against that asset.
+
+| Zone   | Files Changed | Authored Net LOC | Reviewer Expectation              |
 |--------|---------------|---------|------------------------------------|
 | Green  | ≤ 15          | ≤ 500   | Quick read; default-mergeable      |
 | Yellow | ≤ 30          | ≤ 1200  | One reviewer                       |
 | Red    | ≤ 60          | ≤ 2000  | Two reviewers; indivisibility rationale |
 | Black  | > 60          | > 2000  | Split by default                   |
+
+Count every changed path for the file threshold, including generated,
+vendored, and binary files. For the LOC threshold, subtract generated-file
+additions and deletions before taking the absolute net of authored additions
+minus authored deletions. A path is generated only when its basename is a
+package-manager lockfile recognized by
+`skills/pr/scripts/classify-pr-size.py`, or `linguist-generated` is `set` or
+`true` for that path at the base or head revision. Binary files contribute
+zero LOC but remain in the file count. Run that classifier for every PR
+surface; do not reproduce its path rules or arithmetic elsewhere. The
+classifier evaluates committed objects in an isolated Git directory, so local
+`info/attributes`, global/system attributes, external diff hooks, and ambient
+diff configuration cannot change a fixed base/head result.
 
 Black-zone PRs produce the single concise finding defined by
 `GIT-PR-SIZE-04`. They remain black. A genuinely self-contained unit may be

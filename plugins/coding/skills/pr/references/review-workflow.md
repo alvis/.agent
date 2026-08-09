@@ -230,19 +230,34 @@ side) and every removed line (LEFT). A finding that cannot anchor moves into the
 overall body — never dropped, never posted against a guessed line.
 </IMPORTANT>
 
-Classify the size zone from the same counts, and treat a missing required section
-as a finding citing its rule id:
+Classify each size zone with the canonical read-only helper and treat a missing
+required section as a finding citing its rule id:
+
+```bash
+SIZE_JSON=$(uv run --python 3.13 \
+  "${CODING_PR_SKILL_DIR}/scripts/classify-pr-size.py" \
+  --repo "$REVIEW_DIR" --base "$BASE_OID" --head "$HEAD_OID")
+```
+
+Use its all-path `files_changed` and generated-excluding authored `net_loc`.
+Generated, vendored, and binary paths remain in the file count. Do not infer
+the size zone from GitHub's collapsed diff presentation.
 
 For a stack, classify each PR surface from its own head/base diff. The holistic
 bottom-base-to-top-head diff supplies review context, not one replacement size
 zone for every PR in the stack.
 
+The numeric table is a human-readable projection of
+`../assets/size-thresholds.json`, the sole threshold authority. The classifier
+loads that asset, and contract verification checks every projected value
+against it.
+
 | Zone | Bound (stricter of the two wins) | PR body must add |
 |---|---|---|
-| green | ≤ 15 files and ≤ 500 net LOC | Summary, Verification |
-| yellow | ≤ 30 files and ≤ 1200 LOC | Risk, Test plan |
-| red | ≤ 60 files and ≤ 2000 LOC | Why this size |
-| black | > 60 files or > 2000 LOC | Risk, Test plan, Why this size; full review of the self-contained unit; exact-revision OWNER authorization is required only for `APPROVE` |
+| green | ≤ 15 files and ≤ 500 authored net LOC | Summary, Verification |
+| yellow | ≤ 30 files and ≤ 1200 authored net LOC | Risk, Test plan |
+| red | ≤ 60 files and ≤ 2000 authored net LOC | Why this size |
+| black | > 60 files or > 2000 authored net LOC | Risk, Test plan, Why this size; full review of the self-contained unit; exact-revision OWNER authorization is required only for `APPROVE` |
 
 A black-zone review first judges whether the surface is genuinely one
 self-contained unit, then reviews it completely. Missing authorization does
