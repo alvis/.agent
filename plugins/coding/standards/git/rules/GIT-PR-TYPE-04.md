@@ -33,7 +33,8 @@ The follow-up PR adds the new method against the renamed type with no rename noi
 
 - A reviewer scanning a mechanical diff at speed will not catch a behaviour change buried inside it.
 - Mechanical PRs qualify for fast-track review precisely because the diff is uniform; mixing breaks the trust.
-- Codemod scripts should be committed under `scripts/codemods/` so the diff is reproducible.
+- Commit a codemod with the mechanical change when the target repository needs
+  it to reproduce the diff.
 
 ## Edge Cases
 

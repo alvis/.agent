@@ -556,7 +556,7 @@ Every board root carries `data-board-id`; the hub section carries
 `data-board-hub`; the index list is `.discovery-board-index`
 `[data-board-index]`; each link is `.discovery-board-link`
 `[data-board-link="<board-id>"]`. Mark the current board with
-`aria-current="page"`. Hrefs are session-relative (`./sibling.html`) and valid
+`aria-current="page"`. Hrefs are session-relative (`./sibling.html`) and valid <!-- doc-path-gate: ignore -->
 only because every board lives in one session workspace. The runtime includes
 the board id in the generated prompt's review context.
 

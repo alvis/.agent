@@ -15,7 +15,7 @@ ranked-options board, for example.
    `[data-board-index]` list.
 3. List every board in the session, including the hub itself, as a
    `.discovery-board-link` `[data-board-link="<board-id>"]` anchor with a
-   session-relative href (`./specimen-board.html`, `./board-hub.html`). Mark the
+   session-relative href (`./specimen-board.html`, `./board-hub.html`). Mark the <!-- doc-path-gate: ignore -->
    current board with `aria-current="page"`.
 4. Keep hrefs session-relative; they are valid only because every board lives in
    the same session workspace, and the whole workspace is discarded after
