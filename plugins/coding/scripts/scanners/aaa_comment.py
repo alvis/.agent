@@ -7,7 +7,7 @@ from scanlib.core import Match
 from scanlib.predicates import spec_files
 from scanlib.rule import Rule
 
-# TST-STRU-03 — see plugins/coding/constitution/standards/testing/rules/tst-stru-03.md
+# TST-STRU-03 — see plugins/coding/standards/testing/rules/tst-stru-03.md
 # matches a comment line whose sole content is an AAA section label — the rule
 # forbids these because blank-line spacing already shows the structure. anchored
 # to the whole line so `// Arrange the request payload` (a real explanatory

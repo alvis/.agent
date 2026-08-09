@@ -7,7 +7,7 @@ from scanlib.core import Match
 from scanlib.predicates import spec_files
 from scanlib.rule import Rule
 
-# TST-CORE-03 — see plugins/coding/constitution/standards/testing/rules/tst-core-03.md
+# TST-CORE-03 — see plugins/coding/standards/testing/rules/tst-core-03.md
 # the approved symbol-scoped describe prefixes; a symbol-style title that opens
 # with `<word>:` must use one of these. general-purpose titles carry NO prefix
 # and are never flagged here (they have no `<word>:` head).

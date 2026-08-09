@@ -44,7 +44,9 @@ fi
 STORY_DIR="$RUN_DIR/stories/$STORY"
 mkdir -p "$STORY_DIR"
 
-INJ_DIR="$(dirname "$0")/../injections"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_DIR="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+INJ_DIR="$PLUGIN_DIR/scripts/injections"
 A11Y_JS="$(cat "$INJ_DIR/a11y-results.js")"
 INTERACT_JS="$(cat "$INJ_DIR/interactions.js")"
 

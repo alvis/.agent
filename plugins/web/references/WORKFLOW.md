@@ -23,12 +23,12 @@ Read every file in each applicable standards directory, following its cross-refe
 
 | Applies to | Standards |
 | --- | --- |
-| Visual and interaction design or audit | `web:constitution/standards/design/` |
-| Light, dark, and system color modes | `web:constitution/standards/css/` plus `web:constitution/standards/design/` |
-| Brand and token theming | `web:constitution/standards/theming/` plus `web:constitution/standards/css/` and `web:constitution/standards/design/` |
-| Frontend implementation | `coding:constitution/standards/universal/`, `coding:constitution/standards/function/`, `coding:constitution/standards/typescript/`, `coding:constitution/standards/naming/`, `coding:constitution/standards/testing/`, and `coding:constitution/standards/documentation/` |
-| Files and project setup | `coding:constitution/standards/file-structure.md` |
-| Review | `coding:constitution/standards/code-review.md` plus the Web standards above |
-| Commits, branches, and pull requests | `coding:constitution/standards/git/` |
+| Visual and interaction design or audit | `web:standards/design/` |
+| Light, dark, and system color modes | `web:standards/css/` plus `web:standards/design/` |
+| Brand and token theming | `web:standards/theming/` plus `web:standards/css/` and `web:standards/design/` |
+| Frontend implementation | `coding:standards/universal/`, `coding:standards/function/`, `coding:standards/typescript/`, `coding:standards/naming/`, `coding:standards/testing/`, and `coding:standards/documentation/` |
+| Files and project setup | `coding:standards/file-structure/` |
+| Review | `coding:standards/code-review/` plus the Web standards above |
+| Commits, branches, and pull requests | `coding:standards/git/` |
 
 Web does not declare another framework plugin as a dependency; do not load its standards or skills.

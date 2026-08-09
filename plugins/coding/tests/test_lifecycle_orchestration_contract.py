@@ -10,7 +10,7 @@ import pytest
 
 PLUGIN = Path(__file__).resolve().parents[1]
 CRITIC_FRONTMATTER = (
-    PLUGIN / "templates/agents/code-quality-critic/frontmatter/claude.json"
+    PLUGIN / "agents/code-quality-critic/frontmatter/claude.json"
 )
 
 pytestmark = pytest.mark.skipif(

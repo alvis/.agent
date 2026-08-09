@@ -11,7 +11,7 @@ import pytest
 
 
 ESSENTIAL = Path(__file__).resolve().parents[1]
-LEASE = ESSENTIAL / "bin/engineering-lease"
+LEASE = ESSENTIAL / "scripts/state-lease"
 # pin macOS's system bash 3.2 rather than resolving the shebang against PATH,
 # so its incident guards (e.g. `${2:-{\}}` keeping the backslash and feeding jq
 # invalid JSON) stay exercised even when a newer Homebrew bash is on PATH

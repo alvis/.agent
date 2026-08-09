@@ -25,7 +25,7 @@ review, and reporting; this skill only binds the profile.
 ## Workflow
 
 1. Forward the request exactly once through `Skill(coding:lint *)` using
-   `$ARGUMENTS --profile="${REACT_LINT_SKILL_DIR}/profile.json"`. Do not parse,
+   `$ARGUMENTS --profile="${REACT_LINT_SKILL_DIR}/assets/profile.json"`. Do not parse,
    reorder, or discard the caller's specifier or scope.
 2. Wait for the delegated skill and return its report unchanged. Perform no
    independent discovery, scanning, linting, review, aggregation, or

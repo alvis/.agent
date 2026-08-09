@@ -9,8 +9,8 @@ import pytest
 
 
 ESSENTIAL = Path(__file__).resolve().parents[1]
-LEASE = ESSENTIAL / "bin/engineering-lease"
-STATE_WRITE = ESSENTIAL / "bin/engineering-state-write"
+LEASE = ESSENTIAL / "scripts/state-lease"
+STATE_WRITE = ESSENTIAL / "scripts/state-write"
 
 
 class StateWriteHarness:

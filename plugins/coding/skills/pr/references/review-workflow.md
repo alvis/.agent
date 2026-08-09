@@ -258,8 +258,8 @@ advisory until confirmed against the rule they cite.
 ### Resolve the applicable standards
 
 Take standard paths from the "Plugin Constitution > Standards" sections of the
-system prompt, or Glob `**/constitution/standards/**`. Match stems to the changed
-languages, always include `code-review.md`, and add `testing` when any `*.spec.*` or
+system prompt, or Glob `**/standards/**`. Match stems to the changed
+languages, always include `code-review/`, and add `testing` when any `*.spec.*` or
 `*.test.*` file changed.
 
 ### Review
@@ -316,7 +316,7 @@ A re-review after a push adds only what is new.
 ### Publish the review
 
 Build the body from
-[templates/overall-review.md](templates/overall-review.md)
+[../templates/overall-review.md](../templates/overall-review.md)
 and submit the whole review in one atomic call, so a rejected comment cannot leave
 orphaned fragments:
 

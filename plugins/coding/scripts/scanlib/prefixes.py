@@ -1,14 +1,18 @@
-"""Derive the standard rule-ID prefix whitelist from the constitution rules."""
+"""Derive the standard rule-ID prefix whitelist from marketplace standards."""
 
+import re
 from pathlib import Path
 
-# fallback whitelist, used only when the rules glob yields nothing (e.g. the
+# fallback whitelist, used only when the metadata glob yields nothing (e.g. the
 # scanner runs outside the .claude repo). keep in sync with the live standards:
-#   ls plugins/*/constitution/standards/*/rules/*.md
+#   rg -o '`[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+-\*`' plugins/*/standards/*/meta.md
 FALLBACK_PREFIXES = (
-    "A11Y", "CSS", "DES", "DOC", "ERR", "FUNC", "GEN", "GIT", "LOG", "NAM",
-    "PYT", "RC", "RH", "RPS", "RST", "SB", "TST", "TYP", "WT",
+    "A11Y", "AUT", "CRV", "CSS", "DEL", "DEN", "DES", "DOC", "DOP", "ERR",
+    "FST", "FUNC", "GEN", "GIT", "LOG", "NAM", "PYT", "RC", "RH", "RPS",
+    "RST", "SB", "TST", "TYP", "WT",
 )
+
+RULE_GROUP = re.compile(r"`([A-Z][A-Z0-9]*)(?:-[A-Z0-9]+)+-\*`")
 
 
 def _plugins_root() -> Path:
@@ -18,16 +22,17 @@ def _plugins_root() -> Path:
 
 
 def derive_rule_id_prefixes() -> tuple[str, ...]:
-    """Return the sorted set of rule-ID prefixes found in the constitution.
+    """Return the sorted set of rule-ID prefixes found in marketplace standards.
 
-    Globs `plugins/*/constitution/standards/*/rules/*.md`, takes each file
-    stem's first hyphen segment uppercased (e.g. `doc-form-03` -> `DOC`).
+    Globs `plugins/*/standards/*/meta.md` and takes the first segment from
+    each declared rule group (e.g. `DOC-FORM-*` -> `DOC`).
     Falls back to the hardcoded whitelist when the glob is empty.
     """
     root = _plugins_root()
     prefixes: set[str] = set()
-    for rule_file in root.glob("*/constitution/standards/*/rules/*.md"):
-        prefixes.add(rule_file.stem.split("-")[0].upper())
+    for meta_file in root.glob("*/standards/*/meta.md"):
+        text = meta_file.read_text(encoding="utf-8")
+        prefixes.update(RULE_GROUP.findall(text))
     if not prefixes:
         return FALLBACK_PREFIXES
     return tuple(sorted(prefixes))

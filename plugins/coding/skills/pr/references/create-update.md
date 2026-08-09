@@ -27,7 +27,7 @@ owns deterministic zone calculation and the authoring gates below.
   scope.
 - Delegate noisy commands to one small read-only tester before publication and
   one small read-oriented poller after publication, following the repository
-  [delegation contract](../../../../governance/constitution/references/delegation.md).
+  [delegation contract](../../../../governance/standards/delegation/).
 
 <IMPORTANT>
 - Ownership is singular: `coding:commit` owns direct history mutations;
@@ -644,7 +644,7 @@ passes its base; text-only callers default to the first parent. Never invoke `gh
 
    A heading's presence alone never passes. When no repo-local template exists,
    fall back to the bundled default at
-   [templates/pr.md](templates/pr.md) and continue.
+   [../templates/pr.md](../templates/pr.md) and continue.
    When the bundled default is also missing: exit 4, print the path that
    failed to resolve.
 6. Fill the bundled default's placeholders from the commit body, diff, and

@@ -1,0 +1,29 @@
+{
+  "eligibility": {
+    "extensions": [".tsx", ".jsx"],
+    "conditional_kinds": ["stories", "spec", "test"]
+  },
+  "exclusions": [
+    "**/*.d.tsx",
+    "**/*.generated.tsx",
+    "**/__snapshots__/**",
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/.next/**"
+  ],
+  "standards": [
+    "../../../standards/accessibility",
+    "../../../standards/components",
+    "../../../standards/hooks",
+    "../../../standards/project-structure",
+    "../../../standards/storybook"
+  ],
+  "scanners": [
+    {
+      "path": "../../scripts/scan_potential_violations.py",
+      "needs_coding_scanlib": true
+    }
+  ],
+  "report_label": "React lint"
+}

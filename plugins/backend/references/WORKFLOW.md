@@ -22,11 +22,11 @@ Read every file in a listed standards directory, following its cross-references.
 
 | Applies to | Standards |
 | --- | --- |
-| Entity and schema work | `backend:constitution/standards/data-entity.md` |
-| Data operations, controllers, and repositories | `backend:constitution/standards/data-operation.md` |
-| TypeScript backend code | `coding:constitution/standards/universal/`, `coding:constitution/standards/function/`, `coding:constitution/standards/typescript/`, `coding:constitution/standards/naming/`, `coding:constitution/standards/testing/`, and `coding:constitution/standards/documentation/` |
-| Errors, logging, and operational behavior | `coding:constitution/standards/observability/` |
-| Python ML/AI code | `coding:constitution/standards/universal/`, `coding:constitution/standards/function/`, `coding:constitution/standards/python/`, `coding:constitution/standards/testing/`, and `coding:constitution/standards/observability/` |
-| Review | `coding:constitution/standards/code-review.md` plus the implementation standards above |
-| Files and project setup | `coding:constitution/standards/file-structure.md` |
-| Commits, branches, and pull requests | `coding:constitution/standards/git/` |
+| Entity and schema work | `backend:standards/data-entity/` |
+| Data operations, controllers, and repositories | `backend:standards/data-operation/` |
+| TypeScript backend code | `coding:standards/universal/`, `coding:standards/function/`, `coding:standards/typescript/`, `coding:standards/naming/`, `coding:standards/testing/`, and `coding:standards/documentation/` |
+| Errors, logging, and operational behavior | `coding:standards/observability/` |
+| Python ML/AI code | `coding:standards/universal/`, `coding:standards/function/`, `coding:standards/python/`, `coding:standards/testing/`, and `coding:standards/observability/` |
+| Review | `coding:standards/code-review/` plus the implementation standards above |
+| Files and project setup | `coding:standards/file-structure/` |
+| Commits, branches, and pull requests | `coding:standards/git/` |

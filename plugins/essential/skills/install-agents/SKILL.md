@@ -11,7 +11,7 @@ Installs agent templates contributed by Essential and the other enabled plugins 
 
 `scripts/install-agents.sh` is idempotent and safe to re-run:
 
-1. In a source checkout, discovers `plugins/*/templates/agents/*`; from an installed Essential plugin, reads the current harness's plugin list and discovers templates only from enabled plugins in Essential's marketplace. Codex plugin IDs and versions resolve beneath the loaded Essential cache root; marketplace source paths are never treated as installed roots.
+1. In a source checkout, discovers `plugins/*/agents/*`; from an installed Essential plugin, reads the current harness's plugin list and discovers templates only from enabled plugins in Essential's marketplace. Codex plugin IDs and versions resolve beneath the loaded Essential cache root; marketplace source paths are never treated as installed roots.
 2. Validates every `base.md` plus `frontmatter/meta.json`, `claude.json`, and `codex.json` source set, including its role-only definition name, three distinct preferred short teammate names, runtime tool inheritance, intelligence, field ownership, centralized-policy boundary, and required project-memory path and maintenance contract, and rejects malformed or duplicate names before touching the destination. Installed mode translates recognized legacy single-file intelligence or model/effort projections from lagging sibling-plugin caches; source checkouts require the split schema.
 3. Stitches all definitions into Claude Code Markdown or native Codex TOML. Shared `name`, `description`, and `intelligence` come only from `meta.json`; harness overlays contribute only harness-specific fields. `intelligence` is projected through the authoritative [intelligence matrix](references/intelligence-levels.json), which owns both harnesses' model and effort fields. Codex `nickname_candidates` are derived from the three validated preferred names in `description`. Neither `intelligence` nor the retired `intelligenceLevel` key is emitted.
 4. Copies staged definitions into the selected harness's agent directory and regenerates shared lead support under `.essential/`, overwriting discovered same-named agents while leaving unrelated and formerly managed files untouched.
@@ -59,16 +59,16 @@ In a fresh session, the roster appears in the selected harness's agent list. For
 For maintainer verification, run the deterministic contract suite:
 
 ```bash
-uvx pytest plugins/essential/skills/install-agents/scripts/test_install_agents.py
+uvx pytest plugins/essential/tests/test_install_agents.py
 ```
 
 To inspect one stitched source definition directly, select either harness:
 
 ```bash
 uv run --python 3.13 plugins/essential/skills/install-agents/scripts/stitch_agent.py \
-  plugins/coding/templates/agents/tech-lead --harness claude
+  plugins/coding/agents/tech-lead --harness claude
 uv run --python 3.13 plugins/essential/skills/install-agents/scripts/stitch_agent.py \
-  plugins/coding/templates/agents/tech-lead --harness codex
+  plugins/coding/agents/tech-lead --harness codex
 ```
 
 The stitcher resolves Essential from normal source-checkout and installed-cache

@@ -26,11 +26,11 @@ implementation teams or duplicate another skill's workflow.
   surfaces are touched (components, hooks, stories, structure, theming).
 - **Prerequisites**: set `REACT_PLUGIN_ROOT` by resolving `../..` from the
   absolute directory containing this loaded `SKILL.md`; React standards live
-  under `${REACT_PLUGIN_ROOT}/constitution/standards/`.
+  under `${REACT_PLUGIN_ROOT}/standards/`.
 
 ## Standards
 
-Standards live under `${REACT_PLUGIN_ROOT}/constitution/standards/`; rule
+Standards live under `${REACT_PLUGIN_ROOT}/standards/`; rule
 files in each standard's `rules/` directory define the prefixed violation
 codes:
 

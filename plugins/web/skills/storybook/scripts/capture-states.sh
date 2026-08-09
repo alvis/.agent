@@ -126,7 +126,9 @@ ab_eval "(function(){const el=window.__STATE_EL__;if(el){const r=el.getBoundingC
 
 # --- focus-visible screenshot ---
 FOCUS_PNG="$STORY_DIR/focus-visible.png"
-PROBE_JS_PATH="$(dirname "$0")/../injections/focus-visible-probe.js"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_DIR="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+PROBE_JS_PATH="$PLUGIN_DIR/scripts/injections/focus-visible-probe.js"
 PROBE_JS="$(cat "$PROBE_JS_PATH")"
 # Run probe and capture result.
 PROBE_PAYLOAD="$(jq -nc --arg expr "$PROBE_JS" '[["eval", $expr, "--json"]]')"

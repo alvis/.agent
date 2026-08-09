@@ -12,7 +12,7 @@ Set `GOVERNANCE_UPDATE_STANDARD_SKILL_DIR` to the absolute directory containing
 this loaded `SKILL.md` before invoking its validator.
 
 Update standard directories only under
-`plugins/<plugin>/constitution/standards/<standard-name>/`, folding requested
+`plugins/<plugin>/standards/<standard-name>/`, folding requested
 changes into the existing three tiers. `create-standard` owns missing
 standards.
 
@@ -32,9 +32,9 @@ standards.
 - **Required**: a standard path, name, or glob — or explicit `--all`.
 - **Optional**: `--changes=...` describing the requested rule or structure
   changes.
-- **Prerequisites**: [standard-meta.md](../../constitution/templates/standard-meta.md),
-  [standard-scan.md](../../constitution/templates/standard-scan.md), and
-  [standard-write.md](../../constitution/templates/standard-write.md).
+- **Prerequisites**: [standard-meta.md](../../skills/create-standard/templates/standard-meta.md),
+  [standard-scan.md](../../skills/create-standard/templates/standard-scan.md), and
+  [standard-write.md](../../skills/create-standard/templates/standard-write.md).
 
 ## Workflow
 
@@ -57,7 +57,7 @@ standards.
 5. Update every affected `rules/<lowercase-rule-id>.md` and every
    inbound/outbound local link. Preserve unrelated rule examples and IDs.
 6. For multiple independent targets, bounded delegation per
-   [delegation guidance](../../constitution/references/delegation.md) is
+   [delegation guidance](../../standards/delegation/) is
    allowed — at most 3 standard directories per batch (each directory is 3
    tier files plus rules) and 8 parallel `Task` calls per dispatch — but
    review the combined ID/dependency/link graph before validation.

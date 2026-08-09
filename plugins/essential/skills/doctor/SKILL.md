@@ -10,7 +10,7 @@ argument-hint: "[work-id] [--strict]"
 Diagnose the `.state/` work memory — centralized in the default source
 tree, so every checkout diagnoses the same one — plus durable ADR layout and
 integrity. With approval, bring findings to the latest structure. Diagnosis is
-mechanical (`engineering-doctor`); judgement is not: what "latest" means is
+mechanical (`state-doctor`); judgement is not: what "latest" means is
 whatever the current Essential contracts say, so migration is decided by
 reading them — never by a version token, and never by guessing from memory.
 
@@ -57,7 +57,7 @@ locate the active workspace and `.state/`; on `requires_ignore` or
    secondary worktrees or jj workspaces. A missing `.state/` or ADR tree is a
    clean report, not an error.
 2. **Run the doctor.** Invoke
-   `"$ESSENTIAL_ROOT/bin/engineering-doctor" --json` with the scope from
+   `"$ESSENTIAL_ROOT/skills/doctor/scripts/state-doctor" --json` with the scope from
    step 1 and `--repository-root <durable_root>`, passing `--strict` through
    when given. Collect the findings; the
    doctor is read-only. ADR findings include a `fix` offer; its silence about
@@ -114,7 +114,7 @@ locate the active workspace and `.state/`; on `requires_ignore` or
    informational items need no action and defects in prose meaning are
    surfaced as questions, not silently "fixed".
 5. **Repair under the lease.** For each approved stream: check
-   `lease.json` via `engineering-lease` — a live foreign lease stops that
+   `lease.json` via `state-lease` — a live foreign lease stops that
    stream with a report; an expired lease is claimed with the explicit
    `takeover` verb and journaled. Then apply the approved plan as ordinary
    coordinator rewrites: journal the migration first, preserve all history

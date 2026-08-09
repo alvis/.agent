@@ -7,7 +7,7 @@ from scanlib.core import Match
 from scanlib.predicates import source_files
 from scanlib.rule import Rule
 
-# ERR-HAND-02 — see plugins/coding/constitution/standards/observability/rules/err-hand-02.md
+# ERR-HAND-02 — see plugins/coding/standards/observability/rules/err-hand-02.md
 # eslint `no-empty` catches a fully empty `catch {}` but NOT a catch whose body
 # is a bare `return` — a silent swallow that still drops the error. matches
 # `catch (e) { return }` / `catch { return; }` across line breaks; the body

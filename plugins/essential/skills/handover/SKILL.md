@@ -54,7 +54,7 @@ the default source tree that carries every work stream and the global
 conventions, naming, and ownership from that reference before reading or writing
 state. Handover never mints an empty work item. Hold each selected stream's
 on-disk coordinator lease before rewriting its state in steps 5–7 with the
-idempotent `engineering-lease ensure` verb — it renews a lease this session
+idempotent `state-lease ensure` verb — it renews a lease this session
 already holds and acquires a free one; a live foreign lease (`contended`)
 stops that stream with a report. Perform the rewrites through the
 lease-verified write path in Essential's `lease.md`, bump `State revision`

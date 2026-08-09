@@ -7,7 +7,7 @@ from scanlib.core import Match
 from scanlib.predicates import source_files
 from scanlib.rule import Rule
 
-# DOC-FORM-06 — see plugins/coding/constitution/standards/documentation/rules/doc-form-06.md
+# DOC-FORM-06 — see plugins/coding/standards/documentation/rules/doc-form-06.md
 # the standard section-name vocabulary. names MUST be UPPERCASE; a standard name
 # MUST be used when it fits, otherwise a domain-specific UPPERCASE name. this
 # scanner flags dividers whose name is NOT on the standard allowlist — the name

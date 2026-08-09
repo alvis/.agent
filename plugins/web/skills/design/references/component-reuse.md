@@ -43,7 +43,7 @@ One `AskUserQuestion` call, ≤4 questions, each with a stated safe default:
 - Single-consumer components stay at the lowest tier (`rps-layout-01`); record
   them in the active work design's component inventory with source `local`.
 
-Standards: `plugins/react/constitution/standards/project-structure/rules/`
+Standards: `plugins/react/standards/project-structure/rules/`
 (`rps-promo-01`, `rps-layout-01`, `rps-ws-01`, `rps-ws-02`) and
-`plugins/web/constitution/standards/theming/rules/` (`wt-override-01`,
+`plugins/web/standards/theming/rules/` (`wt-override-01`,
 `wt-override-02`).

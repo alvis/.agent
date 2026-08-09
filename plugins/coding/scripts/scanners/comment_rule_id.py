@@ -8,11 +8,11 @@ from scanlib.predicates import source_files
 from scanlib.prefixes import derive_rule_id_prefixes
 from scanlib.rule import Rule
 
-# DOC-CONT-05 — see plugins/coding/constitution/standards/documentation/rules/doc-cont-05.md
+# DOC-CONT-05 — see plugins/coding/standards/documentation/rules/doc-cont-05.md
 # matches a known standard prefix followed by 1-3 hyphen-separated segments.
 # each trailing segment is either an UPPERCASE word (>=2 chars) or 1-3 digits.
-# the prefix whitelist is derived at import time from the live constitution
-# rules (`scanlib.prefixes.derive_rule_id_prefixes`) — no hardcoded drift.
+# the prefix whitelist is derived at import time from live standard `meta.md`
+# rule groups (`scanlib.prefixes.derive_rule_id_prefixes`) — no hardcoded drift.
 RULE_ID_PREFIXES = derive_rule_id_prefixes()
 RULE_ID_TOKEN = re.compile(
     r"\b(?:" + "|".join(RULE_ID_PREFIXES) + r")"

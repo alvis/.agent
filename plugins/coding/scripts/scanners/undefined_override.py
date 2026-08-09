@@ -7,7 +7,7 @@ from scanlib.core import Match
 from scanlib.predicates import spec_files
 from scanlib.rule import Rule
 
-# TST-DATA-04 — see plugins/coding/constitution/standards/testing/rules/tst-data-04.md
+# TST-DATA-04 — see plugins/coding/standards/testing/rules/tst-data-04.md
 # explicit `undefined` overrides (`createUser({ role: undefined })`) must be
 # omitted, not passed. matches a `<key>: undefined` property anywhere inside a
 # call argument object literal — `(` then `{` open before the property and a

@@ -38,7 +38,7 @@ that contract.
 ## Workflow
 
 Steps 2, 3, and 4 dispatch subagents per
-`plugins/governance/constitution/references/delegation.md`; skill-specific
+`plugins/governance/standards/delegation/`; skill-specific
 bounds are stated at each step.
 
 1. **Plan the run.** Parse the topic and optional focus from `$ARGUMENTS` and

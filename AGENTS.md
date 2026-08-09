@@ -24,26 +24,26 @@ Runtime prerequisites: Bash, `jq`, Git, and `uv` (which supplies Python 3.13+), 
 | Codex marketplace projection | `.agents/plugins/marketplace.json` |
 | Plugin manifests | `plugins/<p>/.{claude,codex}-plugin/plugin.json` |
 | Skill | `plugins/<p>/skills/<name>/SKILL.md` (+ `references/`, `scripts/`, `assets/`) |
-| Agent | `plugins/<p>/templates/agents/<name>/base.md` + `frontmatter/{meta,claude,codex}.json` |
-| Standard | `plugins/<p>/constitution/standards/<name>/{meta,scan,write}.md` + `rules/` |
-| Injected payload | `plugins/<p>/{ALLAGENT,MAINAGENT,SUBAGENT}.md` |
+| Agent | `plugins/<p>/agents/<name>/base.md` + `frontmatter/{meta,claude,codex}.json` |
+| Standard | `plugins/<p>/standards/<name>/{meta,scan,write}.md` + `rules/` |
+| Injected payload | `plugins/<p>/hooks/{ALLAGENT,MAINAGENT,SUBAGENT}.md` |
 | Routing table | `plugins/<p>/references/ROUTING.md` |
-| Shared executables | `plugins/essential/bin/` |
+| Shared executables | `plugins/essential/scripts/` |
 
-There are **no source `agents/` or `commands/` directories**. Agents ship as
+There are **no source `commands/` directories**. Agents ship from `agents/` as
 templates (`base.md` body + split JSON files under `frontmatter/`) that
 `/essential:install-agents` installs as Claude Markdown or Codex TOML. Every
 plugin depends on `essential`; `web` and `react` also depend on `coding`.
 
 ## The injection contract
 
-A plugin's `ALLAGENT.md`, `MAINAGENT.md`, and `SUBAGENT.md` are **shipped product**, not
+A plugin's `ALLAGENT.md`, `MAINAGENT.md`, and `SUBAGENT.md` hook payloads are **shipped product**, not
 developer docs. Each context-owning plugin's
 `plugins/<p>/hooks/hooks.json` registers hooks that pipe the file through `sed`
 and `jq` into the user's session context:
 
 ```bash
-sed "s|{{PLUGIN_DIR}}|${CLAUDE_PLUGIN_ROOT}|g" "${CLAUDE_PLUGIN_ROOT}/ALLAGENT.md" \
+sed "s|{{PLUGIN_DIR}}|${CLAUDE_PLUGIN_ROOT}|g" "${CLAUDE_PLUGIN_ROOT}/hooks/ALLAGENT.md" \
   | jq -Rs '{hookSpecificOutput:{hookEventName:"SessionStart",additionalContext:.}}'
 ```
 
@@ -69,7 +69,8 @@ these sources, and each is the rule a locally sensible change breaks first.
 
 - **One home per fact.** Give every fact exactly one authoritative file. A second mention
   is derived: it names its source and is rewritten from that source, never patched in
-  place. This is the rule behind "no central roster in a plugin's `ALLAGENT.md`" above — a
+  place. This is the rule behind "no central roster in a plugin's
+  `plugins/<p>/hooks/ALLAGENT.md`" above — a
   convenience copy is drift with a head start.
 - **Regenerate projections; never trust them.** `.state/` state, overviews, and the
   installed plugin cache are derived views, safe to delete and rebuild. Do not add a
@@ -102,9 +103,9 @@ Enforced mechanically — each with the file that enforces it.
 | `memory` is `"project"`; body has exactly one `## Memory` section | same |
 | Every injected payload ≤ 2,000 bytes, per plugin | `scripts/contract_footprint.py`, declared in `plugins/<p>/tests/test_contract_footprint.py` |
 | Every plugin's unconditional hook read chain ≤ 40,960 bytes | same |
-| `.state/` work Markdown flagged over 16,384 bytes | `plugins/essential/bin/check-markdown-size` |
+| `.state/` work Markdown flagged over 16,384 bytes | `plugins/essential/scripts/check-markdown-size` |
 | `Agent`/`Task`/`SendMessage` body ≤ 4,096 characters | `plugins/essential/references/orchestration.md` |
-| Batch ≤ ~10 resources per subagent; structured reports < 1000 tokens; ~2 retries per batch | `plugins/governance/constitution/references/delegation.md` |
+| Batch ≤ ~10 resources per subagent; structured reports < 1000 tokens; ~2 retries per batch | `plugins/governance/standards/delegation/` |
 
 A plugin declares its own payloads and unconditional hook read chain in its own test;
 the shared script holds the budgets and fails a payload the plugin ships but forgot to
@@ -118,17 +119,18 @@ distinct capitalized names.
 
 Read the rule before writing the artifact; these are the sources, not summaries.
 
-- `plugins/governance/constitution/references/authoring-invariants.md` — one coherent
+- `plugins/governance/standards/authoring/` — one coherent
   document (supersede prose, never append addenda); concision must preserve the
   executable contract; the Content Boundary Convention (`<IMPORTANT>` for hard
   guardrails, `<report>` for output contracts, every tag closed); headings are useful
   defaults, not a contract.
-- `plugins/governance/constitution/references/context-catalog.md` — the standards an
+- `plugins/governance/references/context-catalog.md` — the standards an
   agent may cite. Name a standard by its canonical path; never invent one.
-- `plugins/governance/constitution/references/delegation.md` — batching, reports, and
+- `plugins/governance/standards/delegation/` — batching, reports, and
   the message ceiling for skills that dispatch subagents.
-- `plugins/governance/constitution/templates/` — seed templates for skill, agent,
-  command, and standard. Delete every author-guide comment before shipping.
+- `plugins/governance/skills/{write-skill,create-agent,create-standard}/templates/` —
+  seed templates for their authored artifacts. Delete every author-guide comment
+  before shipping.
 
 Give every threshold its reason; the repo bans magic numbers. Skill and standard
 directory names are kebab-case and match their `name`. Agent names are role-only
@@ -144,7 +146,7 @@ One command validates this repository, with no install step:
 
 ```bash
 uvx pytest                                                              # everything
-uvx pytest plugins/essential/skills/install-agents/scripts/test_install_agents.py
+uvx pytest plugins/essential/tests/test_install_agents.py
 ```
 
 Every mechanical gate is a pytest test, so the suite and the gates cannot drift

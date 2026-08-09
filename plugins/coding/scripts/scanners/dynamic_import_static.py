@@ -7,7 +7,7 @@ from scanlib.core import Match
 from scanlib.predicates import source_files
 from scanlib.rule import Rule
 
-# TYP-IMPT-07 — see plugins/coding/constitution/standards/typescript/rules/typ-impt-07.md
+# TYP-IMPT-07 — see plugins/coding/standards/typescript/rules/typ-impt-07.md
 # matches `import(<literal>)` where the argument is a string literal or a backtick
 # template literal WITHOUT `${...}`. Catches BOTH runtime (`await import('./x')`)
 # and type-position (`typeof import('./x')`, `import('./x').Foo`) usages — the regex

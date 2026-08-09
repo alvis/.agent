@@ -37,7 +37,7 @@ Implementation patterns:
 
 ## Test Phase Context (passed to coding:complete-test)
 
-| Aspect | Unit Tests (*.spec.ts) | Integration Tests (*.spec.int.ts) |
+| Aspect | Unit Tests (*.spec.ts) | Integration Tests (*.int.spec.ts) |
 |--------|------------------------|--------------------------------------|
 | Scope | Each operation + integration | End-to-end flows |
 | Data layer | vi.fn() mocks | **Real** action.data |

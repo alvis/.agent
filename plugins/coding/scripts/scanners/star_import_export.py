@@ -7,8 +7,8 @@ from scanlib.core import Match
 from scanlib.predicates import source_files
 from scanlib.rule import Rule
 
-# TYP-IMPT-03 — see plugins/coding/constitution/standards/typescript/rules/typ-impt-03.md
-# TYP-MODL-04 — see plugins/coding/constitution/standards/typescript/rules/typ-modl-04.md
+# TYP-IMPT-03 — see plugins/coding/standards/typescript/rules/typ-impt-03.md
+# TYP-MODL-04 — see plugins/coding/standards/typescript/rules/typ-modl-04.md
 # matches BOTH wildcard forms at the start of a line (after indentation):
 #   `import * as ns from '…'`   — forbidden namespace import (TYP-IMPT-03)
 #   `export * from '…'`         — barrel wildcard re-export; legitimate only when

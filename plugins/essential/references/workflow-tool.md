@@ -1,6 +1,6 @@
 # Workflow tool — input reference
 
-What a Workflow launch request must contain. Read this before composing the tool input you send to the main agent (see `SUBAGENT.md`): the main agent launches your request **verbatim** — if it doesn't validate against this reference, the launch fails and the round-trip is wasted.
+What a Workflow launch request must contain. Read this before composing the tool input you send to the main agent (see `hooks/SUBAGENT.md`): the main agent launches your request **verbatim** — if it doesn't validate against this reference, the launch fails and the round-trip is wasted.
 
 ## Tool input parameters
 

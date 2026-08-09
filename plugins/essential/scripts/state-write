@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+# Lease-verified coordinator write for one engineering work file.
+#
+# Folds the heartbeat into the write path: verifies the presented plaintext
+# token against the lease digest, refuses when the lease is free, expired, or
+# foreign, heartbeats the lease, and applies the content by temp-file write
+# plus atomic rename — in one call. A coordinator that keeps writing through
+# this helper cannot expire its own lease by working; one that lost the lease
+# gets a hard error before the write instead of a doctor finding after it.
+#
+# usage: state-write --work-dir <dir> --token <token> \
+#          --target <work-relative path> [--content-file <path>] [--ttl <s>]
+# Content is read from --content-file, else stdin. Exit codes: 0 written,
+# 2 invalid usage, 4 lease free/expired, 5 foreign lease or wrong token.
+set -euo pipefail
+
+invalid() {
+  jq -n --arg message "$1" '{status:"invalid", error:$message}'
+  exit 2
+}
+
+sha256_hex() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    printf '%s' "$1" | sha256sum | awk '{print $1}'
+  else
+    printf '%s' "$1" | shasum -a 256 | awk '{print $1}'
+  fi
+}
+
+work_dir=""
+token=""
+target=""
+content_file=""
+ttl=1800
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --work-dir) [[ $# -ge 2 ]] || invalid "--work-dir requires a value"; work_dir="$2"; shift 2 ;;
+    --work-dir=*) work_dir="${1#--work-dir=}"; shift ;;
+    --token) [[ $# -ge 2 ]] || invalid "--token requires a value"; token="$2"; shift 2 ;;
+    --token=*) token="${1#--token=}"; shift ;;
+    --target) [[ $# -ge 2 ]] || invalid "--target requires a value"; target="$2"; shift 2 ;;
+    --target=*) target="${1#--target=}"; shift ;;
+    --content-file) [[ $# -ge 2 ]] || invalid "--content-file requires a value"; content_file="$2"; shift 2 ;;
+    --content-file=*) content_file="${1#--content-file=}"; shift ;;
+    --ttl) [[ $# -ge 2 ]] || invalid "--ttl requires a value"; ttl="$2"; shift 2 ;;
+    --ttl=*) ttl="${1#--ttl=}"; shift ;;
+    -h|--help) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 0 ;;
+    *) invalid "unknown argument: $1" ;;
+  esac
+done
+
+[[ -n "$work_dir" ]] || invalid "--work-dir is required"
+[[ -d "$work_dir" ]] || invalid "work directory does not exist: $work_dir"
+[[ ! -L "$work_dir" ]] || invalid "work directory must not be a symlink: $work_dir"
+[[ -n "$token" ]] || invalid "--token is required"
+[[ -n "$target" ]] || invalid "--target is required"
+[[ "$ttl" =~ ^[0-9]+$ && "$ttl" -gt 0 ]] || invalid "--ttl must be a positive integer"
+
+# Target must stay inside the work directory: relative, no traversal, and no
+# symlinked component anywhere on its path.
+case "$target" in
+  /*) invalid "target must be work-relative, not absolute: $target" ;;
+esac
+[[ "$target" != *".."* ]] || invalid "target must not contain traversal: $target"
+[[ "$target" == *[!/]* ]] || invalid "target must name a file: $target"
+
+work_dir="$(cd "$work_dir" && pwd -P)"
+target_path="$work_dir/$target"
+component="$work_dir"
+relative="$target"
+while [[ "$relative" == */* ]]; do
+  component="$component/${relative%%/*}"
+  relative="${relative#*/}"
+  [[ ! -L "$component" ]] || invalid "target path component is a symlink: $component"
+  if [[ -e "$component" && ! -d "$component" ]]; then
+    invalid "target path component is not a directory: $component"
+  fi
+done
+[[ ! -L "$target_path" ]] || invalid "target must not be a symlink: $target_path"
+if [[ -e "$target_path" && ! -f "$target_path" ]]; then
+  invalid "target exists and is not a regular file: $target_path"
+fi
+
+lease_path="$work_dir/lease.json"
+[[ ! -L "$lease_path" ]] || invalid "lease path must not be a symlink: $lease_path"
+
+refuse() {
+  # args: status exit-code
+  jq -n --arg status "$1" --arg lease_path "$lease_path" \
+    --argjson lease "$( [[ -f "$lease_path" ]] && jq -e . "$lease_path" 2>/dev/null || echo null )" \
+    '{status: $status, lease_path: $lease_path, lease: $lease}'
+  exit "$2"
+}
+
+[[ -f "$lease_path" ]] || refuse lease_free 4
+lease="$(jq -e . "$lease_path" 2>/dev/null)" || refuse lease_corrupt 4
+expires_epoch="$(jq -r '.expires_at_epoch // empty' <<<"$lease")"
+[[ "$expires_epoch" =~ ^[0-9]+$ && "$(date +%s)" -lt "$expires_epoch" ]] || refuse lease_expired 4
+[[ "$(sha256_hex "$token")" == "$(jq -r '.token_sha256 // empty' <<<"$lease")" ]] || refuse lease_foreign 5
+
+# Stage the content first; nothing is mutated when reading fails.
+temp="$(mktemp "$work_dir/.state-write.XXXXXX")"
+cleanup() { rm -f -- "$temp"; }
+trap cleanup EXIT
+if [[ -n "$content_file" ]]; then
+  [[ -f "$content_file" && ! -L "$content_file" ]] || invalid "content file is not a regular file: $content_file"
+  cat -- "$content_file" >"$temp"
+else
+  cat >"$temp"
+fi
+
+# Heartbeat (refresh expiry, preserve acquisition and ownership), then apply
+# the write atomically.
+now="$(date +%s)"
+"$(dirname "$0")/state-lease" heartbeat \
+  --work-dir "$work_dir" --token "$token" --ttl "$ttl" >/dev/null
+mkdir_target="$(dirname "$target_path")"
+[[ -d "$mkdir_target" ]] || mkdir -p -- "$mkdir_target"
+mv -f "$temp" "$target_path"
+trap - EXIT
+
+jq -n --arg status written --arg target "$target_path" \
+  --argjson bytes "$(wc -c <"$target_path" | tr -d ' ')" \
+  --argjson lease "$(jq -e . "$lease_path")" \
+  '{status: $status, target: $target, bytes: $bytes, lease: $lease}'

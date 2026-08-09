@@ -26,7 +26,7 @@ survivors to the canonical review file. Stream reports are not deliverables.
 ## Schema stream
 
 Compare entity models, fields, types, relationships, constraints, indexes, and
-migrations with exact work-spec sections and `standards/data-entity.md`.
+migrations with exact work-spec sections and `standards/data-entity/`.
 Contract mismatches route to alignment; defects independent of spec route to
 correctness; unsafe data boundaries route to security.
 
@@ -34,7 +34,7 @@ correctness; unsafe data boundaries route to security.
 
 Compare declared operations, verb patterns, selectors, error semantics,
 side-effects, and integration tests with exact work-spec sections and
-`standards/data-operation.md`. Missing/spec-drift operations route to alignment;
+`standards/data-operation/`. Missing/spec-drift operations route to alignment;
 test evidence gaps route to testing.
 
 ## Controller stream

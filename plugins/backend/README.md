@@ -17,4 +17,4 @@ mismatch: the marketplace entry is `backend`, the plugin manifest name is
 
 Service manifests follow `skills/build-service/references/manifest-declaration.md`.
 Agents contributed: `data-architect`, `service-implementation-engineer`,
-`ml-engineer`, `ai-research-lead`, and others under `templates/agents/`.
+`ml-engineer`, `ai-research-lead`, and others under `agents/`.

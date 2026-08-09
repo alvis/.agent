@@ -7,7 +7,7 @@ from scanlib.core import Match
 from scanlib.predicates import is_spec_file
 from scanlib.rule import Rule
 
-# TST-DATA-07 — see plugins/coding/constitution/standards/testing/rules/tst-data-07.md
+# TST-DATA-07 — see plugins/coding/standards/testing/rules/tst-data-07.md
 # an error should be asserted as a whole via `expect(error).toEqual(new Error('…'))`,
 # not split into a `toBeInstanceOf(<…>Error)` check plus a separate `.message`/
 # `.cause`/`.name` assertion. flag the `toBeInstanceOf` line whenever the same

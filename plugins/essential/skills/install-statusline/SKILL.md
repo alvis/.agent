@@ -18,7 +18,7 @@ branch label from the nearest bookmark.
 - Use for: installing the bundled statusline on a new machine, restoring it
   after removal, or repairing a broken `statusLine` configuration.
 - Do not use for: changing what the statusline renders — that is a source
-  change to the bundled `bin/statusline`, not an install task.
+  change to the bundled `scripts/statusline`, not an install task.
 
 ## Inputs
 
@@ -37,7 +37,7 @@ branch label from the nearest bookmark.
    The script is idempotent and safe to re-run. It:
 
    1. Verifies `jq` is available (aborts with an install hint if not)
-   2. Copies `bin/statusline` → `~/.claude/bin/statusline` and marks it
+   2. Copies `scripts/statusline` → `~/.claude/bin/statusline` and marks it
       executable (copy, not symlink, so it survives plugin relocation)
    3. Sets `statusLine` in `~/.claude/settings.json` to
       `{"type": "command", "command": "~/.claude/bin/statusline"}` — atomic

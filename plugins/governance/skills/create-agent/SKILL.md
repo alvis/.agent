@@ -9,7 +9,7 @@ argument-hint: "<role description> [--plugin=<owner>] [--intelligence=...] [--pe
 # Create Agent
 
 Create `base.md` plus `frontmatter/meta.json`, `claude.json`, and `codex.json`
-under `plugins/<owner>/templates/agents/<name>/` for one
+under `plugins/<owner>/agents/<name>/` for one
 genuinely distinct role, with ownership and critical settings confirmed before
 anything is written. `update-agent` owns changes to existing definitions.
 
@@ -32,10 +32,10 @@ anything is written. `update-agent` owns changes to existing definitions.
   recommendation without prompting.
 - **Owner token**: use the plugin's source-directory name under `plugins/`
   (for example, `backend`; its manifest namespace remains `theriety`).
-- **Prerequisites**: the [agent template](../../constitution/templates/agent.md),
+- **Prerequisites**: the [agent template](../../skills/create-agent/templates/agent.md),
   `role-prompt.md` beside it, and the
-  [context catalog](../../constitution/references/context-catalog.md). Follow
-  the [authoring invariants](../../constitution/references/authoring-invariants.md).
+  [context catalog](../../references/context-catalog.md). Follow
+  the [authoring standard](../../standards/authoring/).
 
 ## Workflow
 
@@ -73,7 +73,7 @@ anything is written. `update-agent` owns changes to existing definitions.
    prompts; `--yes` accepts all recommendations. No file is written before
    this gate resolves; record the confirmed settings.
 5. Create only the four canonical source files beneath the confirmed owner's
-   `templates/agents/<name>/` directory. `frontmatter/meta.json` contains
+   `agents/<name>/` directory. `frontmatter/meta.json` contains
    exactly `name`, `description`, and `intelligence`; `claude.json` contains
    only Claude-specific fields and requires `initialPrompt`; `codex.json`
    contains only native Codex-specific fields and is `{}` when none apply.
@@ -93,14 +93,14 @@ anything is written. `update-agent` owns changes to existing definitions.
    rule, and collaboration/spawn posture. "Voice" means stable role-specific
    instructions, not a disposable persona, personalized identity, or decorative biography.
 8. Add or update the task-to-agent routing row in the owning plugin's
-   `ALLAGENT.md`, creating that file if necessary. Keep only this agent's owned
-   tasks there; do not rebuild a central roster table.
+   `hooks/ALLAGENT.md`, creating that file if necessary. Keep only this
+   agent's owned tasks there; do not rebuild a central roster table.
 9. Conduct a paper-only thought experiment and blindspot test over positive
    trigger phrases, near-miss exclusions, collaboration edges, and first-turn
    behavior. If notes are written down, keep them temporary as a Markdown scratch
    document in an OS temp
    folder (for example `${TMPDIR:-/tmp}/check.md`) using
-   [check reference](../../constitution/references/check.md) as the
+   [check reference](../../references/check.md) as the
    example table format with `:white_check_mark:`/`:x:` status markers,
    and delete them before staging; they are not deliverables and must not be
    committed.
@@ -121,14 +121,14 @@ anything is written. `update-agent` owns changes to existing definitions.
   `uv run --python 3.13 python -m json.tool`.
 - Run Essential's deterministic stitch helper twice against the source directory,
   writing only to separate temporary outputs, then inspect both artifacts:
-  `uv run --python 3.13 plugins/essential/skills/install-agents/scripts/stitch_agent.py plugins/<owner>/templates/agents/<name> --harness claude --output <temporary-claude-path>`
+  `uv run --python 3.13 plugins/essential/skills/install-agents/scripts/stitch_agent.py plugins/<owner>/agents/<name> --harness claude --output <temporary-claude-path>`
   and
-  `uv run --python 3.13 plugins/essential/skills/install-agents/scripts/stitch_agent.py plugins/<owner>/templates/agents/<name> --harness codex --output <temporary-codex-path>`.
+  `uv run --python 3.13 plugins/essential/skills/install-agents/scripts/stitch_agent.py plugins/<owner>/agents/<name> --harness codex --output <temporary-codex-path>`.
 - Check placeholders, the template key allowlist and required keys, referenced
   files/aliases/skills, duplicate seams, prompt contradictions, and the owning
   plugin routing row, point-form role-specific Collaboration section, and
   `SendMessage` capability against the actual tool list. Shared delegation,
-  handoff, workflow, and review policy belongs in Essential's `ALLAGENT.md`, not
+  handoff, workflow, and review policy belongs in Essential's `hooks/ALLAGENT.md`, not
   individual agent bodies. Official runtime loading remains "not exercised" unless
   the installed loader was actually run.
 

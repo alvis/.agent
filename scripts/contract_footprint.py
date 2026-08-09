@@ -15,10 +15,15 @@ __all__ = [
 ]
 
 
-# The files a plugin may register for hook injection. `ALLAGENT.md` is re-read at
-# both SessionStart and SubagentStart, `MAINAGENT.md` at SessionStart, and
-# `SUBAGENT.md` at SubagentStart, so each is capped on its own.
-INJECTED_PAYLOADS = ("ALLAGENT.md", "MAINAGENT.md", "SUBAGENT.md")
+# The files a plugin may register for hook injection. `hooks/ALLAGENT.md` is
+# re-read at both SessionStart and SubagentStart, `hooks/MAINAGENT.md` at
+# SessionStart, and `hooks/SUBAGENT.md` at SubagentStart, so each is capped on
+# its own.
+INJECTED_PAYLOADS = (
+    "hooks/ALLAGENT.md",
+    "hooks/MAINAGENT.md",
+    "hooks/SUBAGENT.md",
+)
 PAYLOAD_BUDGET_BYTES = 2_000
 
 # The unconditional read chain created by hook injection. References guarded by

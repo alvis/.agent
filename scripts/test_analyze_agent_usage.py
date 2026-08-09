@@ -30,17 +30,13 @@ def test_discovers_distributed_agent_metadata_by_owner(tmp_path) -> None:
     plugins = tmp_path / "plugins"
     metadata = (
         plugins
-        / "web/templates/agents/frontend-implementer/frontmatter/meta.json"
+        / "web/agents/frontend-implementer/frontmatter/meta.json"
     )
     metadata.parent.mkdir(parents=True)
     metadata.write_text(
         json.dumps({"name": "frontend-implementer"}),
         encoding="utf-8",
     )
-    legacy = plugins / "web/agents/legacy.md"
-    legacy.parent.mkdir(parents=True)
-    legacy.write_text("---\nname: legacy\n---\n", encoding="utf-8")
-
     agents = discover_plugin_agents(plugins)
 
     assert set(agents) == {"web:frontend-implementer"}
@@ -51,8 +47,8 @@ def test_ignores_malformed_or_nameless_frontmatter_and_missing_root(
     tmp_path,
 ) -> None:
     plugins = tmp_path / "plugins"
-    malformed = plugins / "web/templates/agents/malformed/frontmatter/meta.json"
-    nameless = plugins / "web/templates/agents/nameless/frontmatter/meta.json"
+    malformed = plugins / "web/agents/malformed/frontmatter/meta.json"
+    nameless = plugins / "web/agents/nameless/frontmatter/meta.json"
     malformed.parent.mkdir(parents=True)
     nameless.parent.mkdir(parents=True)
     malformed.write_text("{", encoding="utf-8")

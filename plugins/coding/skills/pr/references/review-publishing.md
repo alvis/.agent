@@ -17,7 +17,7 @@ gh api --hostname "$HOST" --method POST \
 ```json
 {
   "commit_id": "<the pinned HEAD_OID>",
-  "body": "<overall review, from templates/overall-review.md>",
+  "body": "<overall review, from ../templates/overall-review.md>",
   "event": "REQUEST_CHANGES | APPROVE | COMMENT",
   "comments": [
     { "path": "src/auth/session.ts", "line": 42, "side": "RIGHT", "body": "**{{marker}} Guard the empty case** — …" },

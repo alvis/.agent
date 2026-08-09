@@ -7,7 +7,7 @@ from scanlib.core import Match
 from scanlib.predicates import is_spec_file, source_files
 from scanlib.rule import Rule
 
-# TYP-CORE-03 — see plugins/coding/constitution/standards/typescript/rules/typ-core-03.md
+# TYP-CORE-03 — see plugins/coding/standards/typescript/rules/typ-core-03.md
 # the two escape-cast forms forbidden in production code:
 #   `as unknown as <Type>` — double-cast that silently discards type info
 #   `as never`             — narrowing escape hatch

@@ -7,7 +7,7 @@ from scanlib.core import Match
 from scanlib.predicates import python_files
 from scanlib.rule import Rule
 
-# PYT-IMPT-03 — see plugins/coding/constitution/standards/python/rules/pyt-impt-03.md
+# PYT-IMPT-03 — see plugins/coding/standards/python/rules/pyt-impt-03.md
 # `from __future__ import annotations` is forbidden — it stringifies every
 # annotation (PEP 563) and breaks dataclass/Pydantic runtime introspection.
 # ruff has no rule against it (it ships the opposite FA100/FA102), so the

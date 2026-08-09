@@ -18,7 +18,7 @@ DOMAIN_PLUGINS = {
 }
 INSTRUCTION_FILE = "WORKFLOW.md"
 STANDARD_REFERENCE = re.compile(
-    r"(?<![\w-])(?:(?P<plugin>[a-z][a-z0-9-]*):)?constitution/standards/"
+    r"(?<![\w-])(?:(?P<plugin>[a-z][a-z0-9-]*):)?standards/"
 )
 PLUGINS = ROOT / "plugins"
 # Frontmatter keys whose value is prompt text an installed agent actually reads.
@@ -190,7 +190,7 @@ def mentioned_plugins(text: str, names: set[str]) -> set[str]:
 
 
 def instruction_text(plugin: Path) -> str:
-    return (plugin / "ALLAGENT.md").read_text() + (
+    return (plugin / "hooks" / "ALLAGENT.md").read_text() + (
         plugin / "references" / INSTRUCTION_FILE
     ).read_text()
 
@@ -201,7 +201,7 @@ def test_marketplace_plugins_ship_action_instruction_contracts() -> None:
 
     for name, plugin in plugins.items():
         domain = plugin / "references" / INSTRUCTION_FILE
-        agents = plugin / "ALLAGENT.md"
+        agents = plugin / "hooks" / "ALLAGENT.md"
         manifest = load_json(plugin / ".claude-plugin" / "plugin.json")
         hooks = load_json(plugin / "hooks" / "hooks.json")
 
@@ -210,7 +210,10 @@ def test_marketplace_plugins_ship_action_instruction_contracts() -> None:
         assert "hooks" not in manifest, name
         assert f"{{{{PLUGIN_DIR}}}}/references/{INSTRUCTION_FILE}" in agents.read_text()
         for event in ("SessionStart", "SubagentStart"):
-            assert any("/ALLAGENT.md" in command for command in hook_commands(hooks, event))
+            assert any(
+                "/hooks/ALLAGENT.md" in command
+                for command in hook_commands(hooks, event)
+            )
 
 
 def test_marketplace_and_plugin_versions_use_semver_from_one() -> None:
@@ -268,7 +271,7 @@ def shipped_prompts() -> list[tuple[str, str]]:
     ]
     prompts.extend(
         (f"{path.relative_to(ROOT)}:{field}", value)
-        for path in sorted(PLUGINS.glob("*/templates/agents/*/frontmatter/*.json"))
+        for path in sorted(PLUGINS.glob("*/agents/*/frontmatter/*.json"))
         for payload in (load_json(path),)
         for field in PROMPT_JSON_FIELDS
         for value in (payload.get(field),)
@@ -345,12 +348,22 @@ def test_suppressed_reporting_patterns_catch_known_phrasings() -> None:
 
 def test_instruction_contracts_list_every_owned_standard() -> None:
     for name, plugin in marketplace_plugins().items():
-        standards = plugin / "constitution" / "standards"
+        standards = plugin / "standards"
         if not standards.is_dir():
             continue
 
         text = (plugin / "references" / INSTRUCTION_FILE).read_text()
         for standard in standards.iterdir():
-            suffix = "/" if standard.is_dir() else ""
-            expected = f"{name}:constitution/standards/{standard.name}{suffix}"
+            assert standard.is_dir(), (
+                f"{name}: standard must use a directory: {standard.relative_to(plugin)}"
+            )
+            tiers = {path.name for path in standard.iterdir() if path.is_file()}
+            assert tiers == {"meta.md", "scan.md", "write.md"}, (
+                f"{name}: noncanonical standard tiers: {standard.relative_to(plugin)}"
+            )
+            rules = standard / "rules"
+            assert not rules.is_dir() or any(rules.glob("*.md")), (
+                f"{name}: empty rules directory: {rules.relative_to(plugin)}"
+            )
+            expected = f"{name}:standards/{standard.name}/"
             assert expected in text, f"{name}: missing {expected}"

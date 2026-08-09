@@ -7,7 +7,7 @@ from scanlib.core import Match
 from scanlib.predicates import source_files
 from scanlib.rule import Rule
 
-# TYP-TYPE-08 — see plugins/coding/constitution/standards/typescript/rules/typ-type-08.md
+# TYP-TYPE-08 — see plugins/coding/standards/typescript/rules/typ-type-08.md
 # Detector A: defensive instanceof-Error ternary, e.g.
 #   `e instanceof Error ? e.message : String(e)` (or `.stack`, `.cause`)
 # The false branch is intentionally NOT pinned to `String(e)`: a string-literal

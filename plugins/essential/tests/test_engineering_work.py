@@ -11,14 +11,14 @@ import pytest
 
 ESSENTIAL = Path(__file__).resolve().parents[1]
 REPOSITORY = ESSENTIAL.parents[1]
-CHECKER = ESSENTIAL / "bin/check-markdown-size"
-RESOLVER = ESSENTIAL / "bin/resolve-engineering-workspace"
+CHECKER = ESSENTIAL / "scripts/check-markdown-size"
+RESOLVER = ESSENTIAL / "scripts/resolve-state-workspace"
 # pin macOS's system bash 3.2 rather than resolving the shebang against PATH,
 # so its incident guards (e.g. an empty array expanding to "unbound variable"
 # under `set -u`) stay exercised even when a newer Homebrew bash is on PATH
 SYSTEM_BASH = "/bin/bash"
-SESSION_START = ESSENTIAL / "bin/session-start"
-SUBAGENT_START = ESSENTIAL / "bin/subagent-start"
+SESSION_START = ESSENTIAL / "hooks/scripts/session-start"
+SUBAGENT_START = ESSENTIAL / "hooks/scripts/subagent-start"
 
 
 # markdown size checker
@@ -1172,7 +1172,7 @@ def test_context_root_discovery_supports_pure_jj_subdirectories(
         [
             "bash",
             "-c",
-            f'source "{ESSENTIAL / "scripts/context.sh"}"; get_repo_root',
+            f'source "{ESSENTIAL / "hooks/scripts/context.sh"}"; get_repo_root',
         ],
         cwd=subdirectory,
         text=True,
