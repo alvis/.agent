@@ -34,11 +34,15 @@ Required exception note fields:
 - `temporary_mitigation`
 - `follow_up_action`
 
-Record exception notes in the project's standard-overrides configuration. Do
-not publish them in a PR body or comment unless repository policy explicitly
-requires disclosure.
+Record exception notes in the pull request discussion, bound to the exact head
+and base OIDs to which they apply. Repository files cannot change this
+standard's rules or thresholds.
 
-If exception note is missing, submission is rejected.
+`GIT-PR-SIZE-04` is a separate approval gate, not an exception under this
+policy: its exact five-line OWNER authorization contract applies instead, and
+the general exception-note fields do not apply. Missing authorization does not
+prevent pushing a self-contained oversized unit as a draft or running CI; it
+prevents review approval. Other missing exception notes reject submission.
 
 ## Rule Groups
 

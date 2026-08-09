@@ -1,9 +1,8 @@
 import json
 import os
-from pathlib import Path
 import shutil
 import subprocess
-
+from pathlib import Path
 
 PLUGIN = Path(__file__).resolve().parents[1]
 WRITE_PR = PLUGIN / "skills" / "pr"
@@ -328,6 +327,28 @@ def test_pr_metadata_stays_internal_and_template_owns_rationale() -> None:
     assert "reviewer-time estimate" not in standard
     assert "size counts, zone metadata" in workflow
     assert "## 🧪 Verification" in template
+
+
+def test_black_zone_requires_complete_body_and_live_authorization_receipt() -> None:
+    create_update = (WRITE_PR / "references" / "create-update.md").read_text()
+    review = (WRITE_PR / "references" / "review-workflow.md").read_text()
+    publishing = (WRITE_PR / "references" / "review-publishing.md").read_text()
+    checklist = (WRITE_PR / "references" / "review-checklist.md").read_text()
+    rule = (PLUGIN / "standards" / "git" / "rules" / "GIT-PR-SIZE-04.md").read_text()
+
+    assert (
+        "requires specific `## Risk`, `## Test plan`, and `## Why this size`"
+        in create_update
+    )
+    assert "yellow/red/black" in create_update
+    assert "Risk, Test plan, Why this size" in review
+    for contract in (review, publishing):
+        assert "`comment_url`" in contract
+        assert "`authorization_body`" in contract
+        assert "`rationale`" in contract
+        assert "sole semantic authorization-review input" in contract
+    assert "earlier fetched comment or body" in checklist
+    assert "earlier fetched comment or" in rule
 
 
 def test_archetype_is_a_preflighted_label_not_pr_content() -> None:

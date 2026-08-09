@@ -14,8 +14,8 @@ label (`rfc`, `code-spec`, `contract`, `domain-model`, `implementation`,
 body. Publication blocks when it is absent from the repository and never
 creates labels.
 
-Always required: Summary + Verification. Yellow and red zones also require
-Risk + Test plan; red also requires Why this size. Context, Implementation,
+Always required: Summary + Verification. Yellow, red, and black zones also
+require Risk + Test plan; red and black require Why this size. Context, Implementation,
 Breaking, Rollback, Feature Flag, Screenshots, Generated Files, Related,
 Boundary, and Notes are conditional.
 
@@ -32,9 +32,9 @@ Placeholders (for non-LLM callers performing literal substitution):
   context_body               no        Why this change is needed; bug links; design background. Drop section if empty.
   implementation_body        no        What was implemented; trade-offs; design choices; evidence and results. Drop section if empty.
   breaking_changes_body      no        Breaking-change list + migration notes. Drop section if commit subject lacks `!` and no `BREAKING CHANGE:` trailer.
-  risk_body                  by zone   Concrete failure modes and mitigations. Required for yellow/red.
-  test_plan_body             by zone   Checks covering the named risks. Required for yellow/red.
-  why_this_size_body         by zone   Concise, specific indivisibility rationale. Required for red.
+  risk_body                  by zone   Concrete failure modes and mitigations. Required for yellow/red/black.
+  test_plan_body             by zone   Checks covering the named risks. Required for yellow/red/black.
+  why_this_size_body         by zone   Concise, specific indivisibility rationale. Required for red/black.
   rollback_body              by type   Rollback steps or explicit forward-only mitigation. Required for migration.
   feature_flag_body          by type   Flag name, default, removal target, and rollout plan. Required for feature-flag.
   screenshots_body           by type   Before/after screenshots and relevant accessibility notes. Required for ui.
@@ -105,18 +105,18 @@ Substitution rules:
 
 ## Risk
 
-<!-- concrete failure modes, impact, and mitigations; required for yellow/red -->
+<!-- concrete failure modes, impact, and mitigations; required for yellow/red/black -->
 {{risk_body}}
 
 ## Test plan
 
-<!-- checks that exercise the named risks; required for yellow/red -->
+<!-- checks that exercise the named risks; required for yellow/red/black -->
 {{test_plan_body}}
 
 ## Why this size
 
 <!-- concise, specific reason this review surface is one indivisible change;
-     required for red; generic justification does not satisfy it. Do not add
+     required for red/black; generic justification does not satisfy it. Do not add
      file counts, zone metadata, or reviewer-time estimates. -->
 {{why_this_size_body}}
 
@@ -128,7 +128,7 @@ Substitution rules:
      rather than replace them: tests added or updated · docs updated where
      user-visible · CI green locally · no new lint or type errors.
      Add one reviewer triplet for each reviewer required by the standard-owned
-     active size-zone policy and any project override, in slot order. Do not
+     active size-zone policy, in slot order. Do not
      duplicate reviewer counts here; derive them from
      `plugins/coding/standards/git/write.md` (GIT-PR-SIZE-03):
        - [ ] Reviewer slot N assigned

@@ -27,7 +27,7 @@ owns deterministic zone calculation and the authoring gates below.
   scope.
 - Delegate noisy commands to one small read-only tester before publication and
   one small read-oriented poller after publication, following the repository
-  [delegation contract](../../../../governance/standards/delegation/).
+  delegation contract at `governance:standards/delegation/`.
 
 <IMPORTANT>
 - Ownership is singular: `coding:commit` owns direct history mutations;
@@ -418,6 +418,28 @@ EXPECTED_ARCHETYPES=$(jq -cn --arg label "$ARCHETYPE" '[$label]')
 test "$ACTUAL_ARCHETYPES" = "$EXPECTED_ARCHETYPES"
 ```
 
+Publish a genuinely necessary self-contained black-zone unit as a draft
+without prior authorization only after its canonical body supplies specific
+Risk, Test plan, and Why this size evidence. The draft is the discussion
+surface on which a repository owner may later record this exact five-line
+contract:
+
+```text
+Black-zone authorization
+Head OID: `<full-oid>`
+Base OID: `<full-oid>`
+Authorization: I authorize this one-off black-zone publication.
+Indivisibility: <atomic subject> because <coupling>; otherwise <consequence>
+```
+
+The publication workflow never posts that comment, never creates or edits an
+exception/configuration file, and never treats authorization as a prerequisite
+to push the draft or run CI. Review owns the fail-closed authorization check at
+the moment it would submit `APPROVE`. Until that check succeeds, the published
+draft remains available but review approval remains blocked. PR bodies,
+reviews, bot comments, non-OWNER comments, stale OIDs, and generic rationales
+never authorize approval.
+
 For the bundled template, fill reviewer slots with assigned `@login`s when
 known. Before a push or base edit, capture an existing PR's `headRefOid` and
 `baseRefOid`; after publication, bind review and approval to the verified
@@ -481,6 +503,14 @@ and republishes through the owned workflow; if CI instead becomes green, no
 repair is needed. Then return to step 4 and run a fresh review pass before
 completing the ordinary CI gate. Never retry a review against unchanged red-CI
 evidence.
+
+If the loop returns `action: await_owner_authorization`, record the approval
+blocker and its complete `authorization_required` list, including each PR URL
+and exact head/base OIDs, then enter step 5 without marking review convergence
+complete or retrying the review. After CI is green, report the published drafts
+with that list under `approval_blocked: authorization_required`. A later
+invocation reruns review against every then-current head and base; review alone
+verifies each authorization at the moment it would submit `APPROVE`.
 
 ### 5. Schedule and consume the initial poll
 
@@ -611,11 +641,13 @@ passes its base; text-only callers default to the first parent. Never invoke `gh
    `git merge-base <base-oid> <head-oid>` on the git path. Use the empty tree
    only for the root-commit fallback. Calculate the active `GIT-PR-SIZE-*`
    zone from every changed path and net LOC on that surface, including
-   generated and vendored paths, using project overrides when present. Record
-   the required sections for that zone. A black-zone change
-   blocks authoring unless it is split, or a project threshold override moves
-   it below black and the commit supplies an explicit `## Why this size`
-   justification.
+   generated and vendored paths. The canonical thresholds are fixed. Record
+   the required sections for that zone. A black-zone change remains black and
+   requires specific `## Risk`, `## Test plan`, and `## Why this size`
+   evidence. Author them for the exact draft head/base pair that may carry
+   later OWNER discussion authorization. The draft may be pushed and tested
+   without prior authorization; review verifies authorization only before
+   submitting `APPROVE`.
 5. Resolve the template — first hit wins, paths relative to the repo root:
 
    1. `.github/PULL_REQUEST_TEMPLATE.md`
@@ -633,7 +665,8 @@ passes its base; text-only callers default to the first parent. Never invoke `gh
    missing, empty, placeholder-only, generic, or lacks its named evidence.
    This validation never inserts category, label, title, or body metadata.
    In particular:
-   - a red-zone `## Why this size` contains specific indivisibility prose;
+   - a red- or black-zone `## Why this size` contains specific indivisibility prose,
+     and a black-zone body also contains specific Risk and Test plan evidence;
    - a `migration`, `feature-flag`, or `ui` PR supplies the corresponding
      Rollback, Feature Flag, or Screenshots evidence from step 6; and
    - whenever the review diff contains generated files, the body contains the
@@ -667,11 +700,11 @@ passes its base; text-only callers default to the first parent. Never invoke `gh
      generator. Required whenever the diff contains generated files, even when
      platform metadata marks them as generated.
    - `{{risk_body}}` — exact content under `## Risk` / `Risk:`. Required for
-     yellow/red; stop when absent rather than inventing it from the diff.
+     yellow/red/black; stop when absent rather than inventing it from the diff.
    - `{{test_plan_body}}` — exact content under `## Test plan` /
-     `Test-Plan:`. Required for yellow/red; stop when absent.
+     `Test-Plan:`. Required for yellow/red/black; stop when absent.
    - `{{why_this_size_body}}` — exact content under `## Why this size`.
-     Required for red and an allowed black-zone override. Require specific
+     Required for red and black. Require specific
      prose explaining why the surface is indivisible; stop when it is absent
      or generic. Do not render size counts, zone metadata, or reviewer-time
      estimates.
@@ -714,6 +747,11 @@ passes its base; text-only callers default to the first parent. Never invoke `gh
 - Review convergence passed on each final head with no unresolved P0/P1/P2
   finding or mandatory chore, including replies and repair heads, or
   `--no-review` was explicitly recorded.
+- Self-contained black-zone drafts may be reported as published and green while
+  carrying `approval_blocked: authorization_required` plus the complete list
+  of blocked PR URLs and exact head/base OIDs. This is not review convergence
+  or merge readiness. Only the review workflow may clear each blocker, by
+  verifying a current OWNER comment immediately before it submits `APPROVE`.
 - Report success only after the final poll observes every PR green. Include the
   stack map, resolved commit refs, the template used per change (repo path or
   bundled default), local results, review passes, replies, repair commits,

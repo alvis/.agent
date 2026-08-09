@@ -17,30 +17,30 @@ standard name or path; it cites entries from here verbatim.
 - **Every agent self-curates project memory.** Every roster definition carries `"memory": "project"` and owns
   `.claude/agent-memory/<name>/MEMORY.md`; there is no external memory steward or shared runtime memory file.
   Each definition names role-specific durable content and follows
-  `plugins/essential/templates/memory.md` for
+  `essential:templates/memory.md` for
   evidence, verification, contradiction replacement, archival, size control, and sensitive-data exclusions.
 
 ## Standards menu (stable, real paths)
 
 | Standard | Path |
 |---|---|
-| `universal` | `coding/standards/universal/` |
-| `function` | `coding/standards/function/` |
-| `typescript` | `coding/standards/typescript/` |
-| `naming` | `coding/standards/naming/` |
-| `testing` | `coding/standards/testing/` |
-| `git` | `coding/standards/git/` |
-| `documentation` | `coding/standards/documentation/` |
-| `observability` | `coding/standards/observability/` |
-| `code-review` | `coding/standards/code-review/` |
-| `file-structure` | `coding/standards/file-structure/` |
-| `python` | `coding/standards/python/` |
-| `rust` | `coding/standards/rust/` |
-| `data-entity`, `data-operation` | `backend/standards/{data-entity,data-operation}/` |
-| the design standards — `css`, `design`, `theming`, `components`, `accessibility`, `hooks`, `project-structure`, `storybook` | `web/standards/{css,design,theming}/` + `react/standards/{components,accessibility,hooks,project-structure,storybook}/` |
+| `universal` | `coding:standards/universal/` |
+| `function` | `coding:standards/function/` |
+| `typescript` | `coding:standards/typescript/` |
+| `naming` | `coding:standards/naming/` |
+| `testing` | `coding:standards/testing/` |
+| `git` | `coding:standards/git/` |
+| `documentation` | `coding:standards/documentation/` |
+| `observability` | `coding:standards/observability/` |
+| `code-review` | `coding:standards/code-review/` |
+| `file-structure` | `coding:standards/file-structure/` |
+| `python` | `coding:standards/python/` |
+| `rust` | `coding:standards/rust/` |
+| `data-entity`, `data-operation` | `backend:standards/{data-entity,data-operation}/` |
+| the design standards — `css`, `design`, `theming`, `components`, `accessibility`, `hooks`, `project-structure`, `storybook` | `web:standards/{css,design,theming}/` + `react:standards/{components,accessibility,hooks,project-structure,storybook}/` |
 
-Paths are relative to the plugin root (e.g. `universal` resolves to
-`plugins/coding/standards/universal/`). Directories (trailing slash) mean "read every file
+Paths use canonical `plugin:path` syntax (e.g. `universal` resolves to
+`coding:standards/universal/`). Directories (trailing slash) mean "read every file
 under this tree, following cross-references."
 
 ### GAP note
@@ -59,7 +59,7 @@ auth/data-protection standard is authored; do not paper over the gap by inventin
 | Task area | The functional area/module the current task touches (its own conventions, siblings, existing patterns) |
 | Repo configuration | The target repo's build/lint/test configuration (`package.json` scripts, tsconfig, eslint config, CI) |
 | Handover notes | Any paused-work/design notes left for the current task (`essential:handover` output, design docs) |
-| Repo-local standards | Repo-local standard overrides or additions layered on top of the standards above, if the target repo defines any |
+| Repo-local standards | Additional repo-local standards, if the target repo defines any; they cannot replace canonical rule IDs or thresholds |
 
 An agent's base.md names which of these it consults and states that resolution happens lazily per task — it never
 bakes in a repo path, because the agent is not scoped to one repo.
@@ -106,6 +106,6 @@ An agent's `base.md` Base Context section lists its standards subset by canonica
 verbatim from the menu above — no re-deriving), states which repo-derived context it resolves lazily, and — if it
 carries a `memory` frontmatter key — states that it self-curates `.claude/agent-memory/<name>/MEMORY.md`. See
 `../skills/create-agent/templates/agent.md` for the required `## Memory` section,
-`plugins/essential/templates/memory.md` for its maintenance schema, and
+`essential:templates/memory.md` for its maintenance schema, and
 `../skills/create-agent/templates/role-prompt.md` for how the same context
 list is compressed into an `initialPrompt` load-context clause.

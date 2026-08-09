@@ -233,16 +233,28 @@ overall body — never dropped, never posted against a guessed line.
 Classify the size zone from the same counts, and treat a missing required section
 as a finding citing its rule id:
 
+For a stack, classify each PR surface from its own head/base diff. The holistic
+bottom-base-to-top-head diff supplies review context, not one replacement size
+zone for every PR in the stack.
+
 | Zone | Bound (stricter of the two wins) | PR body must add |
 |---|---|---|
 | green | ≤ 15 files and ≤ 500 net LOC | Summary, Verification |
 | yellow | ≤ 30 files and ≤ 1200 LOC | Risk, Test plan |
 | red | ≤ 60 files and ≤ 2000 LOC | Why this size |
-| black | > 60 files or > 2000 LOC | should be split before review |
+| black | > 60 files or > 2000 LOC | Risk, Test plan, Why this size; full review of the self-contained unit; exact-revision OWNER authorization is required only for `APPROVE` |
 
-Black zone leads the overall body and caps the verdict at `COMMENT` — a review that
-cannot honestly cover the diff must not approve it. Deleted, binary, generated, and
-vendored paths carry no reviewable lines; list them as not reviewed.
+A black-zone review first judges whether the surface is genuinely one
+self-contained unit, then reviews it completely. Missing authorization does
+not suppress findings or stop a `REQUEST_CHANGES` verdict. It caps only a
+substantive `APPROVE` at `COMMENT`. Before approval, verify that the canonical
+body supplies specific Risk, Test plan, and Why this size evidence.
+Then judge only the live authorization helper receipt's `authorization_body`
+and `rationale`: its atomic subject, coupling, and split consequence must be
+specific. A generic or tautological indivisibility rationale blocks approval
+despite structural helper acceptance. An earlier fetched comment or body cannot
+authorize approval. Deleted, binary, generated, and vendored paths
+carry no reviewable lines; list them as not reviewed.
 
 ### Run the mechanical candidate scan
 
@@ -315,6 +327,30 @@ A re-review after a push adds only what is new.
 
 ### Publish the review
 
+For a black-zone surface whose substantive verdict is `APPROVE`, invoke the
+fail-closed gate immediately before building that PR's `REVIEW_PAYLOAD`. For a
+stack, run it for every black entry in `PR_SURFACES` that would receive
+`APPROVE`, binding the command to the current entry's `PR_NUMBER`, `HEAD_OID`,
+and `BASE_OID`:
+
+```bash
+bash "${CODING_PR_SKILL_DIR}/scripts/verify-black-zone-authorization.sh" \
+  "$HOST" "$OWNER/$REPO" "$PR_NUMBER" "$HEAD_OID" "$BASE_OID"
+```
+
+The helper re-reads the live PR and accepts only the exact full head/base OIDs
+and a five-line authorization comment from a human `OWNER`. Parse its compact
+JSON receipt and require `comment_url`, `comment_id`, `comment_node_id`,
+`author_login`, `head_oid`, `base_oid`, `authorization_body`, and the
+`rationale.subject`, `rationale.coupling`, and `rationale.consequence` strings.
+Use `authorization_body` and `rationale` as the sole semantic authorization-review input.
+A missing, malformed, deleted, or mutated comment, API failure,
+OID drift, or invalid receipt must cap the event at `COMMENT` and record
+`authorization_required`; never reuse an earlier receipt or substitute a
+comment body fetched before this invocation.
+`REQUEST_CHANGES` remains publishable without authorization because it cannot
+approve the PR. The review workflow never authors the OWNER comment.
+
 Build the body from
 [../templates/overall-review.md](../templates/overall-review.md)
 and submit the whole review in one atomic call, so a rejected comment cannot leave
@@ -355,7 +391,7 @@ as a third condition would leave a review with weak tests and only P3 findings
 matching no row at all while the body still needs a substantive verdict to key off.
 
 **2. Cap the event where the review cannot be trusted.** Tests unconvincing, red CI,
-black zone, a head/base value no longer equal to its pinned value, or a blocker
+a head/base value no longer equal to its pinned value, or a blocker
 prevented a full review: the event is capped at `COMMENT`. The cap beats step 1 rather than competing
 with it. A P0 raised against a revision that is no longer the head is not a blocker you
 can stand behind, and `REQUEST_CHANGES` on evidence that moved underneath you claims a
@@ -371,6 +407,10 @@ no goal or spec to resolve is the ordinary case, not a concern that failed to ru
 disclose it in the body and derive `event` from the findings and the tests as usual.
 What does hold the verdict is a concern that could not run when there was something to
 check — that is the cap in step 2.
+
+For black-zone reviews, apply the approval-time authorization gate above after
+these general trust caps. It can change only `APPROVE` to `COMMENT`; it never
+downgrades `REQUEST_CHANGES`.
 
 **3. Downgrade a self-review.** GitHub rejects `APPROVE` and `REQUEST_CHANGES` on your
 own PR. Compare the author against

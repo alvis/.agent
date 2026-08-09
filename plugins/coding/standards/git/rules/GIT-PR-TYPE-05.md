@@ -31,7 +31,7 @@ If the project supports it, configure `linguist-generated=true` and `merge=ours`
 
 ## Edge Cases
 
-- A generated file the team treats as authored (e.g. a vendored type-stub that humans edit) is not "generated" for this rule. Document the exception in the project's `standard-overrides`.
+- A generated file the team treats as authored (e.g. a vendored type-stub that humans edit) is not "generated" for this rule. Record that classification and its evidence in the PR discussion.
 - Snapshot-update-only PRs are acceptable as `cleanup` or `mechanical-refactor` and benefit from the same split.
 - Lockfile-only changes belong in their own PR (often a `chore`); they should never gate a feature stack.
 

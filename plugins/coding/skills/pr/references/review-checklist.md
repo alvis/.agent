@@ -7,12 +7,25 @@ adds what is specific to reviewing a PR diff.
 ## Depth
 
 Scale reading depth to the size zone: green reviews line by line, yellow leads
-with the key areas then goes line by line, red leads with architecture and goes
-line-level only where it matters, black says split it before reviewing further.
+with the key areas then goes line by line, and red leads with architecture and
+goes line-level only where it matters. A black PR first proves that it is one
+genuinely self-contained unit, such as a large-area edit or rename, then
+receives a full review whose depth is not capped solely by size. Authorization
+does not control review depth; it controls whether the final event may be
+`APPROVE`.
 The zone shapes how you read, never what you may find — nothing downstream can
-recover a finding you chose not to make. A black-zone review defers the
-line-level pass; it still reports the structural findings that justify the
-split, rather than withholding what it already saw.
+recover a finding you chose not to make.
+
+Before approving a black-zone PR, require specific Risk, Test plan, and Why
+this size evidence in its canonical body. Then inspect only the authorization
+helper's live structured receipt as semantic authorization evidence; do not use
+an earlier fetched comment or body. The receipt's `authorization_body` and
+`rationale` must identify an atomic
+subject, the concrete coupling that prevents a safe split, and the consequence
+of splitting in the grammar
+`<atomic subject> because <coupling>; otherwise <consequence>`. A generic or
+tautological rationale blocks approval even when the helper accepted its
+structure.
 
 Selectivity belongs to publication, not detection, and it caps only optional
 polish. Publish every P0 through P3 finding you found, however many that is;

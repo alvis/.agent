@@ -4,8 +4,17 @@ Load this reference after `coding:pr create` or `coding:pr update` has pushed
 every selected head and verified each PR's `headRefOid`. Skip it only when the
 invocation includes `--no-review`.
 
+Dispatch review without a prior authorization receipt, including for a
+self-contained black-zone draft. The review workflow performs the full review
+and owns the fail-closed authorization check only when its substantive verdict
+would submit `APPROVE`. Missing authorization caps that event at `COMMENT` and
+returns `authorization_required`; it never suppresses findings or prevents a
+`REQUEST_CHANGES` verdict. The reviewer parses the helper's live structured
+receipt and uses its `authorization_body` and `rationale` as the sole semantic
+authorization-review input; stale earlier bodies cannot authorize approval.
+
 Follow the repository
-[delegation contract](../../../../governance/standards/delegation/).
+delegation contract at `governance:standards/delegation/`.
 Partition independent stacks into sequential bottom-to-top batches of at most
 ten stack review units. A singleton PR is a one-PR stack. One fresh reviewer
 handles one batch per pass; never reuse its context for another batch or later
@@ -202,9 +211,16 @@ same hosted state. Return `action: repair_ci_then_review` with the capped PR,
 head/base map, check evidence, and every non-CI disposition already completed.
 The create/update caller enters its polling/repair phase, republishes any repair
 with `--publish-only`, then restarts review convergence with a fresh critic and
-the retry count unchanged. A cap for unconvincing tests, a moved head/base,
-black zone, or incomplete review is not CI-only and follows the ordinary
-blocker/retry path.
+the retry count unchanged. A cap for unconvincing tests, a moved head/base, or
+incomplete review is not CI-only and follows the ordinary blocker/retry path.
+
+When the only remaining cap is `authorization_required`, do not spend a review
+retry or hold back draft publication and CI. Return
+`action: await_owner_authorization` with an `authorization_required` list that
+contains every blocked PR surface, each with its `pr_url`, `head_oid`, and
+`base_oid`. The create/update caller reports the green published drafts with
+that complete list; a later update reruns review after the required OWNER
+comments exist.
 
 ## Exit gate
 
