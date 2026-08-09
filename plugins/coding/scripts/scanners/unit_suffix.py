@@ -7,7 +7,7 @@ from scanlib.core import Match
 from scanlib.predicates import source_files
 from scanlib.rule import Rule
 
-# NAM-CORE-04 — see plugins/coding/constitution/standards/naming/rules/nam-core-04.md
+# NAM-CORE-04 — see plugins/coding/standards/naming/rules/nam-core-04.md
 # bare time-related names hide their unit and invite conversion bugs. flags a
 # declaration whose identifier is EXACTLY one of the disallowed bare names —
 # `timeoutMs`, `delaySeconds` etc. are not matched because the bare token must

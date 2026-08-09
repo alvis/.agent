@@ -36,7 +36,7 @@ inside the target `.state/`.
 1. Implement the operation function with types in
    `operations/{operationName}.ts`
 2. Complete the pending test markers in
-   `spec/operations/{operationName}.spec.int.ts` drafted during the scaffold
+   `spec/operations/{operationName}.int.spec.ts` drafted during the scaffold
    step; broader coverage work routes to `coding:complete-test`
 3. Follow the patterns: types at the top of the file, selectors from
    `#selectors`, `MissingDataError` for not-found
@@ -49,7 +49,7 @@ inside the target `.state/`.
 
 ```yaml
 status: success|failure|partial
-modifications: ['operations/op.ts', 'spec/operations/op.spec.int.ts', 'source/index.ts']
+modifications: ['operations/op.ts', 'spec/operations/op.int.spec.ts', 'source/index.ts']
 generated_files: ['/absolute/path/operations/op.ts', ...]
 outputs:
   operations_implemented: ['op1', 'op2']

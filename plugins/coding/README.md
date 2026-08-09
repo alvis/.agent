@@ -39,7 +39,7 @@ Two mechanisms make saves and publication safe around AI-driven edits:
 | `coding:find-unused` | Read-only dead-code discovery. |
 | `coding:sync-tool` | Installing/updating registered CLI tools (brew, jj, gh, …). |
 
-`constitution/standards/` carries the language and workflow standards
+`standards/` carries the language and workflow standards
 (TypeScript, Python, Rust, git, naming, testing, documentation) that `lint`
 and reviewers enforce; other plugins (react, web) route their own standards
 through the same executors.

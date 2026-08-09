@@ -114,4 +114,4 @@ All descendants should be auto-rebased and free of conflicts. If conflicts appea
 | `jj edit` rejects target (immutable) | Confirm target is not on `main@origin`. If it is, route to [workflow-correct-merged.md](./workflow-correct-merged.md). |
 | Conflicts in descendants after edit | Resolve in `@` (which sits on edited change), then `jj new` and re-resolve any remaining conflicts in descendants. |
 | Multiple ancestors need edits | Switch to [workflow-retrospective.md](./workflow-retrospective.md) — single-pass absorb + blame is cheaper than serial `jj edit`. |
-| Edit changes the public API of an exported symbol | After Step 6, run the dependency check from [ALLAGENT.md](../../../ALLAGENT.md): `npm run build` in every consumer project. |
+| Edit changes the public API of an exported symbol | After Step 6, run the dependency check from [ALLAGENT.md](../../../hooks/ALLAGENT.md): `npm run build` in every consumer project. |

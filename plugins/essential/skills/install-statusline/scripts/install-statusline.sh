@@ -6,7 +6,7 @@
 set -euo pipefail
 
 SKILL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-SRC="$SKILL_DIR/bin/statusline"
+SRC="$SKILL_DIR/scripts/statusline"
 CLAUDE_DIR="$HOME/.claude"
 DEST_DIR="$CLAUDE_DIR/bin"
 DEST="$DEST_DIR/statusline"

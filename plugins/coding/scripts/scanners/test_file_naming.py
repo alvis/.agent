@@ -6,7 +6,7 @@ from scanlib.core import Match
 from scanlib.predicates import source_files
 from scanlib.rule import Rule
 
-# TST-STRU-01 — see plugins/coding/constitution/standards/testing/rules/tst-stru-01.md
+# TST-STRU-01 — see plugins/coding/standards/testing/rules/tst-stru-01.md
 # the standard mandates `.spec.ts(x)` (and `.int.spec.*` / `.e2e.spec.*`); the
 # legacy `.test.ts(x)` extension is a violation. this is a pure path check.
 TEST_SUFFIXES = (".test.ts", ".test.tsx")

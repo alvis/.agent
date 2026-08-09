@@ -20,7 +20,7 @@ def test_authoring_binds_all_deterministic_inputs_and_publication_output() -> No
 
 
 def test_canonical_template_carries_section_authoring_guidance() -> None:
-    template = (WRITE_PR / "references" / "templates" / "pr.md").read_text()
+    template = (WRITE_PR / "templates" / "pr.md").read_text()
 
     assert "what problem it solves and why" in template
     assert "design patterns" in template
@@ -58,7 +58,7 @@ def test_batch_root_base_is_bound_after_base_resolution_before_both_pushes() -> 
 
 def test_reviewer_evidence_binds_to_the_complete_review_surface() -> None:
     skill = (WRITE_PR / "references" / "create-update.md").read_text()
-    template = (WRITE_PR / "references" / "templates" / "pr.md").read_text()
+    template = (WRITE_PR / "templates" / "pr.md").read_text()
 
     assert "capture an existing PR's `headRefOid` and" in skill
     assert "`baseRefOid`" in skill
@@ -313,10 +313,9 @@ def test_stacked_local_checks_are_batched_and_cleanup_every_lease() -> None:
 
 def test_pr_metadata_stays_internal_and_template_owns_rationale() -> None:
     workflow = (WRITE_PR / "references" / "create-update.md").read_text()
-    template = (WRITE_PR / "references" / "templates" / "pr.md").read_text()
+    template = (WRITE_PR / "templates" / "pr.md").read_text()
     standard = (
         PLUGIN
-        / "constitution"
         / "standards"
         / "git"
         / "rules"
@@ -333,7 +332,7 @@ def test_pr_metadata_stays_internal_and_template_owns_rationale() -> None:
 
 def test_archetype_is_a_preflighted_label_not_pr_content() -> None:
     workflow = (WRITE_PR / "references" / "create-update.md").read_text()
-    template = (WRITE_PR / "references" / "templates" / "pr.md").read_text()
+    template = (WRITE_PR / "templates" / "pr.md").read_text()
 
     assert "Preflight the repository labels before any push" in workflow
     assert "never create or silently substitute a label" in workflow
@@ -351,7 +350,7 @@ def test_archetype_is_a_preflighted_label_not_pr_content() -> None:
 
 def test_generated_files_section_is_conditional_and_emoji_named() -> None:
     workflow = (WRITE_PR / "references" / "create-update.md").read_text()
-    template = (WRITE_PR / "references" / "templates" / "pr.md").read_text()
+    template = (WRITE_PR / "templates" / "pr.md").read_text()
 
     assert "## 🏭 Generated Files" in template
     assert "whenever any generated files exist" in template

@@ -16,10 +16,9 @@ patterns).
 | `governance:verify-skill` | Structural + policy validation of a new or changed skill, with representative trigger reasoning and optional isolated runtime checks. |
 | `governance:create-agent` | Scaffolding a new specialist agent from `base.md` plus split metadata, Claude, and Codex JSON sources. |
 | `governance:update-agent` | Migrating selected agents to the current template or a stated behavior change. |
-| `governance:create-standard` | Establishing a new standard (meta/scan/write + per-rule guides) under a plugin's constitution. |
+| `governance:create-standard` | Establishing a new standard (meta/scan/write + per-rule guides) under a plugin's `standards/`. |
 | `governance:update-standard` | Scoped rule changes and template migrations for existing standards. |
 
-`constitution/` holds the authoring templates and invariants (agent, skill,
-command, standard shells; authoring-invariants, delegation, context-catalog
-references). Validation entry point:
-`skills/write-skill/scripts/quick_validate.py`.
+`standards/` holds authoring and delegation policy, `references/` holds the
+context catalog and check format, and each authoring skill owns its templates.
+Validation entry point: `skills/write-skill/scripts/quick_validate.py`.

@@ -1,6 +1,6 @@
 ---
 name: create-standard
-description: Create a new technical standard at a plugin's canonical constitution/standards root using meta.md, scan.md, write.md, and per-rule guides. Use when establishing new coding standards, documenting technical requirements, or creating compliance guidelines for reusable policy with explicit dependencies, detection, compliant patterns, and stable rule IDs. Route existing-standard revisions to update-standard.
+description: Create a new technical standard at a plugin's canonical standards root using meta.md, scan.md, write.md, and per-rule guides. Use when establishing new coding standards, documenting technical requirements, or creating compliance guidelines for reusable policy with explicit dependencies, detection, compliant patterns, and stable rule IDs. Route existing-standard revisions to update-standard.
 model: opus
 argument-hint: "<plugin>/<standard-name> [--detail=...]"
 ---
@@ -11,7 +11,7 @@ Set `GOVERNANCE_CREATE_STANDARD_SKILL_DIR` to the absolute directory containing
 this loaded `SKILL.md` before invoking its validator.
 
 Create exactly one new directory at
-`plugins/<plugin>/constitution/standards/<standard-name>/` holding the
+`plugins/<plugin>/standards/<standard-name>/` holding the
 three-tier standard (meta.md, scan.md, write.md, rules/). `update-standard`
 owns revisions to existing standards.
 
@@ -31,15 +31,15 @@ owns revisions to existing standards.
 - **Optional**: `--detail=...` with domain specifics that shape examples and
   rule guidance.
 - **Prerequisites**: the installed governance templates
-  [standard-meta.md](../../constitution/templates/standard-meta.md),
-  [standard-scan.md](../../constitution/templates/standard-scan.md), and
-  [standard-write.md](../../constitution/templates/standard-write.md).
+  [standard-meta.md](../../skills/create-standard/templates/standard-meta.md),
+  [standard-scan.md](../../skills/create-standard/templates/standard-scan.md), and
+  [standard-write.md](../../skills/create-standard/templates/standard-write.md).
 
 ## Workflow
 
-1. Read all three tier templates, the target plugin's constitution
-   references, and neighboring standards. Search every standard under
-   `plugins/*/constitution/standards/` for the proposed prefix and rule IDs.
+1. Read all three tier templates, the target plugin's workflow references,
+   and neighboring standards. Search every standard under
+   `plugins/*/standards/` for the proposed prefix and rule IDs.
    Reject a duplicate target, duplicate prefix/ID, unknown plugin, missing
    templates, or policy that belongs to an existing owner.
 2. Define scope, non-goals, dependent standards, stricter requirements,

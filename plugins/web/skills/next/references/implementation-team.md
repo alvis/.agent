@@ -1,6 +1,6 @@
 # Implementation Team Dispatch
 
-Bounds for delegating multi-file code fixes discovered during a `next` debugging session. Delegate only when doing the edits directly would consume more session context than briefing teammates and reading their reports; small fixes stay inline. General batching, report, and decision rules live in `plugins/governance/constitution/references/delegation.md`; the values below tighten them for this skill.
+Bounds for delegating multi-file code fixes discovered during a `next` debugging session. Delegate only when doing the edits directly would consume more session context than briefing teammates and reading their reports; small fixes stay inline. General batching, report, and decision rules live in `plugins/governance/standards/delegation/`; the values below tighten them for this skill.
 
 ## Sizing
 
@@ -16,8 +16,8 @@ slice; all direct messages and hand-offs target that ID, never a role or configu
 
 Partition the file set so each implementer owns a coherent slice — by feature, route, or component cluster, never random shards. Brief each implementer with its slice, its acceptance criteria, and standards as paths only:
 
-- `plugins/react/constitution/standards/`
-- `plugins/web/constitution/standards/`
+- `plugins/react/standards/`
+- `plugins/web/standards/`
 
 Acceptance criteria for a slice are the diagnosed symptom it must clear, the files it may touch, and the build/type/test commands that must pass on it. Off-limits for every implementer, regardless of slice: build and framework configuration, database migrations and schema, dependency manifests, environment and secret files, and routes or components outside its own slice. An implementer that believes it needs one of those returns `blocked:` with the reason instead of editing it.
 

@@ -383,8 +383,8 @@ def _derive_essential_root(template_directory: Path) -> Path | None:
         candidate = parent / "essential"
         if (candidate / LEAD_AGENT_DIRECTION_PATH).is_file():
             return candidate.resolve()
-    if len(resolved_template.parents) > 2:
-        plugin_root = resolved_template.parents[2]
+    if len(resolved_template.parents) > 1:
+        plugin_root = resolved_template.parents[1]
         cache_candidate = plugin_root.parent.parent / "essential" / plugin_root.name
         if (cache_candidate / LEAD_AGENT_DIRECTION_PATH).is_file():
             return cache_candidate.resolve()

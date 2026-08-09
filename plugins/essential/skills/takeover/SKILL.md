@@ -172,7 +172,7 @@ L7. Resolve decisions that block a selected stream's next action with
 ## Shared continuation
 
 Before the first coordinator write to any selected stream, hold its on-disk
-lease with the idempotent `engineering-lease ensure` verb (Essential's
+lease with the idempotent `state-lease ensure` verb (Essential's
 `lease.md`): it acquires a free lease and renews one this session already
 holds; `contended` means a live foreign coordinator owns the stream — stop
 and report it, never write; `takeover_required` means the lease expired

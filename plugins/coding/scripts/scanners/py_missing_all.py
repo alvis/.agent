@@ -7,7 +7,7 @@ from scanlib.core import Match
 from scanlib.predicates import python_files
 from scanlib.rule import Rule
 
-# PYT-IMPT-05 — see plugins/coding/constitution/standards/python/rules/pyt-impt-05.md
+# PYT-IMPT-05 — see plugins/coding/standards/python/rules/pyt-impt-05.md
 # every public package `__init__.py` MUST declare `__all__`. ruff's F822 only
 # flags undefined names *inside* `__all__`, never an `__init__.py` that omits it
 # entirely — this scanner covers that gap.

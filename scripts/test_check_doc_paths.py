@@ -5,16 +5,14 @@ checker's findings — never on the content of any real document, which
 would recreate the change-detector antipattern the gate replaces.
 """
 
-from __future__ import annotations
-
 import importlib.util
 from pathlib import Path
 
 import pytest
 
-
 MODULE_PATH = Path(__file__).resolve().parent / "check_doc_paths.py"
 SPEC = importlib.util.spec_from_file_location("check_doc_paths", MODULE_PATH)
+assert SPEC is not None and SPEC.loader is not None
 check_doc_paths = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(check_doc_paths)
 
@@ -72,16 +70,14 @@ def test_reports_a_missing_target_with_file_and_line(root: Path) -> None:
 
     findings = check(root)
 
-    assert findings == [
-        "plugins/alpha/references/doc.md:2 → ../references/missing.md"
-    ]
+    assert findings == ["plugins/alpha/references/doc.md:2 → ../references/missing.md"]
 
 
 def test_substitutes_plugin_dir_before_resolving(root: Path) -> None:
     write(root, "plugins/alpha/references/hook.md", "x")
     write(
         root,
-        "plugins/alpha/ALLAGENT.md",
+        "plugins/alpha/hooks/ALLAGENT.md",
         "read `{{PLUGIN_DIR}}/references/hook.md` "
         "but not `{{PLUGIN_DIR}}/references/gone.md`",
     )
@@ -89,7 +85,7 @@ def test_substitutes_plugin_dir_before_resolving(root: Path) -> None:
     findings = check(root)
 
     assert findings == [
-        "plugins/alpha/ALLAGENT.md:1 → {{PLUGIN_DIR}}/references/gone.md"
+        "plugins/alpha/hooks/ALLAGENT.md:1 → {{PLUGIN_DIR}}/references/gone.md"
     ]
 
 
@@ -107,21 +103,17 @@ def test_skips_runtime_placeholder_bare_and_absolute_mentions(root: Path) -> Non
     write(
         root,
         "plugins/alpha/doc.md",
-        "\n".join(
-            (
-                "state under `.state/works/demo/goal.md`",
-                "promoted to `docs/architecture/README.md`",
-                "memory in `.claude/agent-memory/lead/MEMORY.md`",
-                "work state in `state/working.md`",
-                "review detail in `reviews/quality.md`",
-                "a target repo's `.github/PULL_REQUEST_TEMPLATE.md`",
-                "each `plugins/<p>/skills/<name>/SKILL.md`",
-                "template `references/{{SLUG}}.md`",
-                "generated `operations/{operationName}.ts`",
-                "the bare `SKILL.md` file",
-                "a machine path `/usr/local/bin/tool.sh`",
-            )
-        ),
+        "state under `.state/works/demo/goal.md`\n"
+        "promoted to `docs/architecture/README.md`\n"
+        "memory in `.claude/agent-memory/lead/MEMORY.md`\n"
+        "work state in `state/working.md`\n"
+        "review detail in `reviews/quality.md`\n"
+        "a target repo's `.github/PULL_REQUEST_TEMPLATE.md`\n"
+        "each `plugins/<p>/skills/<name>/SKILL.md`\n"
+        "template `references/{{SLUG}}.md`\n"
+        "generated `operations/{operationName}.ts`\n"
+        "the bare `SKILL.md` file\n"
+        "a machine path `/usr/local/bin/tool.sh`",
     )
 
     assert check(root) == []
@@ -180,8 +172,8 @@ def test_link_labels_are_display_prose_not_claims(root: Path) -> None:
     assert check(root) == []
 
 
-def test_resolves_against_the_plugin_constitution(root: Path) -> None:
-    write(root, "plugins/alpha/constitution/standards/testing/write.md", "x")
+def test_resolves_against_the_plugin_standards(root: Path) -> None:
+    write(root, "plugins/alpha/standards/testing/write.md", "x")
     write(
         root,
         "plugins/alpha/skills/demo/references/doc.md",

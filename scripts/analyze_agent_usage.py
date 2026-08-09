@@ -48,14 +48,14 @@ class Stats:
 
 
 def discover_plugin_agents(plugins_dir: Path) -> dict[str, dict]:
-    """Discover distributed plugins/*/templates/agents/* metadata."""
+    """Discover distributed plugins/*/agents/* metadata."""
     result: dict[str, dict] = {}
     if not plugins_dir.is_dir():
         return result
     for plugin_path in sorted(plugins_dir.iterdir()):
         if not plugin_path.is_dir():
             continue
-        agents_dir = plugin_path / "templates" / "agents"
+        agents_dir = plugin_path / "agents"
         if not agents_dir.is_dir():
             continue
         for metadata_path in sorted(agents_dir.glob("*/frontmatter/meta.json")):

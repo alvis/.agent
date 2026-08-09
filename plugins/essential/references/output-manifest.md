@@ -22,7 +22,7 @@ workspace's `.state/` (excluding any `working.md`), and runs exactly
 one pass when eligible paths remain:
 
 ```bash
-"$ESSENTIAL_ROOT/bin/check-markdown-size" \
+"$ESSENTIAL_ROOT/scripts/check-markdown-size" \
   --engineering-root "$state_root/.state" \
   "${generated_md_files[@]}"
 ```
@@ -31,8 +31,8 @@ The checker canonicalizes the declared root and every path, excludes
 traversal, symlink, and other-workspace escapes, and returns every eligible
 file greater than 16,384 bytes together (12,288 bytes is authoring guidance
 only). The gate does not apply outside `.state/`; the only separate
-limit is the 2,000-byte injection limit for Essential's `ALLAGENT.md`,
-`MAINAGENT.md`, and `SUBAGENT.md`.
+limit is the 2,000-byte injection limit for Essential's `hooks/ALLAGENT.md`,
+`hooks/MAINAGENT.md`, and `hooks/SUBAGENT.md`.
 
 No mechanical limit is not a licence to pad. This is the general length rule
 for every written artifact, and the one place it is defined: everywhere the

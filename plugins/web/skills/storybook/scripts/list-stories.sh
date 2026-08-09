@@ -53,10 +53,10 @@ for tool in jq curl agent-browser; do
   fi
 done
 
-# Resolve the script directory so we can find injections/ regardless of cwd.
+# resolve the plugin directory so we can find shared injections regardless of cwd.
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-INJECTION="$SKILL_DIR/injections/story-index.js"
+PLUGIN_DIR="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+INJECTION="$PLUGIN_DIR/scripts/injections/story-index.js"
 
 ROOT="${TMPDIR:-/tmp}/storybook-audit"
 mkdir -p "$ROOT"

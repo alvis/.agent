@@ -10,8 +10,8 @@ import pytest
 
 
 ESSENTIAL = Path(__file__).resolve().parents[1]
-DOCTOR = ESSENTIAL / "bin/engineering-doctor"
-RESOLVER = ESSENTIAL / "bin/resolve-engineering-workspace"
+DOCTOR = ESSENTIAL / "skills/doctor/scripts/state-doctor"
+RESOLVER = ESSENTIAL / "scripts/resolve-state-workspace"
 DOCTOR_SOURCE = DOCTOR.read_text(encoding="utf-8")
 
 

@@ -4,7 +4,7 @@ Loaded by `SKILL.md` Step 3. Fills in AI verdicts for findings the CLI marked `n
 
 **Step Configuration**:
 - **Purpose**: Fill in AI verdicts for findings the CLI marked `needs_ai_review`, and resolve cross-origin expansion questions
-- **Input**: `<audit-dir>/report.json` (contract v3; see `cli/audit_cli/types.py`)
+- **Input**: `<audit-dir>/report.json` (contract v3; see `../../../scripts/audit-cli/audit_cli/types.py`)
 - **Output**: `<audit-dir>/report-final.json` with `ai_verdict` populated
 - **Parallel Execution**: No
 
@@ -13,7 +13,7 @@ Claude does **not** re-run the crawl, does **not** re-audit code-shaped rules, a
 ## 3.1 Read the Report
 
 1. Read `<audit-dir>/report.json` (path captured from the CLI stdout).
-2. Validate the contract version matches v3 (see `cli/audit_cli/types.py`). If not, stop and surface the mismatch.
+2. Validate the contract version matches v3 (see `../../../scripts/audit-cli/audit_cli/types.py`). If not, stop and surface the mismatch.
 
 ## 3.2 Resolve Cross-Origin Candidates
 

@@ -3,7 +3,7 @@
 React component development standards routed over the shared Coding
 workflows. Depends on `coding` and `essential`. React owns the framework
 rules (JSX, components, hooks, accessibility, project structure, tests,
-Storybook conventions) under `constitution/standards/`; Coding owns the
+Storybook conventions) under `standards/`; Coding owns the
 generic execution and reporting they run through.
 
 ## Skills

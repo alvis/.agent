@@ -7,7 +7,7 @@ from scanlib.core import Match
 from scanlib.predicates import source_files
 from scanlib.rule import Rule
 
-# NAM-CORE-03 — see plugins/coding/constitution/standards/naming/rules/nam-core-03.md
+# NAM-CORE-03 — see plugins/coding/standards/naming/rules/nam-core-03.md
 # only `fn`, `params`, `args`, `id`, `url`, `urn`, `uri`, `meta`, `info` are
 # permitted abbreviations; everything else must be spelled out. detecting every
 # possible abbreviation needs a dictionary, so this scanner flags a curated set

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Verify that relative paths mentioned in shipped Markdown resolve to files.
 
 Scans ``plugins/**/*.md``, ``AGENTS.md``, and ``README.md`` for markdown
@@ -18,8 +17,6 @@ it marks a deliberate mention of a path that must not exist.
 Exit 0 when every mention resolves; exit 1 listing ``file:line → path``.
 """
 
-from __future__ import annotations
-
 import argparse
 import re
 import sys
@@ -30,9 +27,7 @@ LINK_PATTERN = re.compile(r"\]\(([^)\s]+)\)")
 # backticked token that looks like a repo file path; the character class
 # deliberately excludes spaces, globs, and shell metacharacters so prose
 # and command examples do not register as path mentions
-BACKTICK_PATTERN = re.compile(
-    r"`([A-Za-z0-9_./{}-]+\.(?:md|py|sh|json|ts|tsx|ya?ml))`"
-)
+BACKTICK_PATTERN = re.compile(r"`([A-Za-z0-9_./{}-]+\.(?:md|py|sh|json|ts|tsx|ya?ml))`")
 # link schemes and in-page anchors are not repo files
 NON_FILE_LINK = re.compile(r"^(?:[a-z][a-z0-9+.-]*:|#)")
 # <placeholder>, {{variable}}, and single-brace {variable} segments mark
@@ -148,9 +143,7 @@ def is_skipped(mention: str) -> bool:
     if "/" not in mention:
         return True
     # absolute paths point at a user's machine, not this repository
-    if mention.startswith("/"):
-        return True
-    return False
+    return mention.startswith("/")
 
 
 def resolution_bases(root: Path, document: Path) -> list[Path]:
@@ -168,11 +161,10 @@ def resolution_bases(root: Path, document: Path) -> list[Path]:
     if owner not in bases:
         bases.append(owner)
     # standards prose addresses paths relative to the owning plugin's
-    # constitution (`standards/file-structure.md`) or its standards
-    # directory (`testing/write.md`)
-    for constitutional in (owner / "constitution", owner / "constitution/standards"):
-        if constitutional.is_dir() and constitutional not in bases:
-            bases.append(constitutional)
+    # standards directory (`testing/write.md`)
+    standards = owner / "standards"
+    if standards.is_dir() and standards not in bases:
+        bases.append(standards)
     return bases
 
 
@@ -186,9 +178,7 @@ def classify(bases: list[Path], mention: str, owner: Path) -> str:
 
     # ../-relative mentions are anchored to the containing file alone
     if mention.startswith(("./", "../")):
-        return (
-            "resolved" if (bases[0] / mention).resolve().exists() else "unresolved"
-        )
+        return "resolved" if (bases[0] / mention).resolve().exists() else "unresolved"
 
     if any((base / mention).exists() for base in bases):
         return "resolved"

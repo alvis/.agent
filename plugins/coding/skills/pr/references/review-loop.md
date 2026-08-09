@@ -5,7 +5,7 @@ every selected head and verified each PR's `headRefOid`. Skip it only when the
 invocation includes `--no-review`.
 
 Follow the repository
-[delegation contract](../../../../governance/constitution/references/delegation.md).
+[delegation contract](../../../../governance/standards/delegation/).
 Partition independent stacks into sequential bottom-to-top batches of at most
 ten stack review units. A singleton PR is a one-PR stack. One fresh reviewer
 handles one batch per pass; never reuse its context for another batch or later

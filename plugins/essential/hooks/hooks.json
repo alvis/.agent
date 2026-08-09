@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/bin/session-start"
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/session-start"
           }
         ]
       },
@@ -13,7 +13,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sed \"s|{{PLUGIN_DIR}}|${CLAUDE_PLUGIN_ROOT}|g\" \"${CLAUDE_PLUGIN_ROOT}/ALLAGENT.md\" | jq -Rs '{hookSpecificOutput:{hookEventName:\"SessionStart\",additionalContext:.}}'"
+            "command": "sed \"s|{{PLUGIN_DIR}}|${CLAUDE_PLUGIN_ROOT}|g\" \"${CLAUDE_PLUGIN_ROOT}/hooks/ALLAGENT.md\" | jq -Rs '{hookSpecificOutput:{hookEventName:\"SessionStart\",additionalContext:.}}'"
           }
         ]
       },
@@ -21,7 +21,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if [ -n \"${PLUGIN_ROOT:-}\" ] && [ ! -f \"${CODEX_HOME:-${HOME}/.codex}/agents/tech-lead.toml\" ]; then exit 0; fi; sed \"s|{{PLUGIN_DIR}}|${CLAUDE_PLUGIN_ROOT}|g\" \"${CLAUDE_PLUGIN_ROOT}/MAINAGENT.md\" | jq -Rs '{hookSpecificOutput:{hookEventName:\"SessionStart\",additionalContext:.}}'"
+            "command": "if [ -n \"${PLUGIN_ROOT:-}\" ] && [ ! -f \"${CODEX_HOME:-${HOME}/.codex}/agents/tech-lead.toml\" ]; then exit 0; fi; sed \"s|{{PLUGIN_DIR}}|${CLAUDE_PLUGIN_ROOT}|g\" \"${CLAUDE_PLUGIN_ROOT}/hooks/MAINAGENT.md\" | jq -Rs '{hookSpecificOutput:{hookEventName:\"SessionStart\",additionalContext:.}}'"
           }
         ]
       }
@@ -31,7 +31,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/bin/subagent-start"
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/subagent-start"
           }
         ]
       },
@@ -39,7 +39,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sed \"s|{{PLUGIN_DIR}}|${CLAUDE_PLUGIN_ROOT}|g\" \"${CLAUDE_PLUGIN_ROOT}/ALLAGENT.md\" | jq -Rs '{hookSpecificOutput:{hookEventName:\"SubagentStart\",additionalContext:.}}'"
+            "command": "sed \"s|{{PLUGIN_DIR}}|${CLAUDE_PLUGIN_ROOT}|g\" \"${CLAUDE_PLUGIN_ROOT}/hooks/ALLAGENT.md\" | jq -Rs '{hookSpecificOutput:{hookEventName:\"SubagentStart\",additionalContext:.}}'"
           }
         ]
       },
@@ -47,7 +47,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sed \"s|{{PLUGIN_DIR}}|${CLAUDE_PLUGIN_ROOT}|g\" \"${CLAUDE_PLUGIN_ROOT}/SUBAGENT.md\" | jq -Rs '{hookSpecificOutput:{hookEventName:\"SubagentStart\",additionalContext:.}}'"
+            "command": "sed \"s|{{PLUGIN_DIR}}|${CLAUDE_PLUGIN_ROOT}|g\" \"${CLAUDE_PLUGIN_ROOT}/hooks/SUBAGENT.md\" | jq -Rs '{hookSpecificOutput:{hookEventName:\"SubagentStart\",additionalContext:.}}'"
           }
         ]
       }

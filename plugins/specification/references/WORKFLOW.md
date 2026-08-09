@@ -18,4 +18,4 @@ Before work delegation, read `specification:references/ROUTING.md`.
 
 ## Standards
 
-Specification owns no standards. Specifications and technical documentation follow `coding:constitution/standards/documentation/`, `coding:constitution/standards/naming/`, and `coding:constitution/standards/universal/`. Implementation additionally follows every standard selected by `coding:references/WORKFLOW.md`.
+Specification owns no standards. Specifications and technical documentation follow `coding:standards/documentation/`, `coding:standards/naming/`, and `coding:standards/universal/`. Implementation additionally follows every standard selected by `coding:references/WORKFLOW.md`.

@@ -7,7 +7,7 @@ takeover only via the explicit verb); this reference carries the choreography.
 ## Holding the lease
 
 The lease lives at `works/<work-id>/lease.json` and is operated by
-`"$ESSENTIAL_ROOT/bin/engineering-lease"` (see `--help` for verbs and
+`"$ESSENTIAL_ROOT/scripts/state-lease"` (see `--help` for verbs and
 defaults). Before the first coordinator write in a session, run the
 idempotent `ensure` verb: it acquires when the lease is free, heartbeats when
 this session already holds it, and revives an expired lease this session
@@ -26,7 +26,7 @@ more with that confirmed ID and `--bootstrap`, before delegating or creating
 any other work artifact:
 
 ```bash
-"$ESSENTIAL_ROOT/bin/resolve-engineering-workspace" \
+"$ESSENTIAL_ROOT/scripts/resolve-state-workspace" \
   --work-id=<confirmed-work-id> --bootstrap
 ```
 
@@ -48,7 +48,7 @@ paths in `bootstrap_existing`; the PM adds created paths to the combined
 ## Writing under the lease
 
 Perform every coordinator write through
-`"$ESSENTIAL_ROOT/bin/engineering-state-write"`: it verifies the presented
+`"$ESSENTIAL_ROOT/scripts/state-write"`: it verifies the presented
 token against the lease, refuses when the lease is free, expired, or foreign,
 heartbeats the lease, and applies the content by temp-file write and atomic
 rename in one call — so a working coordinator cannot expire its own lease by

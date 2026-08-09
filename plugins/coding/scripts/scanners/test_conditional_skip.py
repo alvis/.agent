@@ -7,7 +7,7 @@ from scanlib.core import Match
 from scanlib.predicates import spec_files
 from scanlib.rule import Rule
 
-# TST-CORE-11 — see plugins/coding/constitution/standards/testing/rules/tst-core-11.md
+# TST-CORE-11 — see plugins/coding/standards/testing/rules/tst-core-11.md
 # matches `describe.runIf` / `it.runIf` / `test.runIf` and the `.skipIf` variant.
 # both silently skip tests when config is missing — the rule mandates a hard
 # file-level throw instead. whitespace around the `.` is tolerated.

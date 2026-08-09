@@ -7,7 +7,7 @@ from scanlib.core import Match
 from scanlib.predicates import source_files
 from scanlib.rule import Rule
 
-# DOC-CONT-03 — see plugins/coding/constitution/standards/documentation/rules/doc-cont-03.md
+# DOC-CONT-03 — see plugins/coding/standards/documentation/rules/doc-cont-03.md
 # forbidden comment patterns: author/date stamps and modified-by history. two
 # detectors, applied only to the comment-scope portion of each line:
 #   `(modified|updated|created|authored) by`  — authorship attribution

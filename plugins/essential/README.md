@@ -9,8 +9,8 @@ installer.
 
 ## The contracts
 
-Contracts load progressively — only the small `ALLAGENT.md`/`MAINAGENT.md`/
-`SUBAGENT.md` entry points are injected into every session; everything else
+Contracts load progressively — only the small `hooks/ALLAGENT.md`,
+`hooks/MAINAGENT.md`, and `hooks/SUBAGENT.md` entry points are injected; everything else
 is read at the moment it matters.
 
 | Reference | Read when | Owns |
@@ -37,29 +37,29 @@ Templates: `templates/memory.md` (agent memory),
 `templates/initiative-manifest.template.md` (Essential's initiative-domain
 semantic authority). Domain plugins own their own semantic templates.
 
-## The tools (`bin/`)
+## The tools
 
-- **`resolve-engineering-workspace`** — resolves the work identity and paths,
+- **`scripts/resolve-state-workspace`** — resolves the work identity and paths,
   enforces the `.state/` ignore gate and symlink/traversal safety, and
   performs the PM-only no-clobber bootstrap of `goal.md`, `state.md`,
   `state/working.md`, and `state/journal.md`.
-- **`engineering-lease`** — the on-disk coordinator lease
+- **`scripts/state-lease`** — the on-disk coordinator lease
   (`ensure | acquire | heartbeat | release | status | takeover`). The file
   stores only the token's SHA-256 digest, so reading it never confers the
   lease; exactly one live token may write coordinator-owned state; a live
   foreign lease is never replaced; an expired foreign lease yields only to
   an explicit, journaled takeover.
-- **`engineering-state-write`** — the lease-verified write path: verifies
+- **`scripts/state-write`** — the lease-verified write path: verifies
   the presented token, refuses free/expired/foreign leases, heartbeats, and
   applies the temp-write + atomic rename in one call, so a working
   coordinator can never expire its own lease by working.
-- **`engineering-doctor`** — read-only structural checker: duplicate or
+- **`skills/doctor/scripts/state-doctor`** — read-only structural checker: duplicate or
   malformed task IDs, dangling dependencies, cycles, impossible roll-ups,
   contradictory mark/status pairs, missing evidence annotations, broken file
   references, unsuperseded decisions, ADR archive/index/integrity drift, stale
   leases, overview drift. Advisory by default; `--strict` for irreversible or
   release-critical moments. It never silently edits files.
-- **`check-markdown-size`** — the 16,384-byte gate for work Markdown.
+- **`scripts/check-markdown-size`** — the 16,384-byte gate for work Markdown.
 
 ## Skills
 

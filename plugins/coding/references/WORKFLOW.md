@@ -53,18 +53,18 @@ Read every file in each applicable standards directory, following its cross-refe
 
 | Applies to | Standards |
 | --- | --- |
-| All implementation work | `coding:constitution/standards/universal/` |
-| Functions, methods, and APIs | `coding:constitution/standards/function/` |
-| TypeScript and JavaScript | `coding:constitution/standards/typescript/` |
-| Identifiers and operation names | `coding:constitution/standards/naming/` |
-| Tests and testable implementation | `coding:constitution/standards/testing/` |
-| Commits, branches, and pull requests | `coding:constitution/standards/git/` |
-| Comments, JSDoc, and technical documentation | `coding:constitution/standards/documentation/` |
-| Errors, logging, and operational behavior | `coding:constitution/standards/observability/` |
-| Python | `coding:constitution/standards/python/` |
-| Rust | `coding:constitution/standards/rust/` |
-| Semantic review | `coding:constitution/standards/code-review.md` plus the implementation standards above |
-| New or moved files and project setup | `coding:constitution/standards/file-structure.md` |
+| All implementation work | `coding:standards/universal/` |
+| Functions, methods, and APIs | `coding:standards/function/` |
+| TypeScript and JavaScript | `coding:standards/typescript/` |
+| Identifiers and operation names | `coding:standards/naming/` |
+| Tests and testable implementation | `coding:standards/testing/` |
+| Commits, branches, and pull requests | `coding:standards/git/` |
+| Comments, JSDoc, and technical documentation | `coding:standards/documentation/` |
+| Errors, logging, and operational behavior | `coding:standards/observability/` |
+| Python | `coding:standards/python/` |
+| Rust | `coding:standards/rust/` |
+| Semantic review | `coding:standards/code-review/` plus the implementation standards above |
+| New or moved files and project setup | `coding:standards/file-structure/` |
 
 ## While Coding
 

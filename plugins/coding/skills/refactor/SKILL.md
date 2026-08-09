@@ -66,8 +66,7 @@ complexity), `documentation/write` (JSDoc and inline comments), and
    the context). Never split into arbitrary sibling files (e.g.
    `foo.schema.ts`, `foo.parse.ts`) unless that naming is already an
    established project convention. The full rule and examples live in the
-   coding constitution's `standards/file-structure.md` under "Splitting Long
-   Files".
+   coding plugin's `standards/file-structure/` under "Long-File Decomposition."
 3. **Improve readability** (focus `naming` or `all`). Apply naming standards
    to variables, functions, and files; simplify complex expressions; improve
    flow and logical grouping; remove dead code and unnecessary comments.

@@ -1,6 +1,6 @@
 # Per-Commit Atomic Finalize — procedure (jj + git)
 
-Referenced from SKILL.md Step 3. Run by one `model:'haiku'` agent per commit. Finalizes EXACTLY ONE commit through seven sub-steps — replay, isolate, marker-check, gate, fold, reword, mark — that execute inside ONE dispatch. The operation is atomic: no sub-step may be deferred to a later phase or batched across commits, a commit is never left QA'd-but-unfolded, and the walk never advances past an unfolded commit. Patch-id marker mechanics: `markers.md`. Conventional Commits contract: `../../commit/references/conventional-commits.md`. Inline `GIT-MSG-*` rules: `../../../constitution/standards/git/write.md`.
+Referenced from SKILL.md Step 3. Run by one `model:'haiku'` agent per commit. Finalizes EXACTLY ONE commit through seven sub-steps — replay, isolate, marker-check, gate, fold, reword, mark — that execute inside ONE dispatch. The operation is atomic: no sub-step may be deferred to a later phase or batched across commits, a commit is never left QA'd-but-unfolded, and the walk never advances past an unfolded commit. Patch-id marker mechanics: `markers.md`. Conventional Commits contract: `../../commit/references/conventional-commits.md`. Inline `GIT-MSG-*` rules: `../../../standards/git/write.md`.
 
 Ownership: this reference observes, gates, and **validates** corrections inside disposable worktrees. Every history mutation that lands on an owning commit — fold, amend, reword, snapshot bracket, checkpoint, head move — is **applied by `coding:commit`** on request, with the exact operation and target named. The commands shown below for those steps are the operations to request, not commands this skill's workers run against the user's stack.
 
@@ -46,7 +46,7 @@ Compute the commit's lock-excluded patch id (`markers.md`). If a green marker wi
 
 ## Step 4 — QA gate (install + lint + test/coverage, together)
 
-One indivisible gate, run whole inside the worktree. A commit that skips any leg is NOT green, and the gate is never split across phases or batched across commits. Always prefer project scripts over raw tools (per coding ALLAGENT.md); run in order, stop at first hard failure:
+One indivisible gate, run whole inside the worktree. A commit that skips any leg is NOT green, and the gate is never split across phases or batched across commits. Always prefer project scripts over raw tools (per coding hooks/ALLAGENT.md); run in order, stop at first hard failure:
 
 1. **install** — project install (e.g. `npm ci` / `pnpm install`). Failure → `pending_decision { kind: test_fail, detail: install }` (rare; usually environmental).
 2. **lint `--fix`** — run the project lint with autofix. Lint and lockfile fixes are validated in the worktree without a user prompt.
@@ -76,7 +76,7 @@ The lockfile this commit's OWN install regenerated is a MANDATORY part of the fo
 
 ## Step 6 — Message conformance
 
-1. Read the current subject. Validate against the regex and rules in `../../commit/references/conventional-commits.md` and the `GIT-MSG-*` rules in `../../../constitution/standards/git/write.md`. Sample repo style: `git log --format=%s -n 50`.
+1. Read the current subject. Validate against the regex and rules in `../../commit/references/conventional-commits.md` and the `GIT-MSG-*` rules in `../../../standards/git/write.md`. Sample repo style: `git log --format=%s -n 50`.
 2. **Mechanical fixes — no user prompt needed**: type prefix casing, trailing-period removal, length trim (≤50 target / ≤72 hard), imperative-mood correction, scope kebab-casing, dropping catalog prefixes. Request the reword from `coding:commit`; the operations it applies:
    - **jj**: `jj describe -r <rev> -m "<subject>"`
    - **git**: `git commit --amend --no-verify -m "<subject>"` (against the replayed commit, before the checkpoint)

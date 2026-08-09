@@ -8,7 +8,7 @@ Triggered when the proposed work is **completely unrelated** to the work current
 - Proposed work touches a disjoint set of files / packages / scopes
 - No semantic dependency between the two tasks
 
-If proposed work shares any files or layering with `@`, do NOT branch off — keep working in place per [ALLAGENT.md](../../../ALLAGENT.md) §2.
+If proposed work shares any files or layering with `@`, do NOT branch off — keep working in place per [ALLAGENT.md](../../../hooks/ALLAGENT.md) §2.
 
 ## Strict guard: `git worktree` ≠ `jj workspace`
 

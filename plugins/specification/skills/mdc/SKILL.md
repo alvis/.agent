@@ -60,7 +60,7 @@ Full grammar: [references/syntax.md](references/syntax.md). Marker rationale:
    absolute `engineering-work.md` path injected by Essential. If unavailable,
    stop artifact writes and report the missing contract. This gate applies to
    `edit` and `author`; read mode remains non-mutating. Run the absolute
-   `bin/resolve-engineering-workspace` path declared by that reference, passing
+   `scripts/resolve-state-workspace` path declared by that reference, passing
    `--work-id` only for an explicit override. Use paths only from `resolved`;
    ask on `work_id_required` and stop/report on `requires_ignore`. If the
    resolver is missing, non-executable, or refuses the workspace, stop before

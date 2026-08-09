@@ -8,7 +8,7 @@ argument-hint: "<agent path, name, or glob> [--changes=...] [--all]"
 
 # Update Agent
 
-Find selected source sets under `plugins/*/templates/agents/<name>/`, then update
+Find selected source sets under `plugins/*/agents/<name>/`, then update
 their `base.md` and split `frontmatter/{meta,claude,codex}.json` to the current template or a
 stated behavior change. `create-agent` owns genuinely new roles.
 
@@ -29,16 +29,16 @@ stated behavior change. `create-agent` owns genuinely new roles.
   configuration, or template migration.
 - **Owner token**: paths and ownership use the source-directory name under
   `plugins/` (for example, `backend`; its manifest namespace is `theriety`).
-- **Prerequisites**: the [agent template](../../constitution/templates/agent.md),
+- **Prerequisites**: the [agent template](../../skills/create-agent/templates/agent.md),
   `role-prompt.md` beside it, and the
-  [context catalog](../../constitution/references/context-catalog.md). Follow
-  the [authoring invariants](../../constitution/references/authoring-invariants.md).
+  [context catalog](../../references/context-catalog.md). Follow
+  the [authoring standard](../../standards/authoring/).
 
 ## Workflow
 
-1. Search every plugin's `templates/agents/` directory for the selector. Read
+1. Search every plugin's `agents/` directory for the selector. Read
    the agent template, `role-prompt.md`, the context catalog, the owning
-   plugin's `ALLAGENT.md`, relevant team edges, every selected source set, and real callers. List exact
+   plugin's `hooks/ALLAGENT.md`, relevant team edges, every selected source set, and real callers. List exact
    targets before mutation. Reject missing or malformed source sets, ambiguous
    globs, locked/in-use targets, or a request that actually creates a new
    role.
@@ -84,14 +84,14 @@ stated behavior change. `create-agent` owns genuinely new roles.
    test. If notes are written down, keep them temporary as a Markdown scratch
    document in an OS temp
    folder (for example `${TMPDIR:-/tmp}/check.md`) using
-   [check reference](../../constitution/references/check.md) as the
+   [check reference](../../references/check.md) as the
    example table format with `:white_check_mark:`/`:x:` status markers,
    and delete them before staging; they are not deliverables and must not be
    committed. Keep the task-to-agent row in the
-   owning plugin's `ALLAGENT.md` aligned with the resulting trigger surface; do
+   owning plugin's `hooks/ALLAGENT.md` aligned with the resulting trigger surface; do
    not create a central routing table or widen role ownership incidentally.
 8. Independent targets may be delegated per
-   [delegation guidance](../../constitution/references/delegation.md) in
+   [delegation guidance](../../standards/delegation/) in
    bounded batches — one agent source set per subagent, never exceeding the declared
    task-wide child-spawn budget (default three new children) — but each assignment must name exact source sets and
    protected behavior. Review the integrated diff for cross-agent trigger and
@@ -104,9 +104,9 @@ stated behavior change. `create-agent` owns genuinely new roles.
 
 - Run Essential's deterministic stitch helper twice for every selected source set,
   writing only separate temporary outputs, and inspect both generated definitions:
-  `uv run --python 3.13 plugins/essential/skills/install-agents/scripts/stitch_agent.py plugins/<owner>/templates/agents/<name> --harness claude --output <temporary-claude-path>`
+  `uv run --python 3.13 plugins/essential/skills/install-agents/scripts/stitch_agent.py plugins/<owner>/agents/<name> --harness claude --output <temporary-claude-path>`
   and
-  `uv run --python 3.13 plugins/essential/skills/install-agents/scripts/stitch_agent.py plugins/<owner>/templates/agents/<name> --harness codex --output <temporary-codex-path>`.
+  `uv run --python 3.13 plugins/essential/skills/install-agents/scripts/stitch_agent.py plugins/<owner>/agents/<name> --harness codex --output <temporary-codex-path>`.
 - Always parse all three JSON files with
   `uv run --python 3.13 python -m json.tool`, check for
   placeholders, and validate the key surface, intelligence level,

@@ -52,9 +52,9 @@ SCHEMA_KEYWORDS = {
 }
 SKILL_NAME = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 CONTEXT_PAYLOAD_EVENTS = {
-    "ALLAGENT.md": {"SessionStart", "SubagentStart"},
-    "MAINAGENT.md": {"SessionStart"},
-    "SUBAGENT.md": {"SubagentStart"},
+    "hooks/ALLAGENT.md": {"SessionStart", "SubagentStart"},
+    "hooks/MAINAGENT.md": {"SessionStart"},
+    "hooks/SUBAGENT.md": {"SubagentStart"},
 }
 RESOURCE_ROOT = re.compile(
     r"\$\{([A-Z][A-Z0-9_]*_(?:PLUGIN_ROOT|PLUGIN_DIR|SKILL_DIR))\}"
@@ -312,13 +312,6 @@ def test_shared_skills_follow_the_cross_harness_agent_skills_contract() -> None:
 def shared_codex_skill_root_violations(plugin_root: Path) -> list[str]:
     violations = []
     claude_only_roots = ("CLAUDE_PLUGIN_ROOT", "CLAUDE_SKILL_DIR")
-    install_agents_test = Path(
-        "essential/skills/install-agents/scripts/test_install_agents.py"
-    )
-    install_agents_fixture_literals = (
-        '            env["CLAUDE_PLUGIN_ROOT"] = str(essential)',
-        '    assert "CLAUDE_PLUGIN_ROOT" not in codex_instructions',
-    )
 
     for path in sorted(plugin_root.glob("*/skills/**/*")):
         if not path.is_file():
@@ -344,9 +337,6 @@ def shared_codex_skill_root_violations(plugin_root: Path) -> list[str]:
             "essential/skills/install-agents/SKILL.md"
         ):
             content = content.split("# Codex", 1)[1]
-        if relative_path == install_agents_test:
-            for literal in install_agents_fixture_literals:
-                content = content.replace(literal, "")
         for variable in claude_only_roots:
             if variable in content:
                 violations.append(f"{relative_path}: {variable}")
@@ -671,7 +661,7 @@ def test_codex_role_bindings_wait_for_installed_custom_agents(
         command = next(
             command
             for command in hook_commands(hooks, "SessionStart")
-            if command_references_payload(command, "MAINAGENT.md")
+            if command_references_payload(command, "hooks/MAINAGENT.md")
         )
         base_env = os.environ | {
             "CLAUDE_PLUGIN_ROOT": str(plugin_root),

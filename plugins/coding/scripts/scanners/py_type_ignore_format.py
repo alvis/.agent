@@ -7,7 +7,7 @@ from scanlib.core import Match
 from scanlib.predicates import python_files
 from scanlib.rule import Rule
 
-# PYT-CORE-03 — see plugins/coding/constitution/standards/python/rules/pyt-core-03.md
+# PYT-CORE-03 — see plugins/coding/standards/python/rules/pyt-core-03.md
 # every suppression MUST read exactly `# type: ignore[code]  # reason: <text>`
 # — a specific error code AND a reason comment separated by two spaces.
 TYPE_IGNORE = re.compile(r"#\s*type:\s*ignore(?P<tail>.*)$")

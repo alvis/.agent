@@ -18,7 +18,7 @@ target repository:
 ```bash
 ENGINEERING_WORK_REFERENCE='<absolute engineering-work.md path injected by Essential>'
 ESSENTIAL_ROOT="$(cd "$(dirname "$ENGINEERING_WORK_REFERENCE")/.." && pwd)"
-"$ESSENTIAL_ROOT/bin/resolve-engineering-workspace"
+"$ESSENTIAL_ROOT/scripts/resolve-state-workspace"
 ```
 
 A normal invocation is read-only; `--bootstrap` is the explicit PM-only
@@ -97,7 +97,7 @@ docs                                       # versioned docs in the active workin
 
 Generated semantic and operational project Markdown filenames are lowercase.
 Durable directory entrypoints use the fixed runtime name `README.md`; plugin
-control files with fixed runtime names (`SKILL.md`, `ALLAGENT.md`, …) keep
+control files with fixed runtime names (`SKILL.md`, `hooks/ALLAGENT.md`, …) keep
 them.
 
 Before writing versioned docs, read
@@ -292,7 +292,7 @@ cleared the `requires_ignore` gate writes nothing at all and reports.
 
 ## Structural doctor
 
-`"$ESSENTIAL_ROOT/bin/engineering-doctor" --work-dir <work_dir> \
+`"$ESSENTIAL_ROOT/skills/doctor/scripts/state-doctor" --work-dir <work_dir> \
   --repository-root <durable_root>` is a
 read-only structural checker (broken IDs, cycles, contradictory statuses,
 missing evidence annotations, dead links, unsuperseded decisions, lease

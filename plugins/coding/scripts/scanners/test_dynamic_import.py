@@ -7,7 +7,7 @@ from scanlib.core import Match
 from scanlib.predicates import spec_files
 from scanlib.rule import Rule
 
-# TST-CORE-08 — see plugins/coding/constitution/standards/testing/rules/tst-core-08.md
+# TST-CORE-08 — see plugins/coding/standards/testing/rules/tst-core-08.md
 # tests must keep imports static; ANY `import(` call in a spec file is a
 # violation (static OR computed path) — broader than the production
 # `dynamic-import-static` rule, which only flags statically-known paths.

@@ -17,13 +17,13 @@ Read every file in each applicable standards directory, following its cross-refe
 
 | Applies to | Standards |
 | --- | --- |
-| Components and props | `react:constitution/standards/components/` plus `react:constitution/standards/accessibility/` |
-| Hooks | `react:constitution/standards/hooks/` |
-| Placement and promotion | `react:constitution/standards/project-structure/` |
-| Stories | `react:constitution/standards/storybook/` |
-| All React implementation | `coding:constitution/standards/universal/`, `coding:constitution/standards/function/`, `coding:constitution/standards/typescript/`, `coding:constitution/standards/naming/`, `coding:constitution/standards/testing/`, and `coding:constitution/standards/documentation/` |
-| Files and project setup | `coding:constitution/standards/file-structure.md` |
-| Review | `coding:constitution/standards/code-review.md` plus the React standards above |
-| Commits, branches, and pull requests | `coding:constitution/standards/git/` |
+| Components and props | `react:standards/components/` plus `react:standards/accessibility/` |
+| Hooks | `react:standards/hooks/` |
+| Placement and promotion | `react:standards/project-structure/` |
+| Stories | `react:standards/storybook/` |
+| All React implementation | `coding:standards/universal/`, `coding:standards/function/`, `coding:standards/typescript/`, `coding:standards/naming/`, `coding:standards/testing/`, and `coding:standards/documentation/` |
+| Files and project setup | `coding:standards/file-structure/` |
+| Review | `coding:standards/code-review/` plus the React standards above |
+| Commits, branches, and pull requests | `coding:standards/git/` |
 
 React does not declare another framework or design plugin as a dependency; do not load standards or skills from one.

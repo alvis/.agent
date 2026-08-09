@@ -64,7 +64,7 @@ that contract; a run lives under `artifacts/autoresearch/<semantic-slug>/`.
 ## Workflow
 
 Subagent dispatch in steps 4, 5, and 7 follows
-`plugins/governance/constitution/references/delegation.md`, tightened by the
+`plugins/governance/standards/delegation/`, tightened by the
 brief's own bounds (fanout, judge count, refute passes) named below.
 
 1. **Classify the invocation.** `--resume` wins; else `--brief` or a positional

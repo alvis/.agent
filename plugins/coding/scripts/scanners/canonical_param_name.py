@@ -7,8 +7,8 @@ from scanlib.core import Match
 from scanlib.predicates import source_files
 from scanlib.rule import Rule
 
-# NAM-TYPE-02 — see plugins/coding/constitution/standards/naming/rules/nam-type-02.md
-# FUNC-SIGN-03 — see plugins/coding/constitution/standards/function/rules/func-sign-03.md
+# NAM-TYPE-02 — see plugins/coding/standards/naming/rules/nam-type-02.md
+# FUNC-SIGN-03 — see plugins/coding/standards/function/rules/func-sign-03.md
 # the canonical vocabulary is `params`, `query`, `input`, `options`, `data`,
 # `config`, `context`, `details`, `logger`, `id`. flagging EVERY non-canonical
 # parameter would be far too noisy (domain params like `user`, `amount` are

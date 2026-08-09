@@ -5,7 +5,7 @@ Referenced from SKILL.md Workflow steps 6–8. Defines how the lead runs batches
 ## Lead rules (orchestration only)
 
 - **DO**: discover files, create batches, spawn teammates, manage lifecycle, aggregate results.
-- **DO NOT**: read standard files, run the scanner, apply standards, lint, review, or fix — teammates do all of it. Never `Read` any path containing `constitution/standards/`; pass the full standard file paths to teammates as strings.
+- **DO NOT**: read standard files, run the scanner, apply standards, lint, review, or fix — teammates do all of it. Never `Read` any path containing `standards/`; pass the full standard file paths to teammates as strings.
 - **DO NOT** assign new tasks to any agent that reported `context_level` >= 60% — retire it instead.
 - Reviewer lifecycle is managed on `ok`/`blocked` + `context_level` reports only. Detailed findings go in a bounded review artifact sent directly to the linter's `agent_id`; they never pass through the lead.
 

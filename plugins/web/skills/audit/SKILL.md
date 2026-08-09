@@ -64,7 +64,7 @@ discovery.
    ```bash
    SKILL_DIR="${WEB_AUDIT_SKILL_DIR}"
    OUT="<work-dir>/artifacts/web-audit/<audit-slug>"
-   PYTHONPATH="$SKILL_DIR/cli" python3 -m audit_cli audit "$TARGET" \
+   PYTHONPATH="$SKILL_DIR/../../scripts/audit-cli" python3 -m audit_cli audit "$TARGET" \
      --out "$OUT" --viewport all --max-pages 25 --cdp-url "$CDP_URL"
    ```
 

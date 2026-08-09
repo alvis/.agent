@@ -52,13 +52,14 @@ Practical consequences you will see day to day:
   hash or immutable revision, the reviewer, and the scope. An approval of v7
   never silently carries to v8.
 - **Concurrency is technical, not social.** One coordinator per work stream
-  holds an on-disk lease (`engineering-lease`); state writes are atomic and
+  holds an on-disk lease (`state-lease`); state writes are atomic and
   bump a monotonic `State revision`; an append-only journal records causality
   so drift between tables is settled by evidence, not guesswork. A small
-  read-only `engineering-doctor` catches structural defects (cycles,
+  read-only `state-doctor` catches structural defects (cycles,
   dangling dependencies, contradictory statuses) without ever judging prose.
-- **Context is revealed progressively.** Only the tiny `ALLAGENT.md` /
-  `MAINAGENT.md` / `SUBAGENT.md` entry points are injected into every
+- **Context is revealed progressively.** Only the tiny
+  `plugins/<p>/hooks/ALLAGENT.md` / `plugins/<p>/hooks/MAINAGENT.md` /
+  `plugins/<p>/hooks/SUBAGENT.md` entry points are injected into every
   session. Contracts load on demand at the moment they matter, so agents
   spend context on your work, not on ceremony.
 
@@ -233,9 +234,9 @@ or PR publication only after the local flow is understood.
 
 ## Agent team
 
-A 23-agent team for Claude Code organized into a main-session Project Manager, domain leads, and their teammates. Shared operation lives in `plugins/essential/ALLAGENT.md` and `MAINAGENT.md`, subagent conduct including the Workflow-proxy protocol lives in `plugins/essential/SUBAGENT.md`, owner-specific routing lives in each contributing plugin's `ALLAGENT.md`, and per-agent delegation topology lives in each agent definition. A plugin that owns a domain lead also carries a `MAINAGENT.md`, injected at `SessionStart` only, binding the main agent to hand that domain's work to the lead rather than decomposing it itself: `coding` to `tech-lead`, `web` to `design-lead`, and `backend` to `ai-research-lead`. Each of those leads wraps its `## Collaboration` map in an `<IMPORTANT>` tag, marking it as the map the lead routes from.
+A 23-agent team for Claude Code organized into a main-session Project Manager, domain leads, and their teammates. Shared operation lives in `plugins/essential/hooks/ALLAGENT.md` and `plugins/essential/hooks/MAINAGENT.md`, subagent conduct including the Workflow-proxy protocol lives in `plugins/essential/hooks/SUBAGENT.md`, owner-specific routing lives in each contributing plugin's `plugins/<owner>/hooks/ALLAGENT.md`, and per-agent delegation topology lives in each agent definition. A plugin that owns a domain lead also carries a `plugins/<owner>/hooks/MAINAGENT.md`, injected at `SessionStart` only, binding the main agent to hand that domain's work to the lead rather than decomposing it itself: `coding` to `tech-lead`, `web` to `design-lead`, and `backend` to `ai-research-lead`. Each of those leads wraps its `## Collaboration` map in an `<IMPORTANT>` tag, marking it as the map the lead routes from.
 
-Install via the `essential:install-agents` skill (ask Claude to "install the agents"). Canonical sources live under `plugins/<owner>/templates/agents/<name>/` as `base.md` plus `frontmatter/meta.json`, `claude.json`, and `codex.json`. The installer discovers source-checkout siblings or enabled same-marketplace plugins, validates the complete discovered roster, stages stitched files, and copies them into the selected harness's personal agent directory. It overwrites current same-named discoveries and leaves unrelated or stale files untouched. Edits require a re-install, and changes take effect in the next session.
+Install via the `essential:install-agents` skill (ask Claude to "install the agents"). Canonical sources live under `plugins/<owner>/agents/<name>/` as `base.md` plus `frontmatter/meta.json`, `claude.json`, and `codex.json`. The installer discovers source-checkout siblings or enabled same-marketplace plugins, validates the complete discovered roster, stages stitched files, and copies them into the selected harness's personal agent directory. It overwrites current same-named discoveries and leaves unrelated or stale files untouched. Edits require a re-install, and changes take effect in the next session.
 
 ### Roster
 
@@ -265,7 +266,7 @@ Install via the `essential:install-agents` skill (ask Claude to "install the age
 | `project-initializer` | Project Initializer — run-once bootstrap | sonnet | low | acceptEdits | leaf, memory |
 | `workflow-optimizer` | Workflow Optimizer — meta-review of agents/skills, proposes diffs only | opus | high | auto | background, memory |
 
-Each agent's `## Collaboration` section records proven role-level collaborators and delegation targets using role-only definition names. These are runtime defaults, not an allowlist; naming, `agent_id` messaging, main-agent brokering, and nested-spawn policy live in `plugins/essential/ALLAGENT.md`.
+Each agent's `## Collaboration` section records proven role-level collaborators and delegation targets using role-only definition names. These are runtime defaults, not an allowlist; naming, `agent_id` messaging, main-agent brokering, and nested-spawn policy live in `plugins/essential/hooks/ALLAGENT.md`.
 
 Every agent owns project-scoped memory at `.claude/agent-memory/<role>/MEMORY.md`. Definitions state the durable role-specific knowledge to retain, while `plugins/essential/templates/memory.md` defines the shared evidence, freshness, contradiction, archival, and size-control contract. Memory writers keep Write and Edit available without new hooks; source-read-only roles restrict those tools to memory by charter.
 
@@ -311,7 +312,7 @@ frontend-implementer/desktop-implementer/mobile-implementer → aesthetic-evalua
 data-architect ↔ ml-engineer: schema design and data-profiling consults
 harness-eval-engineer ↔ testing-evangelist: test-strategy and harness alignment
 any producer → principal-engineer: blocked on a hard technical problem
-any agent → main agent: Workflow launch request (see plugins/essential/SUBAGENT.md)
+any agent → main agent: Workflow launch request (see plugins/essential/hooks/SUBAGENT.md)
 ```
 
 Only the main agent names persistent teammates. It chooses one of the three short names in the role description, formats `<short-name>-<role>-<task>`, and avoids collisions. Nested agents may spawn only certainly one-off helpers, specify `subagent_type`, and omit configured names; for continuing work they message the best-known teammate directly by `agent_id` and ask the main agent to suggest an owner only when they cannot identify one.
@@ -331,16 +332,16 @@ Only the main agent names persistent teammates. It chooses one of the three shor
 
 ### Team operation
 
-- Works team-first: The Project Manager initiates the team, appoints domain leads, and handles staffing and user/session proxies. Each lead gathers teammate advice, decomposes its assigned work, owns the domain's implementation decisions, assigns and monitors the pieces across its team, and reconciles delivery. `plugins/essential/ALLAGENT.md` carries shared operation rules; each owner plugin's `ALLAGENT.md` carries only its task-to-specialist rows.
+- Works team-first: The Project Manager initiates the team, appoints domain leads, and handles staffing and user/session proxies. Each lead gathers teammate advice, decomposes its assigned work, owns the domain's implementation decisions, assigns and monitors the pieces across its team, and reconciles delivery. `plugins/essential/hooks/ALLAGENT.md` carries shared operation rules; each owner plugin's `plugins/<owner>/hooks/ALLAGENT.md` carries only its task-to-specialist rows.
 - Subagents reply to the assigning teammate's `agent_id`. Roles and configured names are never direct-message addresses. For continuing work they message the best-known teammate directly when they have its ID, ask the main agent to resolve the ID when the teammate is known, and ask the main agent to suggest a warm peer by folder/feature history or spawn a new named teammate only when they cannot identify the owner.
-- Subagents never launch the `Workflow` tool: they compose the complete tool input and SendMessage it to the main agent, which launches it and replies with the result (see `plugins/essential/SUBAGENT.md`). Plans authored by a specialist in plan mode flow back to the main agent the same way for presentation.
+- Subagents never launch the `Workflow` tool: they compose the complete tool input and SendMessage it to the main agent, which launches it and replies with the result (see `plugins/essential/hooks/SUBAGENT.md`). Plans authored by a specialist in plan mode flow back to the main agent the same way for presentation.
 
 ### Notes
 
 - The copy-install into `~/.claude/agents/` is load-bearing for the hooks: Claude Code honors `hooks`, `permissionMode`, and `mcpServers` frontmatter only for agents in `~/.claude/agents/` / `.claude/agents/` — agents registered via a plugin ignore those fields. Do not convert the roster to plugin-registered agents, or every embedded fence goes dead.
 - `ml-engineer` uses the `theriety:build-service` skill — it requires the plugin whose manifest name is `theriety` (this marketplace registers it under the entry name `backend`; the manifest-vs-marketplace name mismatch is known).
 - Installed agent definitions are intentionally single self-contained files even though their canonical source is split. This is why the write fence is embedded verbatim in both fenced critics.
-- Standards references in the definitions never use literal installation paths. They name a standard plus its owning plugin constitution, resolved at runtime when that plugin is enabled. A partial enabled roster is valid, so cross-plugin handoffs and context are best-effort when their owner plugin is absent.
+- Standards references in the definitions never use literal installation paths. They name a standard plus its owning plugin, resolved at runtime when that plugin is enabled. A partial enabled roster is valid, so cross-plugin handoffs and context are best-effort when their owner plugin is absent.
 
 ## Completion checklist
 
@@ -350,7 +351,7 @@ Only the main agent names persistent teammates. It chooses one of the three shor
   review track task definitions directly from `state.md`, with reapproval on
   any change.
 - Every stable task ID and edge in `state.md` is accounted for, with no cycle
-  or contradictory parent roll-up (`engineering-doctor` confirms), and every
+  or contradictory parent roll-up (`state-doctor` confirms), and every
   required executable leaf is `✓ done` with current validity.
 - Target-native tests, lint, type checks, and builds pass where applicable.
 - Canonical review artifacts have no outstanding findings; approvals carry

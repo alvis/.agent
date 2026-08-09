@@ -13,7 +13,7 @@ This skill owns UI direction, iteration, and design-to-build reconciliation;
 owns story-state auditing, and `client:create-screen-design` owns Notion screen
 documentation.
 
-When you present code-design ideas or explainers as an interactive surface, you may reuse `essential:discover`'s presentation conventions — provenance pills, honest trade-offs, author annotation pins, and the multi-board hub — described in `components.md` under the discover skill's `references/presentation/` directory.
+When you present code-design ideas or explainers as an interactive surface, you may reuse `essential:discover`'s presentation conventions — provenance pills, honest trade-offs, author annotation pins, and the multi-board hub — described in its [presentation component guide](../../../essential/skills/discover/references/presentation/components.md).
 
 <IMPORTANT>
 Confirm before building. Present design options and capture an explicit choice

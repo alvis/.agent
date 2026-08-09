@@ -38,7 +38,7 @@ class AgentTemplate:
 
 
 def _plugin_templates(owner: str, plugin_root: Path) -> Iterable[AgentTemplate]:
-    templates_root = plugin_root / "templates/agents"
+    templates_root = plugin_root / "agents"
     if not templates_root.is_dir():
         return
     resolved_plugin_root = plugin_root.resolve()
