@@ -378,6 +378,7 @@ def test_archetype_is_a_preflighted_label_not_pr_content() -> None:
     assert 'PR=$(gh pr create' in workflow
     assert '--remove-label "$label"' in workflow
     assert 'gh pr view "$PR" --json labels' in workflow
+    assert '[.labels[].name | select(. as $label' in workflow
     assert 'EXPECTED_ARCHETYPES=$(jq -cn --arg label "$ARCHETYPE"' in workflow
     assert 'test "$ACTUAL_ARCHETYPES" = "$EXPECTED_ARCHETYPES"' in workflow
     assert workflow.index("ARCHETYPE_LABELS='[") < workflow.index('PR=$(gh pr create')

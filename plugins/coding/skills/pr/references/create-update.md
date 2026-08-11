@@ -429,7 +429,7 @@ After either create or update, verify the post-publication label invariant:
 ```bash
 ACTUAL_ARCHETYPES=$(gh pr view "$PR" --json labels | jq -c --argjson archetypes \
   "$AVAILABLE_ARCHETYPES" \
-  '[.labels[].name as $label | select($archetypes | index($label))] | sort')
+  '[.labels[].name | select(. as $label | $archetypes | index($label))] | sort')
 if [ "$ARCHETYPE_AVAILABLE" = true ]; then
   EXPECTED_ARCHETYPES=$(jq -cn --arg label "$ARCHETYPE" '[$label]')
 else
