@@ -718,15 +718,19 @@ def test_role_hooks_expand_the_engineering_work_reference() -> None:
     expected = str(essential / "references/engineering-work.md")
 
     for event in ("SessionStart", "SubagentStart"):
+        contexts = []
         commands = [
             hook["command"]
             for group in hooks_document["hooks"][event]
             for hook in group["hooks"]
             if hook["type"] == "command" and ".md\"" in hook["command"]
         ]
-        assert len(commands) == 2
         for command in commands:
-            env = os.environ.copy()
+            env = {
+                name: value
+                for name, value in os.environ.items()
+                if name != "PLUGIN_ROOT"
+            }
             env["CLAUDE_PLUGIN_ROOT"] = str(essential)
             completed = subprocess.run(
                 ["bash", "-c", command],
@@ -740,7 +744,9 @@ def test_role_hooks_expand_the_engineering_work_reference() -> None:
                 "additionalContext"
             ]
             assert "{{PLUGIN_DIR}}" not in context, (event, command)
-            assert expected in context, (event, command)
+            contexts.append(context)
+
+        assert sum(expected in context for context in contexts) == 2
 
 
 def test_session_start_emits_a_valid_session_context_payload() -> None:

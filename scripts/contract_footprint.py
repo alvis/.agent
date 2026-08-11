@@ -16,11 +16,12 @@ __all__ = [
 
 
 # The files a plugin may register for hook injection. `hooks/ALLAGENT.md` is
-# re-read at both SessionStart and SubagentStart, `hooks/MAINAGENT.md` at
-# SessionStart, and `hooks/SUBAGENT.md` at SubagentStart, so each is capped on
-# its own.
+# re-read at both SessionStart and SubagentStart, `hooks/MAINROLE.md` and
+# `hooks/MAINAGENT.md` at SessionStart, and `hooks/SUBAGENT.md` at
+# SubagentStart, so each is capped on its own.
 INJECTED_PAYLOADS = (
     "hooks/ALLAGENT.md",
+    "hooks/MAINROLE.md",
     "hooks/MAINAGENT.md",
     "hooks/SUBAGENT.md",
 )

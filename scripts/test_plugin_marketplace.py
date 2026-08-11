@@ -53,9 +53,11 @@ SCHEMA_KEYWORDS = {
 SKILL_NAME = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 CONTEXT_PAYLOAD_EVENTS = {
     "hooks/ALLAGENT.md": {"SessionStart", "SubagentStart"},
+    "hooks/MAINROLE.md": {"SessionStart"},
     "hooks/MAINAGENT.md": {"SessionStart"},
     "hooks/SUBAGENT.md": {"SubagentStart"},
 }
+OPTIONAL_CONTEXT_PAYLOADS = {"hooks/MAINROLE.md"}
 RESOURCE_ROOT = re.compile(
     r"\$\{([A-Z][A-Z0-9_]*_(?:PLUGIN_ROOT|PLUGIN_DIR|SKILL_DIR))\}"
 )
@@ -564,6 +566,7 @@ def test_shared_hooks_follow_the_cross_harness_schema() -> None:
             name: events
             for name, events in CONTEXT_PAYLOAD_EVENTS.items()
             if (plugin_root / name).is_file()
+            or name in OPTIONAL_CONTEXT_PAYLOADS
         }
         expected_events = set().union(*payload_events.values())
         claude_manifest = load_json(
@@ -645,6 +648,28 @@ def test_context_hooks_replace_every_plugin_dir_placeholder() -> None:
                     assert str(plugin_root) in context
 
 
+def test_missing_optional_main_role_emits_no_context() -> None:
+    for plugin in marketplace_plugins():
+        plugin_root = resolve_plugin_path(ROOT, plugin["source"])
+        if (plugin_root / "hooks" / "MAINROLE.md").is_file():
+            continue
+
+        hooks = load_json(plugin_root / "hooks" / "hooks.json")["hooks"]
+        command = next(
+            command
+            for command in hook_commands(hooks, "SessionStart")
+            if command_references_payload(command, "hooks/MAINROLE.md")
+        )
+        completed = subprocess.run(
+            ["/bin/sh", "-c", command],
+            capture_output=True,
+            check=True,
+            env=os.environ | {"CLAUDE_PLUGIN_ROOT": str(plugin_root)},
+            text=True,
+        )
+        assert completed.stdout == ""
+
+
 def test_codex_role_bindings_wait_for_installed_custom_agents(
     tmp_path: Path,
 ) -> None:
@@ -658,48 +683,97 @@ def test_codex_role_bindings_wait_for_installed_custom_agents(
     for plugin_name, agent_name in required_agents.items():
         plugin_root = ROOT / "plugins" / plugin_name
         hooks = load_json(plugin_root / "hooks" / "hooks.json")["hooks"]
-        command = next(
-            command
-            for command in hook_commands(hooks, "SessionStart")
-            if command_references_payload(command, "hooks/MAINAGENT.md")
-        )
-        base_env = os.environ | {
+        base_env = {
+            name: value
+            for name, value in os.environ.items()
+            if name != "PLUGIN_ROOT"
+        } | {
             "CLAUDE_PLUGIN_ROOT": str(plugin_root),
             "CODEX_HOME": str(tmp_path),
         }
-
-        claude = subprocess.run(
-            ["/bin/sh", "-c", command],
-            capture_output=True,
-            check=True,
-            env=base_env,
-            text=True,
-        )
-        assert json.loads(claude.stdout)["hookSpecificOutput"][
-            "additionalContext"
-        ]
-
         codex_env = base_env | {"PLUGIN_ROOT": str(plugin_root)}
-        codex_missing = subprocess.run(
-            ["/bin/sh", "-c", command],
-            capture_output=True,
-            check=True,
-            env=codex_env,
-            text=True,
-        )
-        assert codex_missing.stdout == ""
 
-        agent_path = tmp_path / "agents" / f"{agent_name}.toml"
-        agent_path.parent.mkdir(exist_ok=True)
-        agent_path.write_text("name = \"installed\"\n")
-        codex_installed = subprocess.run(
-            ["/bin/sh", "-c", command],
-            capture_output=True,
-            check=True,
-            env=codex_env,
-            text=True,
-        )
-        assert json.loads(codex_installed.stdout)["hookSpecificOutput"][
-            "additionalContext"
-        ]
-        agent_path.unlink()
+        for payload_name in ("hooks/MAINROLE.md", "hooks/MAINAGENT.md"):
+            command = next(
+                command
+                for command in hook_commands(hooks, "SessionStart")
+                if command_references_payload(command, payload_name)
+            )
+            claude = subprocess.run(
+                ["/bin/sh", "-c", command],
+                capture_output=True,
+                check=True,
+                env=base_env,
+                text=True,
+            )
+            assert json.loads(claude.stdout)["hookSpecificOutput"][
+                "additionalContext"
+            ]
+
+            codex_missing = subprocess.run(
+                ["/bin/sh", "-c", command],
+                capture_output=True,
+                check=True,
+                env=codex_env,
+                text=True,
+            )
+            assert codex_missing.stdout == ""
+
+            agent_path = tmp_path / "agents" / f"{agent_name}.toml"
+            agent_path.parent.mkdir(exist_ok=True)
+            agent_path.write_text("name = \"installed\"\n")
+            codex_installed = subprocess.run(
+                ["/bin/sh", "-c", command],
+                capture_output=True,
+                check=True,
+                env=codex_env,
+                text=True,
+            )
+            assert json.loads(codex_installed.stdout)["hookSpecificOutput"][
+                "additionalContext"
+            ]
+            agent_path.unlink()
+
+
+def test_codex_role_bindings_use_the_default_agent_directory(
+    tmp_path: Path,
+) -> None:
+    plugin_root = ROOT / "plugins" / "coding"
+    hooks = load_json(plugin_root / "hooks" / "hooks.json")["hooks"]
+    command = next(
+        command
+        for command in hook_commands(hooks, "SessionStart")
+        if command_references_payload(command, "hooks/MAINROLE.md")
+    )
+    codex_env = {
+        name: value
+        for name, value in os.environ.items()
+        if name != "CODEX_HOME"
+    } | {
+        "CLAUDE_PLUGIN_ROOT": str(plugin_root),
+        "HOME": str(tmp_path),
+        "PLUGIN_ROOT": str(plugin_root),
+    }
+
+    codex_missing = subprocess.run(
+        ["/bin/sh", "-c", command],
+        capture_output=True,
+        check=True,
+        env=codex_env,
+        text=True,
+    )
+    assert codex_missing.stdout == ""
+
+    agent_path = tmp_path / ".codex" / "agents" / "tech-lead.toml"
+    agent_path.parent.mkdir(parents=True)
+    agent_path.write_text('name = "installed"\n')
+    codex_installed = subprocess.run(
+        ["/bin/sh", "-c", command],
+        capture_output=True,
+        check=True,
+        env=codex_env,
+        text=True,
+    )
+    assert json.loads(codex_installed.stdout)["hookSpecificOutput"][
+        "additionalContext"
+    ]

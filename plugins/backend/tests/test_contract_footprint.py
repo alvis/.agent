@@ -8,7 +8,11 @@ PLUGIN = Path(__file__).resolve().parents[1]
 
 # This plugin owns both lists: hook-injected payloads and the files an injected
 # payload requires without a per-moment trigger.
-PAYLOADS = ("hooks/ALLAGENT.md", "hooks/MAINAGENT.md")
+PAYLOADS = (
+    "hooks/ALLAGENT.md",
+    "hooks/MAINROLE.md",
+    "hooks/MAINAGENT.md",
+)
 CHAIN = ("hooks/ALLAGENT.md",)
 
 

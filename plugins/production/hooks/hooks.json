@@ -8,6 +8,14 @@
             "command": "sed \"s|{{PLUGIN_DIR}}|${CLAUDE_PLUGIN_ROOT}|g\" \"${CLAUDE_PLUGIN_ROOT}/hooks/ALLAGENT.md\" | jq -Rs '{hookSpecificOutput:{hookEventName:\"SessionStart\",additionalContext:.}}'"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ ! -f \"${CLAUDE_PLUGIN_ROOT}/hooks/MAINROLE.md\" ]; then exit 0; fi; sed \"s|{{PLUGIN_DIR}}|${CLAUDE_PLUGIN_ROOT}|g\" \"${CLAUDE_PLUGIN_ROOT}/hooks/MAINROLE.md\" | jq -Rs '{hookSpecificOutput:{hookEventName:\"SessionStart\",additionalContext:.}}'"
+          }
+        ]
       }
     ],
     "SubagentStart": [

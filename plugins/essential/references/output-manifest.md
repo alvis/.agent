@@ -32,7 +32,7 @@ traversal, symlink, and other-workspace escapes, and returns every eligible
 file greater than 16,384 bytes together (12,288 bytes is authoring guidance
 only). The gate does not apply outside `.state/`; the only separate
 limit is the 2,000-byte injection limit for Essential's `hooks/ALLAGENT.md`,
-`hooks/MAINAGENT.md`, and `hooks/SUBAGENT.md`.
+`hooks/MAINROLE.md`, `hooks/MAINAGENT.md`, and `hooks/SUBAGENT.md`.
 
 No mechanical limit is not a licence to pad. This is the general length rule
 for every written artifact, and the one place it is defined: everywhere the

@@ -26,7 +26,7 @@ Runtime prerequisites: Bash, `jq`, Git, and `uv` (which supplies Python 3.13+), 
 | Skill | `plugins/<p>/skills/<name>/SKILL.md` (+ `references/`, `scripts/`, `assets/`) |
 | Agent | `plugins/<p>/agents/<name>/base.md` + `frontmatter/{meta,claude,codex}.json` |
 | Standard | `plugins/<p>/standards/<name>/{meta,scan,write}.md` + `rules/` |
-| Injected payload | `plugins/<p>/hooks/{ALLAGENT,MAINAGENT,SUBAGENT}.md` |
+| Injected payload | `plugins/<p>/hooks/{ALLAGENT,MAINROLE,MAINAGENT,SUBAGENT}.md` |
 | Routing table | `plugins/<p>/references/ROUTING.md` |
 | Shared executables | `plugins/essential/scripts/` |
 
@@ -37,7 +37,7 @@ plugin depends on `essential`; `web` and `react` also depend on `coding`.
 
 ## The injection contract
 
-A plugin's `ALLAGENT.md`, `MAINAGENT.md`, and `SUBAGENT.md` hook payloads are **shipped product**, not
+A plugin's `ALLAGENT.md`, `MAINROLE.md`, `MAINAGENT.md`, and `SUBAGENT.md` hook payloads are **shipped product**, not
 developer docs. Each context-owning plugin's
 `plugins/<p>/hooks/hooks.json` registers hooks that pipe the file through `sed`
 and `jq` into the user's session context:
@@ -49,8 +49,10 @@ sed "s|{{PLUGIN_DIR}}|${CLAUDE_PLUGIN_ROOT}|g" "${CLAUDE_PLUGIN_ROOT}/hooks/ALLA
 
 - `ALLAGENT.md` — injected at `SessionStart` **and** `SubagentStart`; carries that plugin's
   own routing only. Do not rebuild a central roster table in it.
-- `MAINAGENT.md` — `SessionStart` only; binds the main agent to a domain lead
-  (`coding`→`tech-lead`, `web`→`design-lead`, `backend`→`ai-research-lead`).
+- `MAINROLE.md` — optional at `SessionStart`; describes the main agent's role.
+- `MAINAGENT.md` — `SessionStart` only; carries instructions the main agent must
+  follow and may bind it to a domain lead (`coding`→`tech-lead`,
+  `web`→`design-lead`, `backend`→`ai-research-lead`).
 - `SUBAGENT.md` — `essential` only, `SubagentStart`.
 
 Use `{{PLUGIN_DIR}}` for in-payload paths; the hook substitutes it. Because these files
