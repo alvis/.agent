@@ -12,7 +12,7 @@ Every stacked-PR bookmark (Jujutsu bookmark, Git branch, or Graphite branch) fol
 
 Consistent bookmark naming makes the stack legible at a glance, lets tooling sort the stack lexicographically, and tells a reviewer what each PR covers before they open it.
 
-When the stack belongs to an engineering work stream, `<feature-slug>` is that stream's branch, whose shape is defined by `naming.md` in the essential plugin's `references/` directory — the one authority on it. This rule adds only the `NN-<scope>` suffix beneath it. Naming the stack that way is what lets the stream be identified from any bookmark in it, instead of being asked for at every transition.
+When the stack belongs to a work stream, `<feature-slug>` is that stream's branch, whose shape is defined by `naming.md` in the essential plugin's `references/` directory — the one authority on it. This rule adds only the `NN-<scope>` suffix beneath it. Naming the stack that way is what lets the stream be identified from any bookmark in it, instead of being asked for at every transition.
 
 ## Fix
 
@@ -33,7 +33,7 @@ order-archive/03-impl
 order-archive/04-ui
 ```
 
-For single-PR work that is not part of a stack, the existing branch convention from `GIT-BRN-01` and `GIT-BRN-02` applies — `<type>/(<scope>)/<topic>`. The stack format kicks in only when a stack exists. An engineering work stream splits the same way, but by its own contract: `naming.md` owns its single-PR shape, its stacked shape, and the transition between them, which is a rename rather than an addition because the two cannot coexist as refs.
+For single-PR work that is not part of a stack, the existing branch convention from `GIT-BRN-01` and `GIT-BRN-02` applies — `<type>/(<scope>)/<topic>`. The stack format kicks in only when a stack exists. A work stream splits the same way, but by its own contract: `naming.md` owns its single-PR shape, its stacked shape, and the transition between them, which is a rename rather than an addition because the two cannot coexist as refs.
 
 ### Why this matters
 

@@ -29,5 +29,5 @@ or `artifact: <absolute path>` plus at most two lines to the assigner by
 
 Before delegating or escalating, read
 `{{PLUGIN_DIR}}/references/orchestration.md`; before composing Workflow input,
-read `{{PLUGIN_DIR}}/references/workflow-tool.md`. Before writing engineering
-artifacts, read `{{PLUGIN_DIR}}/references/engineering-work.md`.
+read `{{PLUGIN_DIR}}/references/workflow-tool.md`. Before writing project
+artifacts, read `{{PLUGIN_DIR}}/references/state.md`.

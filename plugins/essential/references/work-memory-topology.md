@@ -1,8 +1,8 @@
 # Work-memory topology
 
-Read this when creating, locating, or migrating ignored engineering work
-memory. `engineering-work.md` owns the lifecycle and resolver;
-`engineering-work-state.md` owns state semantics.
+Read this when creating, locating, or migrating ignored local state.
+`state.md` owns the lifecycle and resolver; `state-format.md` owns state
+semantics.
 
 ```text
 .state                                  # ignored operational work memory in the default source tree

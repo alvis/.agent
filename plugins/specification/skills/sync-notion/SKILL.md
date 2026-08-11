@@ -16,7 +16,7 @@ local–Notion pairs. Public modes are `local-to-notion`, `notion-to-local`, and
 - `specification:sync-spec` orchestrates engineering-specification bases,
   work-local copies, derivation, and revalidation. This skill transports only
   the exact declared pair/set.
-- For engineering work, use an explicit destination-local transport root or
+- For state-managed work, use an explicit destination-local transport root or
   the exact path from a validated destination-local pairing receipt. A portable
   handover contributes only a logical profile and optional relative suggestion,
   never a selected root. Never invent a mirror location or filename from a
@@ -54,7 +54,7 @@ local–Notion pairs. Public modes are `local-to-notion`, `notion-to-local`, and
 
 ## Workflow
 
-1. Read the injected absolute `engineering-work.md` before project artifact
+1. Read the injected absolute `state.md` before project artifact
    writes. If unavailable, stop artifact writes and report the missing
    contract. Resolve work/transport paths only from explicit arguments, active
    state, or an immutable receipt. Require actual write targets to be ignored

@@ -12,7 +12,7 @@ Read this before specification, architecture, requirements, documentation, imple
 | Review implementation against its specification | `specification:review-implementation` |
 | Materialize or synchronize a specification | `specification:sync-spec` or `specification:sync-notion`; use `specification:mdc` only for the selected MDC transport |
 | Write, review, save, or publish code | Read `coding:references/WORKFLOW.md`, then use its action owner |
-| Create or materially rewrite project artifacts | Follow the injected `essential:references/engineering-work.md` contract |
+| Create or materially rewrite project artifacts | Follow the injected `essential:references/state.md` contract |
 
 Before work delegation, read `specification:references/ROUTING.md`.
 

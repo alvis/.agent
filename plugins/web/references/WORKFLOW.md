@@ -13,7 +13,7 @@ Read this before UI/UX design, CSS, image-generation, Next.js diagnosis, Storybo
 | Diagnose a Next.js runtime | `web:next` |
 | Audit Storybook | `web:storybook` |
 | Write, test, review, save, or publish frontend code | Read `coding:references/WORKFLOW.md`, then use its action owner |
-| Create or materially rewrite project artifacts | Follow the injected `essential:references/engineering-work.md` contract |
+| Create or materially rewrite project artifacts | Follow the injected `essential:references/state.md` contract |
 
 Before work delegation, read `web:references/ROUTING.md`.
 

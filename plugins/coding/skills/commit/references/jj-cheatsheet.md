@@ -88,7 +88,7 @@ skill. PR publication, repair, and CI convergence route to `coding:pr create`.
 
 | jj | Purpose | git equivalent |
 |---|---|---|
-| `jj workspace add ~/.workspaces/<project-root-folder-name>/<work-id> --revision <rev>` | Create parallel workspace at `<rev>` (default location; reuse the engineering work-id) | `git worktree add ~/.workspaces/<project-root-folder-name>/<work-id> <rev>` (NOT equivalent — see [workflow-parallel.md](./workflow-parallel.md)) |
+| `jj workspace add ~/.workspaces/<project-root-folder-name>/<work-id> --revision <rev>` | Create parallel workspace at `<rev>` (default location; reuse the work ID) | `git worktree add ~/.workspaces/<project-root-folder-name>/<work-id> <rev>` (NOT equivalent — see [workflow-parallel.md](./workflow-parallel.md)) |
 | `jj workspace list` | List all jj workspaces | `git worktree list` |
 | `jj workspace forget <name>` | Drop a workspace from the op log | `git worktree remove` (with caveats) |
 

@@ -8,7 +8,7 @@ argument-hint: "[specifier] [--area=alignment|correctness|security|quality|testi
 # Review Code
 
 Orchestrate a read-only code review and write seven canonical, lowercase review
-areas beneath the active engineering work root. Remediation belongs to
+areas beneath the active work root. Remediation belongs to
 `coding:fix`; mechanical enforcement belongs to `coding:lint`.
 
 ## Boundaries
@@ -28,10 +28,10 @@ areas beneath the active engineering work root. Remediation belongs to
   `--explain` for a work-local change-comprehension child.
 - Require a repository checkout and an active or explicit work ID.
 
-## Engineering-work gate
+## State gate
 
 Before creating or materially rewriting a project artifact, read the absolute
-`engineering-work.md` path injected by Essential. If unavailable, stop artifact
+`state.md` path injected by Essential. If unavailable, stop artifact
 writes and report the missing contract. Resolve the work root before review.
 Run Essential's resolver with `--work-id` only for an explicit override; accept
 its deterministic match and ask only on `work_id_required`. A coordinator run

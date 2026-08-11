@@ -12,7 +12,7 @@ Read this before schema, data-model, pipeline, service, API, or ML/AI work. Use 
 | Audit a service against its specification | `backend:audit-service` |
 | Materialize or synchronize an implementation specification | `specification:sync-spec` |
 | Write, test, review, save, or publish code | Read `coding:references/WORKFLOW.md`, then use its action owner |
-| Create or materially rewrite project artifacts | Follow the injected `essential:references/engineering-work.md` contract |
+| Create or materially rewrite project artifacts | Follow the injected `essential:references/state.md` contract |
 
 Before work delegation, read `backend:references/ROUTING.md`.
 

@@ -3,7 +3,7 @@
 Read this when opening, writing, or reconciling review artifacts.
 
 `review.md` is the current roll-up. Details live under `reviews/` in the
-seven canonical **engineering** areas:
+seven canonical **review** areas:
 
 | File | Question |
 | --- | --- |
@@ -15,7 +15,7 @@ seven canonical **engineering** areas:
 | `docs.md` | Are engineer and user explanations accurate and sufficient? |
 | `style.md` | Does the change follow mechanical and idiomatic conventions? |
 
-The seven names are exhaustive for engineering reviews — do not create
+The seven names are exhaustive for lifecycle reviews — do not create
 `audit.md` or `deviations.md`. A domain plugin may additionally record its
 own review truth in a **plugin-namespaced area**, `reviews/<plugin>-<area>.md`
 (for example `reviews/production-render.md`), under the same finding and

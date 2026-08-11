@@ -19,7 +19,7 @@ block tree, annotations, refs, closing markers, and YAML frontmatter.
 - This is the only skill that authors `.mdc` body content. `notion-sync` may
   materialize transport files or update pairing metadata through
   `specification:sync-notion`, but callers must not hand-edit MDC.
-- `.mdc` is reserved for Notion-backed files. In engineering work, author only
+- `.mdc` is reserved for Notion-backed files. In state-managed work, author only
   an exact path explicitly supplied by the caller, returned by transport, or
   recorded in the active work pairing. A project may conventionally keep a
   mirror beneath `.state/`, but this skill does not require or derive it.
@@ -57,7 +57,7 @@ Full grammar: [references/syntax.md](references/syntax.md). Marker rationale:
 ## Workflow
 
 1. Before creating or materially rewriting a project artifact, read the
-   absolute `engineering-work.md` path injected by Essential. If unavailable,
+   absolute `state.md` path injected by Essential. If unavailable,
    stop artifact writes and report the missing contract. This gate applies to
    `edit` and `author`; read mode remains non-mutating. Run the absolute
    `essential:scripts/resolve-state-workspace` path declared by that reference,

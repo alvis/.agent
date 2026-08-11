@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Structural doctor for Essential engineering work state and ADRs.
+"""Structural doctor for Essential local state and ADRs.
 
 A doctor, not a judge: this tool reports deterministic structural defects that
 machines detect better than readers — broken IDs, dangling dependencies,
@@ -1905,7 +1905,7 @@ def check_written_under(report: Report, work: str, state_text: str) -> None:
     if not stamped:
         return
     contract = Path(__file__).resolve().parents[3] / (
-        "references/engineering-work.md"
+        "references/state.md"
     )
     if not contract.is_file():
         return
@@ -2591,14 +2591,14 @@ def check_work_dir(report: Report, work_dir: Path) -> None:
     check_outlives_me(report, work, state_text, phase)
 
 
-def check_overview_layout(report: Report, engineering_root: Path) -> None:
+def check_overview_layout(report: Report, state_dir: Path) -> None:
     """Report an overview.md that still carries what its siblings now own."""
-    overview = engineering_root / "overview.md"
+    overview = state_dir / "overview.md"
     if not overview.is_file():
         return
     text = overview.read_text(encoding="utf-8", errors="replace")
     for name, purpose in OVERVIEW_SIBLINGS.items():
-        if not (engineering_root / name).is_file():
+        if not (state_dir / name).is_file():
             report.warning(
                 "overview.md",
                 "overview-monolith",
@@ -2672,8 +2672,8 @@ def streams_section(text: str) -> str:
     return text
 
 
-def check_overview(report: Report, engineering_root: Path) -> None:
-    overview = engineering_root / "overview.md"
+def check_overview(report: Report, state_dir: Path) -> None:
+    overview = state_dir / "overview.md"
     if not overview.is_file():
         return
     text = streams_section(overview.read_text(encoding="utf-8", errors="replace"))
@@ -2694,7 +2694,7 @@ def check_overview(report: Report, engineering_root: Path) -> None:
         if set(cells[0]) <= {"-", " ", ":"}:
             continue
         work_id = cells[0].strip("`")
-        state_path = engineering_root / "works" / work_id / "state.md"
+        state_path = state_dir / "works" / work_id / "state.md"
         if not state_path.is_file():
             # Work state is centralized under the default source tree, so an
             # overview row with no state.md beside it is a real dangling row,
@@ -2723,7 +2723,7 @@ def check_overview(report: Report, engineering_root: Path) -> None:
             work_id,
             cells,
             columns,
-            engineering_root / "works" / work_id,
+            state_dir / "works" / work_id,
             state_text,
             header_seen,
         )
@@ -2859,9 +2859,9 @@ def main() -> int:
     scope = parser.add_mutually_exclusive_group(required=True)
     scope.add_argument("--work-dir", type=Path, help="one work stream directory")
     scope.add_argument(
-        "--engineering-root",
+        "--state-dir",
         type=Path,
-        help="a .state/ root: checks every works/* stream plus overview.md",
+        help="a .state directory: checks every works/* stream plus overview.md",
     )
     parser.add_argument(
         "--repository-root",
@@ -2895,7 +2895,7 @@ def main() -> int:
             repository_root or repository_root_for_work_dir(arguments.work_dir),
         )
     else:
-        root = arguments.engineering_root.resolve()
+        root = arguments.state_dir.resolve()
         if root.exists() and not root.is_dir():
             print(f"error: not a directory: {root}", file=sys.stderr)
             return 2

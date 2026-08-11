@@ -101,7 +101,7 @@ class Harness:
         child_manifest.write_text(
             json.dumps(
                 {
-                    "schema": "engineering-work-generated-files/v1",
+                    "schema": "state-generated-files/v1",
                     "producer": "coding:test-fixture",
                     "base_rev": self.base_rev,
                     "generated_files": generated_files,
@@ -115,7 +115,7 @@ class Harness:
         scope.write_text(
             json.dumps(
                 {
-                    "schema": "engineering-work-scoped-save-request/v1",
+                    "schema": "state-scoped-save-request/v1",
                     "work_id": "scoped-save",
                     "scope_complete": True,
                     "publication_paths": [
@@ -223,6 +223,7 @@ def test_real_path_limited_save_preserves_unrelated_index_and_worktree(
     )
     manifest = harness.build(scope)
     manifest_json = json.loads(Path(str(manifest["manifest_path"])).read_text(encoding="utf-8"))
+    assert manifest_json["schema"] == "state-scoped-save/v1"
     assert set(selected) == {entry["path"] for entry in manifest_json["publication_paths"]}
     assert (
         next(entry for entry in manifest_json["selected_paths"] if entry["path"] == "src.txt")["mode"]
@@ -231,11 +232,19 @@ def test_real_path_limited_save_preserves_unrelated_index_and_worktree(
     assert {entry["path"] for entry in manifest_json["excluded_dirty_paths"]} == {"developer.txt"}
 
     preflight = harness.preflight(manifest)
+    preflight_json = json.loads(
+        Path(str(preflight["snapshot_path"])).read_text(encoding="utf-8")
+    )
+    assert preflight_json["schema"] == "state-scoped-save-preflight/v1"
     saved = harness.commit_selected(preflight, "feat: save lifecycle scope")
 
     assert staged_before == harness.git("show", ":developer.txt").stdout
     assert worktree_before == developer.read_bytes()
     result = harness.verify(manifest, preflight, saved)
+    result_json = json.loads(
+        Path(str(result["receipt_path"])).read_text(encoding="utf-8")
+    )
+    assert result_json["schema"] == "state-scoped-save-result/v1"
     assert result["non_selected_preserved"]
     assert result["status"] == "pass"
     assert result["receipt_path"] == harness.verify(manifest, preflight, saved)["receipt_path"]
@@ -673,6 +682,10 @@ def test_recover_restores_exact_preflight_head_and_index(harness: Harness) -> No
         "--failed-head",
         saved,
     )
+    recovery_json = json.loads(
+        Path(str(recovery["receipt_path"])).read_text(encoding="utf-8")
+    )
+    assert recovery_json["schema"] == "state-scoped-save-recovery/v1"
     assert recovery["status"] == "recovered"
     assert harness.git("rev-parse", "HEAD").stdout.strip() == old_head
     assert index_path.read_bytes() == index_before

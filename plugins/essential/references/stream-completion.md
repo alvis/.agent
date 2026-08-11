@@ -9,7 +9,7 @@ contract states only the rule, and the detail lives here.
 Work **one** stream to completion before starting another. Parallel streams
 split attention and leave an overview full of things nobody is finishing. The
 rule is measurable in the stream's own fields
-([engineering-work-state.md](engineering-work-state.md)): at most one stream
+([state-format.md](state-format.md)): at most one stream
 sits at phase `working` or `reviewing`. No check enforces this; the fields make
 it countable.
 

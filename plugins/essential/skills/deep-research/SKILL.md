@@ -31,7 +31,7 @@ optimization belongs to `essential:autoresearch`.
   reframing.
 
 Before creating or materially rewriting a project artifact, read the absolute
-`engineering-work.md` path injected by Essential. If unavailable, stop artifact
+`state.md` path injected by Essential. If unavailable, stop artifact
 writes and report the missing contract. Resolve the active work directory from
 that contract.
 

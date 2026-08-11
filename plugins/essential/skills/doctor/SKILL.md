@@ -1,6 +1,6 @@
 ---
 name: doctor
-description: Check the integrity of engineering work memory and durable ADRs with the structural doctor, diagnose folder-structure and format drift against current contracts, and offer user-approved migration or repair. Use for health checks of .state/ or docs/architecture/decisions/, before resuming old work, or after suspected corruption or drift; this skill repairs records, never the work itself.
+description: Check the integrity of local state and durable ADRs with the structural doctor, diagnose folder-structure and format drift against current contracts, and offer user-approved migration or repair. Use for health checks of .state/ or docs/architecture/decisions/, before resuming old work, or after suspected corruption or drift; this skill repairs records, never the work itself.
 model: opus
 argument-hint: "[work-id] [--strict]"
 ---
@@ -35,10 +35,10 @@ reading them — never by a version token, and never by guessing from memory.
   needs user approval even when the mechanical action is obvious; prose
   integrity findings are questions for the user, never silent rewrites.
 
-## Engineering-work gate
+## State gate
 
 Before creating or materially rewriting a project artifact, read the absolute
-`engineering-work.md` path injected by Essential; if unavailable, stop
+`state.md` path injected by Essential; if unavailable, stop
 artifact writes and report the missing contract. Read its work-state contract
 sibling and `truth.md` as well — together they define the current canonical
 topology and file shapes that "latest" means. Run the resolver read-only to
@@ -49,7 +49,7 @@ locate the active workspace and `.state/`; on `requires_ignore` or
 
 1. **Scope.** With `[work-id]`, check that one stream
    (`--work-dir <work_dir>`); otherwise check everything
-   (`--engineering-root <state_root>/.state`, covering every
+   (`--state-dir <state_root>/.state`, covering every
    stream plus `overview.md`) and the repository's
    `docs/architecture/decisions/` tree. `state_root` comes from the resolver and
    owns centralized work memory; pass the resolver's `durable_root` as

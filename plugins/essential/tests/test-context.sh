@@ -56,9 +56,9 @@ if [[ ! -e "$fixture/readme.md" ]]; then
   ln "$fixture/README.md" "$fixture/readme.md"
 fi
 
-export ENGINEERING_WORK_ID=eng-42
+export STATE_WORK_ID=eng-42
 output="$(get_repo_root_documents_context "$fixture")"
-unset ENGINEERING_WORK_ID
+unset STATE_WORK_ID
 
 assert_contains() {
   case "$output" in
@@ -138,7 +138,7 @@ case "$ambiguous_output" in
     ;;
 esac
 case "$ambiguous_output" in
-  *'Engineering work selection is unresolved; ask only when artifact work begins.'*) ;;
+  *'State selection is unresolved; ask only when artifact work begins.'*) ;;
   *) printf 'ambiguous work selection notice missing\n' >&2; exit 1 ;;
 esac
 

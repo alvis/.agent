@@ -33,10 +33,10 @@ production stubs belong to `coding:complete-code`.
   skeleton's shape.
 - **Prerequisites**: an existing target directory inside a TypeScript project.
 
-## Engineering-work gate
+## State gate
 
 Before creating or materially rewriting a project artifact, read the absolute
-`engineering-work.md` path injected by Essential. If unavailable, stop artifact
+`state.md` path injected by Essential. If unavailable, stop artifact
 writes and report the missing contract. Resolve the workspace-local work root
 and artifact paths before drafting. When delegated, start from the mission
 capsule's exact work root and relevant design/spec files. Read `state/working.md`

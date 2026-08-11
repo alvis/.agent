@@ -1,6 +1,6 @@
 ---
 name: plan-code
-description: Build an implementation-ready plan from an approved specification inside an active engineering work item. Use to resolve the decision surface, define atomic implementation slices, and prepare verification without creating independent root planning or change artifacts.
+description: Build an implementation-ready plan from an approved specification inside an active work stream. Use to resolve the decision surface, define atomic implementation slices, and prepare verification without creating independent root planning or change artifacts.
 model: opus
 argument-hint: "[--work-id=<id>] [--spec=<path-or-ref>] [--change=<description>]"
 ---
@@ -37,7 +37,7 @@ contract; `specification:implement-code` and Coding skills execute it.
 ## Workflow
 
 1. Before creating or materially rewriting a project artifact, read the
-   absolute `engineering-work.md` path injected by Essential. If unavailable,
+   absolute `state.md` path injected by Essential. If unavailable,
    stop artifact writes and report the missing contract. For a direct run, run
    Essential's workspace resolver with `--work-id` only for an explicit user
    override and accept its deterministic environment, Git-branch/jj-workspace,

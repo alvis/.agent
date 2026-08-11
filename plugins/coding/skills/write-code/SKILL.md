@@ -16,7 +16,7 @@ superseded scaffolding rather than leaving parallel paths or addenda.
 
 - Use for new functions, features, modules, components, endpoints, or an
   approved specification implemented and tested end to end; use `--resume` for
-  a resumed engineering work item.
+  a resumed work stream.
 - Route skeleton-only work to `coding:draft-code`, accepted production stubs to
   `coding:complete-code`, diagnosed failures to `coding:fix`, green structural
   cleanup to `coding:refactor`, and reviews to `coding:review-code`.
@@ -38,10 +38,10 @@ superseded scaffolding rather than leaving parallel paths or addenda.
   parent retains lifecycle review, specification sync, final commit QA, and
   remote publication. Reject this flag on an unowned direct invocation.
 
-## Engineering-work gate
+## State gate
 
 Before creating or materially rewriting a project artifact, read the absolute
-`engineering-work.md` path injected by Essential. If unavailable, stop artifact
+`state.md` path injected by Essential. If unavailable, stop artifact
 writes and report the missing contract. Resolve the workspace-local work root,
 schemas, lifecycle, and final batch interface before dispatching children.
 The caller runs Essential's resolver, asks only on `work_id_required`, handles
@@ -150,7 +150,7 @@ Pass `--from-composite` only to children that declare it (`setup-project`,
 8. After every artifact writer is finished, deduplicate the combined
    `generated_files` manifest. Select only `.md` paths inside the resolved
    target `.state/`, excluding `state/working.md`, and invoke the Essential
-   checker once with `--engineering-root <active-workspace>/.state` when
+   checker once with `--state-dir <state_root>/.state` when
    eligible paths remain. If it returns `split_required`,
    coordinate one complete split round for all oversized files, preserving
    each original as overview, then run one new batch pass. Never size files
@@ -168,8 +168,8 @@ Pass `--from-composite` only to children that declare it (`setup-project`,
    also exist. Reconcile the base diff, acceptance map, and every child
    `generated_files` list into the full publishable lifecycle scope: source,
    tests, project documentation, durable specification/provenance files, and
-   deletions. Exclude unrelated user-owned changes and all ignored engineering
-   work state. When relevant publication paths are dirty, create and seal the
+   deletions. Exclude unrelated user-owned changes and all ignored work state.
+   When relevant publication paths are dirty, create and seal the
    checksum-bound scoped-save manifest described by
    `coding:commit`'s
    [manifest workflow](../commit/references/workflow-save-manifest.md): write

@@ -2,7 +2,7 @@
 
 General code production: writing, fixing, refactoring, testing, linting,
 documenting, and publishing code with history you can trust. Depends on
-`essential`. Every workflow follows the engineering-work contract — worker
+`essential`. Every workflow follows the state contract — worker
 skills return evidence and manifests; the coordinator reconciles state.
 
 ## History safety

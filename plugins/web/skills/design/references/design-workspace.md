@@ -24,7 +24,7 @@ rest of this skill names.
 
 ## Bootstrap and resume
 
-1. Read the shared engineering-work contract, then active `state/working.md` and
+1. Read the shared state contract, then active `state/working.md` and
    `state.md`.
 2. Name `<design-slug>` per `naming.md` in the essential plugin's
    `references/` directory. Inspect

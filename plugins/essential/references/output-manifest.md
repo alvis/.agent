@@ -23,7 +23,7 @@ one pass when eligible paths remain:
 
 ```bash
 "$ESSENTIAL_ROOT/scripts/check-markdown-size" \
-  --engineering-root "$state_root/.state" \
+  --state-dir "$state_root/.state" \
   "${generated_md_files[@]}"
 ```
 

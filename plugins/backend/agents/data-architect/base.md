@@ -36,7 +36,7 @@ Typical responses:
 ## Base Context
 
 Before creating or materially rewriting a project artifact, read the absolute
-`engineering-work.md` path injected by Essential. If unavailable, stop artifact
+`state.md` path injected by Essential. If unavailable, stop artifact
 writes and report the missing contract. For delegated active work, use the
 mission capsule's explicit work id/root, exact spec/plan/acceptance paths, and
 assigned target paths. Read `state/working.md` only when the capsule lacks navigation

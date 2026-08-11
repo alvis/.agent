@@ -1,7 +1,7 @@
 # Essential
 
 The backbone every other plugin depends on. Essential owns the cross-plugin
-**engineering-work lifecycle**: how work gets a durable identity, how its
+**state lifecycle**: how work gets a durable identity, how its
 state survives crashes and machine moves, how decisions and approvals stay
 honest as reality changes, and how work retires without losing anything
 consequential. It also carries the research/decision skills and the agent
@@ -15,8 +15,8 @@ is read at the moment it matters.
 
 | Reference | Read when | Owns |
 | --- | --- | --- |
-| `references/engineering-work.md` | Before creating or rewriting any lifecycle-managed artifact | Topology (`docs/` + `.state/`), resolver/bootstrap, coordinator lease and write protocol, journal discipline, overviews, reviews, spec freshness, promotion, retirement |
-| `references/engineering-work-state.md` | When writing or migrating a `state.md` | Task table shape, stable IDs, mark/status pairs, DAG and roll-ups, change control, journal grammar |
+| `references/state.md` | Before creating or rewriting any lifecycle-managed artifact | Topology (`docs/` + `.state/`), resolver/bootstrap, coordinator lease and write protocol, journal discipline, overviews, reviews, spec freshness, promotion, retirement |
+| `references/state-format.md` | When writing or migrating a `state.md` | Task table shape, stable IDs, mark/status pairs, DAG and roll-ups, change control, journal grammar |
 | `references/truth.md` | Once per work stream | Six kinds of truth, the five constitutional rules, validity, `capability_id` |
 | `references/adr.md` | When creating, superseding, indexing, or reviewing an ADR | Current/archive paths, superseded header, current-only index, targeted history, integrity checks |
 | `references/decision-causality.md` | When creating/accepting/superseding a decision | `supersedes`/`affects`/`invalidates`/`preserves`, blast-radius sweep, decision completion gate |
@@ -24,7 +24,7 @@ is read at the moment it matters.
 | `references/anchors.md` | For non-git anchors or cross-stream initiatives | Anchor declarations, adapter contract, initiative manifests |
 | `references/lease.md` | Before coordinator writes | `ensure` choreography, the PM-only first-use bootstrap, the lease-verified write path, release moments |
 | `references/overviews.md` | When reconciling lazy overviews | Proposals-vs-changes, child statuses, deviation provenance |
-| `references/reviews.md` | When writing review artifacts | The seven engineering areas plus plugin-namespaced areas, finding lifecycle |
+| `references/reviews.md` | When writing review artifacts | The seven review areas plus plugin-namespaced areas, finding lifecycle |
 | `references/spec-lifecycle.md` | When materializing or revalidating specs | Mirrors, freshness sweep, completion verification |
 | `references/durable-documentation.md` | Before writing versioned project documentation | Entrypoint authority, capability/domain content, template ownership, terminology, migration |
 | `references/work-memory-topology.md` | When creating, locating, or migrating ignored work files | Commented `.state` file map |

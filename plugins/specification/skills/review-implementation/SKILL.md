@@ -49,7 +49,7 @@ be followed for ID-keyed implementation procedure, never for task definitions.
 ## Workflow
 
 1. Before creating or materially rewriting a project artifact, read the
-   absolute `engineering-work.md` path injected by Essential. If unavailable,
+   absolute `state.md` path injected by Essential. If unavailable,
    stop artifact writes and report the missing contract. Use the workspace
    resolver result for work/review roots and read only the exact state/spec
    pointers needed for alignment. Read root `state.md` (and any `state/*.md`

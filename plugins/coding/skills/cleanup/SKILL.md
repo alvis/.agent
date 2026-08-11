@@ -1,6 +1,6 @@
 ---
 name: cleanup
-description: Audit and safely retire stale development state across git branches, registered Git worktrees, jj workspaces, and workspace-local engineering work directories. Use for /cleanup or abandoned-work audits; require evidence, retention, recoverable backup, and per-target approval before removal.
+description: Audit and safely retire stale development state across git branches, registered Git worktrees, jj workspaces, and workspace-local state directories. Use for /cleanup or abandoned-work audits; require evidence, retention, recoverable backup, and per-target approval before removal.
 argument-hint: "[path] [--exclude-remote]"
 ---
 
@@ -13,14 +13,14 @@ and remove only individually approved, recoverably backed-up eligible targets.
 
 ## Boundaries
 
-- Audit stale or divergent git/jj state and local engineering-work memory.
+- Audit stale or divergent git/jj state and workspace-local state.
 - Do not perform source dead-code removal, linting, PR authoring, or history
   rewriting. History mutations remain owned by `coding:commit`.
 - Never discover workspaces by scanning sibling or `~/.workspaces/` directories.
-  Engineering-work scope is limited to the current workspace and paths explicitly
+  State scope is limited to the current workspace and paths explicitly
   registered by local Git or jj metadata.
 - Age alone, a merged branch, or a directory named “complete” never authorizes
-  engineering-work deletion. Active, interrupted, or ambiguous work is
+  state deletion. Active, interrupted, or ambiguous work is
   preserved.
 
 ## Inputs
@@ -31,10 +31,10 @@ and remove only individually approved, recoverably backed-up eligible targets.
 - Missing `jj`, `gh`, network, or credentials does not abort local inventory;
   mark the affected evidence partial and downgrade recommendations.
 
-## Engineering-work contract
+## State contract
 
-Before resolving engineering-work paths, read the absolute
-`engineering-work.md` path injected by Essential. If unavailable, do not
+Before resolving state paths, read the absolute
+`state.md` path injected by Essential. If unavailable, do not
 classify or remove `.state/works/`; report the missing contract and
 continue only the traditional git/jj audit when useful. Cleanup reads final
 promotion records but does not create or rewrite them, `state/working.md`,
@@ -60,7 +60,7 @@ lives only in the OS temporary backup tree.
      partial finding, not permission to scan or guess.
    - PRs when authorized: state, merge/close time, base/head, checks, and
      whether commits are present on the default branch.
-3. **Inventory workspace-local engineering work.** Deduplicate registered
+3. **Inventory workspace-local state.** Deduplicate registered
    workspace paths by canonical filesystem identity. Within each reachable
    path, enumerate only `.state/works/*` and record:
    - VCS kind, registered workspace name/path, and local-only scope;
@@ -94,7 +94,7 @@ lives only in the OS temporary backup tree.
    - **Ambiguous**: state is missing/malformed/contradictory, owner or revision
      is unclear, copied state is suspected, or authoritative evidence cannot
      establish one of the prior classes. Preserve it.
-5. **Apply the engineering-work retirement gate.** A completed local work
+5. **Apply the state retirement gate.** A completed local work
    directory is `recommend cleanup` only when every condition is evidenced:
    - a direct reading of `state.md` shows every required executable leaf
      terminal `done`, with no unresolved contradiction against the task table;
@@ -135,9 +135,9 @@ lives only in the OS temporary backup tree.
    and path, lifecycle class, recommendation, retirement-gate evidence,
    `retirement_ready_at`, age/policy, promotion anchor, blind spots,
    backup/restore plan, and exact removal command. Only gate-passing completed
-   engineering work is selectable. Never infer approval from `/cleanup`.
+   work stream is selectable. Never infer approval from `/cleanup`.
 9. **Back up approved targets.** Use a unique timestamped directory below the
-   platform OS temporary root. For an engineering-work target, copy that exact
+   platform OS temporary root. For a state target, copy that exact
    work directory including dotfiles, write metadata containing workspace
    identity, work ID, repository revision, promotion anchor, evidence summary,
    original path, and restoration command, then verify the backup is nonempty
@@ -152,7 +152,7 @@ lives only in the OS temporary backup tree.
     everything worth keeping was promoted to `docs/` under step 8's promotion
     anchor — nothing that survives the stream may exist only in the directory
     being deleted. Use the existing safe git/jj
-    commands. Remove an engineering-work directory only by its fully resolved,
+    commands. Remove a state directory only by its fully resolved,
     validated `.state/works/<work-id>` path after rechecking the gate and
     backup immediately before deletion; never target `.state/works/`,
     `.state/`, a workspace root, a glob, or an unresolved variable.
@@ -162,7 +162,7 @@ lives only in the OS temporary backup tree.
     intact, and restoration information is usable.
 
 <IMPORTANT>
-Cleanup is never automatic. Engineering-work deletion additionally requires a
+Cleanup is never automatic. State deletion additionally requires a
 completed lifecycle, every retirement gate, at least 30 days of retention,
 per-target confirmation, and a verified recoverable backup. Ambiguous evidence
 always preserves the directory.
@@ -188,7 +188,7 @@ always preserves the directory.
 
 Report tool/remote freshness and counts by VCS target plus work lifecycle
 (`active`, `interrupted`, `completed`, `ambiguous`) and cleanup disposition.
-For every engineering-work candidate report workspace path/name, work ID,
+For every state candidate report workspace path/name, work ID,
 retirement gates, `retirement_ready_at`, effective retention, promotion anchor,
 backup path, action, and restoration command. Report `generated_files` as `[]`
 unless a separately authorized project-artifact write actually occurred.

@@ -36,7 +36,7 @@ marked by the summary above them).
 These steps are ordered, because two of them are crash-unsafe reversed.
 
 1. **The completion receipt is written first.** Phase `completed` requires it
-   ([engineering-work-state.md](engineering-work-state.md)); everything below
+   ([state-format.md](state-format.md)); everything below
    reads from it rather than from the overview row it is about to drop.
 2. **Every outlives-me item has an owner, or the stream does not complete.**
    A follow-up left in a row that will be deleted in days, held by nobody, is

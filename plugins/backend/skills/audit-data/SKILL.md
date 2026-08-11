@@ -34,7 +34,7 @@ evidence to canonical work-local review areas. Approved remediation routes to
 ## Workflow
 
 1. Before creating or materially rewriting a project artifact, read the
-   absolute `engineering-work.md` path injected by Essential. If unavailable,
+   absolute `state.md` path injected by Essential. If unavailable,
    stop artifact writes and report the missing contract. For a direct run, run
    Essential's workspace resolver with `--work-id` only for an explicit user
    override and accept its deterministic environment, Git-branch/jj-workspace,

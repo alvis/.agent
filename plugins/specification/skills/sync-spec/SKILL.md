@@ -1,6 +1,6 @@
 ---
 name: sync-spec
-description: Materialize a required Notion specification into an active engineering work directory or complete approved specification changes through an explicitly selected local transport pair. Use before specification planning, implementation, or review and when publishing a reviewed contract. Delegate transport and conflicts to sync-notion.
+description: Materialize a required Notion specification into an active work directory or complete approved specification changes through an explicitly selected local transport pair. Use before specification planning, implementation, or review and when publishing a reviewed contract. Delegate transport and conflicts to sync-notion.
 model: opus
 argument-hint: "<notion-url-or-id> [--work-id=<id>] [--mirror=<path>] [--transport-profile=<absolute-file>] [--mode=materialize|complete] [--stage=specification|implementation] [--capability=<slug>]"
 ---
@@ -50,13 +50,13 @@ approved specification content, not to any hash.
   specification content. Implementation stage requires a clean implementation
   review that was performed against that exact final content, confirmed by
   direct comparison.
-- **Prerequisites**: injected Essential engineering-work contract, resolved
+- **Prerequisites**: injected Essential state contract, resolved
   active work, the strict destination/team profile required by `sync-notion`,
   and `NOTION_TOKEN`.
 
 ## Workflow
 
-1. Read the absolute injected `engineering-work.md` contract before artifact
+1. Read the absolute injected `state.md` contract before artifact
    writes. If unavailable, stop artifact writes and report the missing
    contract. For a direct run, invoke Essential's workspace
    resolver with `--work-id` only for an explicit user override; ask only on
@@ -192,7 +192,7 @@ approved specification content, not to any hash.
    strict machine-readable sidecar. Read
    `${ESSENTIAL_ROOT}/templates/docs/docs-root-readme.template.md` and
    `${ESSENTIAL_ROOT}/templates/docs/specs-readme.template.md`, using the root
-   derived from the injected engineering-work contract, then reconcile
+   derived from the injected state contract, then reconcile
    `docs/specs/README.md` and `docs/README.md` with the regenerated capability.
    If `reference.md` exists, verify its whole consumer surface against current
    repository-relative implementation paths: keep it

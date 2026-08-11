@@ -54,10 +54,10 @@ specified.
   `documentation/write`, `observability/write`, and `testing/write` (when
   touching tests to verify a contract).
 
-## Engineering-work gate
+## State gate
 
 Before creating or materially rewriting a project artifact, read the absolute
-`engineering-work.md` path injected by Essential. If unavailable, stop artifact
+`state.md` path injected by Essential. If unavailable, stop artifact
 writes and report the missing contract. Resolve the active work root first.
 When delegated, start from the mission capsule's exact work root and relevant
 specification/design paths. Read `state/working.md` only when the capsule lacks

@@ -25,7 +25,7 @@ reviewer-ranked first choice provisionally.
 ## Artifact contract and authorization
 
 Before creating or materially rewriting a project artifact, read the absolute
-`engineering-work.md` path injected by Essential. If unavailable, stop artifact
+`state.md` path injected by Essential. If unavailable, stop artifact
 writes and report the missing contract. Resolve the active work directory and
 start from the exact design/source paths in the request or mission capsule. A
 direct/resume run may use `state/working.md` for navigation and `state.md` for
@@ -141,7 +141,7 @@ Promote only reviewed, reusable knowledge after sign-off:
   length-calibrated — see `essential:references/output-manifest.md`;
 - read `${ESSENTIAL_ROOT}/templates/docs/docs-root-readme.template.md` and
   `${ESSENTIAL_ROOT}/templates/docs/design-readme.template.md`, using the root
-  derived from the injected engineering-work contract, then reconcile
+  derived from the injected state contract, then reconcile
   `docs/design/README.md` and `docs/README.md` so the promoted design remains
   reachable and its status or supersession is explicit;
 - task state and implementation evidence remain under the work ID.

@@ -25,12 +25,12 @@ SUBAGENT_START = ESSENTIAL / "hooks/scripts/subagent-start"
 
 
 class CheckerHarness:
-    """A scratch tree with an engineering root and a call-counting fake wc."""
+    """A scratch tree with a state directory and a call-counting fake wc."""
 
     def __init__(self, root: Path) -> None:
         self.root = root
-        self.engineering_root = root / ".state"
-        self.engineering_root.mkdir()
+        self.state_dir = root / ".state"
+        self.state_dir.mkdir()
         self.log = root / "wc.log"
         fake_bin = root / "bin"
         fake_bin.mkdir()
@@ -58,8 +58,8 @@ class CheckerHarness:
         completed = subprocess.run(
             [
                 str(CHECKER),
-                "--engineering-root",
-                str(self.engineering_root),
+                "--state-dir",
+                str(self.state_dir),
                 *(str(path) for path in paths),
             ],
             text=True,
@@ -149,8 +149,8 @@ def test_canonical_boundary_excludes_traversal_symlink_and_other_root(
 ) -> None:
     checker.write_bytes("docs/outside.md", 20_000)
     linked_outside = checker.write_bytes("docs/linked-outside.md", 20_000)
-    traversal = checker.engineering_root / ".." / "docs" / "outside.md"
-    symlink = checker.engineering_root / "works/eng-421/linked.md"
+    traversal = checker.state_dir / ".." / "docs" / "outside.md"
+    symlink = checker.state_dir / "works/eng-421/linked.md"
     symlink.parent.mkdir(parents=True)
     symlink.symlink_to(linked_outside)
     other = checker.write_bytes("other/.state/works/eng-9/other.md", 20_000)
@@ -210,9 +210,9 @@ def run_resolver(
     if bootstrap:
         command.append("--bootstrap")
     environment = os.environ.copy()
-    environment.pop("ENGINEERING_WORK_ID", None)
+    environment.pop("STATE_WORK_ID", None)
     if environment_work_id is not None:
-        environment["ENGINEERING_WORK_ID"] = environment_work_id
+        environment["STATE_WORK_ID"] = environment_work_id
     if extra_environment:
         environment.update(extra_environment)
     completed = subprocess.run(
@@ -818,7 +818,7 @@ def test_requires_pm_ignore_bootstrap_after_selection(tmp_path: Path) -> None:
 
     assert completed.returncode == 0, completed.stderr
     assert payload["status"] == "resolved"
-    assert payload["engineering_ignored"]
+    assert payload["state_ignored"]
 
 
 def test_rejects_later_ignore_negation(tmp_path: Path) -> None:
@@ -867,7 +867,7 @@ def test_default_tree_ignore_covers_work_from_a_secondary_worktree(
 
     assert completed.returncode == 0, completed.stderr
     assert payload["status"] == "resolved"
-    assert payload["engineering_ignored"]
+    assert payload["state_ignored"]
     assert payload["state_root"] == str(root.resolve())
     assert payload["active_workspace"] == str(linked.resolve())
     assert payload["durable_root"] == str(linked.resolve())
@@ -994,7 +994,7 @@ def test_resolves_default_and_secondary_jj_workspaces(tmp_path: Path) -> None:
         root.resolve() / ".state/works/secondary"
     )
     assert payload["ignore_file"] == str(root.resolve() / ".gitignore")
-    assert payload["engineering_ignored"]
+    assert payload["state_ignored"]
 
 
 @pytest.mark.skipif(not shutil.which("jj"), reason="jj is unavailable")
@@ -1027,7 +1027,7 @@ def test_allows_jj_repository_without_registered_default(tmp_path: Path) -> None
 # repository ignore contract
 
 
-def test_engineering_transport_and_work_state_are_ignored() -> None:
+def test_state_transport_and_work_state_are_ignored() -> None:
     paths = (
         ".state/notion/example.mdc",
         ".state/works/test/state.md",
@@ -1085,7 +1085,7 @@ def context_root(tmp_path: Path) -> Path:
 
 def run_hook(root: Path, executable: Path, input_text: str = "") -> str:
     environment = os.environ.copy()
-    environment.pop("ENGINEERING_WORK_ID", None)
+    environment.pop("STATE_WORK_ID", None)
     completed = subprocess.run(
         [str(executable)],
         cwd=root,
@@ -1125,7 +1125,7 @@ def assert_context_contract(context: str) -> None:
         assert detail not in context
 
 
-def test_session_start_injects_ordered_engineering_entrypoints(
+def test_session_start_injects_ordered_state_entrypoints(
     context_root: Path,
 ) -> None:
     context = run_hook(context_root, SESSION_START, '{"source":"startup"}\n')

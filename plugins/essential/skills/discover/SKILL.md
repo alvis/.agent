@@ -33,7 +33,7 @@ production artifacts, and implementing skills own application-source changes.
   questions.
 
 Before creating or materially rewriting a project artifact, read the absolute
-`engineering-work.md` path injected by Essential. If unavailable, stop artifact
+`state.md` path injected by Essential. If unavailable, stop artifact
 writes and report the missing contract. Resolve the active work directory from
 that contract. A direct persistent run passes `--work-id` to the resolver only
 when the user supplied that explicit override; otherwise accept automatic
@@ -48,8 +48,8 @@ returns the line as a reconciliation delta instead of appending it). Keep reques
 under `artifacts/prototypes/<semantic-slug>/` and copied or summarized source
 material under `artifacts/discovery/`. Never modify application source.
 
-For persistent discovery, follow `engineering-work-state.md` linked by the
-engineering-work contract. Register one `DSC` parent and every discovery leaf
+For persistent discovery, follow `state-format.md` linked by the
+state contract. Register one `DSC` parent and every discovery leaf
 in root `state.md` before writing the child. Keep the root as the complete task
 registry and make `state/discovery.md` a reconciled child mirror with:
 

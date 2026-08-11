@@ -21,7 +21,7 @@ its digest, so reading `lease.json` never confers the lease.
 ## First-use work-memory bootstrap
 
 After the user has confirmed any new work identity and the resolver returns
-`resolved` with `engineering_ignored: true`, the PM invokes the resolver once
+`resolved` with `state_ignored: true`, the PM invokes the resolver once
 more with that confirmed ID and `--bootstrap`, before delegating or creating
 any other work artifact:
 

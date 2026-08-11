@@ -196,7 +196,7 @@ or PR publication only after the local flow is understood.
 
 | Plugin | What it owns | README |
 |---|---|---|
-| `essential` | The engineering-work lifecycle backbone: truth model, work state, lease, journal, doctor, pause/resume, research and decision skills, agent installer. Every other plugin depends on it. | [plugins/essential](plugins/essential/README.md) |
+| `essential` | The state lifecycle backbone: truth model, work state, lease, journal, doctor, pause/resume, research and decision skills, agent installer. Every other plugin depends on it. | [plugins/essential](plugins/essential/README.md) |
 | `specification` | Specs with provenance: authoring, planning, implementation orchestration, seven-area review, and safe Notion synchronization. | [plugins/specification](plugins/specification/README.md) |
 | `coding` | General code production: TDD write/fix/refactor, scoped saves, stacked PRs, lint, docs, cleanup. | [plugins/coding](plugins/coding/README.md) |
 | `governance` | The meta-layer: creating and verifying agents, skills, and standards. | [plugins/governance](plugins/governance/README.md) |

@@ -1,7 +1,8 @@
-# Engineering work lifecycle
+# State lifecycle
 
-Read this contract before creating or materially rewriting project engineering
-artifacts. It defines their paths, ownership, promotion, and final size check.
+Read this contract before working on any project. Local state is the working
+memory and project-management record throughout the work lifecycle. This
+contract defines its paths, ownership, promotion, and final size check.
 Domain skills own artifact content; Essential owns this cross-plugin lifecycle.
 All lead-role agents must read [truth.md](truth.md) once before working on
 any project: it defines the kinds of truth these artifacts carry, the
@@ -16,14 +17,14 @@ Essential plugin root from that path, then run the resolver from inside the
 target repository:
 
 ```bash
-ENGINEERING_WORK_REFERENCE='<absolute engineering-work.md path injected by Essential>'
-ESSENTIAL_ROOT="$(cd "$(dirname "$ENGINEERING_WORK_REFERENCE")/.." && pwd)"
+STATE_REFERENCE='<absolute state.md path injected by Essential>'
+ESSENTIAL_ROOT="$(cd "$(dirname "$STATE_REFERENCE")/.." && pwd)"
 "$ESSENTIAL_ROOT/scripts/resolve-state-workspace"
 ```
 
 A normal invocation is read-only; `--bootstrap` is the explicit PM-only
 creation mode below. The resolver chooses identity in this order: explicit
-`--work-id`, `ENGINEERING_WORK_ID`, a work directory matching the Git
+`--work-id`, `STATE_WORK_ID`, a work directory matching the Git
 branch/jj workspace label, then a sole existing workspace-local work
 directory only when the workspace label is generic or unavailable. Branch and
 workspace names may identify existing work but never create a new identity;
@@ -45,7 +46,7 @@ every output field; the essentials:
   reads and writes the same `.state/`. Two trees must not run the same
   stream concurrently — that is what the coordinator lease enforces.
 
-`resolved` with `engineering_ignored: true` is a hard bootstrap gate before
+`resolved` with `state_ignored: true` is a hard bootstrap gate before
 any work artifact or probe is written. On `requires_ignore`, every worker
 stops and reports the returned `ignore_file` — the **default source tree's**
 `.gitignore`, the tree that carries `.state/`. The PM alone adds the
@@ -56,7 +57,7 @@ replace this bootstrap contract.
 ### First-use work-memory bootstrap
 
 After the user confirms a new ID and the resolver returns `resolved` with
-`engineering_ignored: true`, the lease-holding PM runs `--bootstrap` before
+`state_ignored: true`, the lease-holding PM runs `--bootstrap` before
 delegation or any other artifact write. It never derives an ID or bypasses a
 resolver gate. [lease.md](lease.md) owns the invocation, no-clobber semantics,
 initial content, and returned paths that enter `generated_files`.
@@ -106,7 +107,7 @@ template ownership, terminology, and lazy atomic migration. Before creating
 or migrating ignored work files, read
 [work-memory-topology.md](work-memory-topology.md) for the commented `.state`
 map; state semantics remain in
-[engineering-work-state.md](engineering-work-state.md).
+[state-format.md](state-format.md).
 
 ## Deterministic names
 
@@ -178,7 +179,7 @@ monotonic `State revision: N`, and the inventory of `proposals/` children
 awaiting approval or approved-but-unimplemented, kept current the moment a
 proposal changes. Detail lives in semantic `state/*.md` children;
 `state.md` references rather than copies. Every new or explicitly rewritten
-state file follows [the work-state contract](engineering-work-state.md);
+state file follows [the work-state contract](state-format.md);
 state is free-form, LLM-readable Markdown with no separate validation step —
 read it directly and judge. Preserve any existing state file byte-for-byte
 until an explicit rewrite; older shapes migrate lazily at the next explicit
@@ -223,7 +224,7 @@ distinction, canonical child statuses, and deviation provenance. Decisions
 follow [decision-causality.md](decision-causality.md); accepting one
 triggers the blast-radius sweep. Reviews follow
 [reviews.md](reviews.md): `review.md` rolls up the seven canonical
-engineering areas plus any plugin-namespaced areas, and work closes only
+review areas plus any plugin-namespaced areas, and work closes only
 when the roll-up agrees with every detail.
 
 ## Specification lifecycle

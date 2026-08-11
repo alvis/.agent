@@ -31,7 +31,7 @@ task-specific design exploration, and durable versioned design knowledge.
 - **Optional**: work id, constraints, platforms (default web + mobile), and an
   explicit context source, materialization direction, and local transport root.
 - **Prerequisites**: resolvable product/context, Notion credentials/tooling,
-  and an active engineering work item.
+  and an active work stream.
 
 For a direct run, run Essential's workspace resolver, passing `--work-id` only
 when the user supplied an explicit override. Accept its deterministic
@@ -48,7 +48,7 @@ The canonical template, parent database, and collection remain:
 ## Workflow
 
 1. Before creating or materially rewriting a project artifact, read the
-   absolute `engineering-work.md` path injected by Essential. If unavailable,
+   absolute `state.md` path injected by Essential. If unavailable,
    stop artifact writes and report the missing contract. Use the workspace
    resolver result as the active work root. Read only the work pointers and
    spec/design sources required for this screen-design assignment.
@@ -80,7 +80,7 @@ The canonical template, parent database, and collection remain:
    duplicating them in the screen doc. Read
    `${ESSENTIAL_ROOT}/templates/docs/docs-root-readme.template.md` and
    `${ESSENTIAL_ROOT}/templates/docs/design-readme.template.md`, using the root
-   derived from the injected engineering-work contract, then update
+   derived from the injected state contract, then update
    `docs/README.md` and `docs/design/README.md` links when needed.
 7. Verify each remote page through the selected transport's diff or verification
    pull into an explicit verification location, and verify the durable

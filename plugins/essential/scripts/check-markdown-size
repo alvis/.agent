@@ -17,24 +17,24 @@ canonical_file_path() {
   printf '%s/%s\n' "$directory" "$(basename "$path")"
 }
 
-engineering_root=""
-if [[ "${1:-}" == "--engineering-root" ]]; then
-  [[ $# -ge 2 ]] || invalid "--engineering-root requires a value"
-  engineering_root="$2"
+state_dir=""
+if [[ "${1:-}" == "--state-dir" ]]; then
+  [[ $# -ge 2 ]] || invalid "--state-dir requires a value"
+  state_dir="$2"
   shift 2
 fi
 
-[[ -n "$engineering_root" ]] || \
-  invalid "--engineering-root <absolute .state directory> is required"
-[[ "$engineering_root" == /* ]] || \
-  invalid "engineering root must be absolute: $engineering_root"
-[[ "${engineering_root%/}" == */.state ]] || \
-  invalid "engineering root must name a .state directory: $engineering_root"
-[[ -d "$engineering_root" ]] || \
-  invalid "engineering root is missing or not a directory: $engineering_root"
+[[ -n "$state_dir" ]] || \
+  invalid "--state-dir <absolute .state directory> is required"
+[[ "$state_dir" == /* ]] || \
+  invalid "state directory must be absolute: $state_dir"
+[[ "${state_dir%/}" == */.state ]] || \
+  invalid "state directory must end in .state: $state_dir"
+[[ -d "$state_dir" ]] || \
+  invalid "state directory is missing or not a directory: $state_dir"
 [[ $# -gt 0 ]] || invalid "at least one explicit final path is required"
 
-canonical_root="$(canonical_directory "$engineering_root")"
+canonical_root="$(canonical_directory "$state_dir")"
 unique=()
 canonical_unique=()
 for path in "$@"; do
@@ -82,7 +82,7 @@ if [[ ${#eligible[@]} -eq 0 ]]; then
   exit 0
 fi
 
-counts_file="$(mktemp "${TMPDIR:-/tmp}/engineering-wc.XXXXXX")"
+counts_file="$(mktemp "${TMPDIR:-/tmp}/state-wc.XXXXXX")"
 trap 'rm -f "$counts_file"' EXIT
 
 # This is deliberately the only wc process in a pass.

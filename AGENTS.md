@@ -180,7 +180,7 @@ Conventional Commits, validated before any history mutation against
 Those 11 types only — no aliases, no emoji prefix. Scope is a plugin or `plugin/skill`
 (`feat(essential):`, `docs(coding/pr):`), omitted for global changes. Branches are
 `type/kebab-summary`, or `type/<work-id>` and `type/<work-id>/NN-<slice>` for a
-branch belonging to an engineering work stream. Work lands through pull requests whose titles are themselves
+branch belonging to a work stream. Work lands through pull requests whose titles are themselves
 conventional commits.
 
 Tooling is jj-first and git-compatible: `coding:commit` is the sole owner of history

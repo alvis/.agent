@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Coordinator lease for one engineering work stream.
+# Coordinator lease for one work stream.
 #
 # The lease file <work-dir>/lease.json makes the single-writer coordinator
 # role technical instead of conventional: exactly one live token may write

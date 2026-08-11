@@ -27,7 +27,7 @@ contract materialization, MDC authoring, alignment, and completion sync.
   `goal.md`, `state/working.md`, `state.md`, `state/journal.md`,
   `state/revisions.md`, overview indexes, or `review.md`.
 - A mid-execution surprise — a new restriction, a design or specification
-  issue, a failed premise — follows the Essential engineering-work-state
+  issue, a failed premise — follows the Essential state-file format's
   change-control procedure: journal it, classify it task-local, plan-level, or
   spec-level, and route it; a spec-level change flows through the canonical
   source (`sync-spec`) before any plan revision.
@@ -44,7 +44,7 @@ contract materialization, MDC authoring, alignment, and completion sync.
 ## Workflow
 
 1. Before creating or materially rewriting a project artifact, read the
-   absolute `engineering-work.md` path injected by Essential. If unavailable,
+   absolute `state.md` path injected by Essential. If unavailable,
    stop artifact writes and report the missing contract. For a direct run, run
    Essential's workspace resolver with `--work-id` only for an explicit user
    override and accept its deterministic environment, Git-branch/jj-workspace,

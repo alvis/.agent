@@ -1,6 +1,6 @@
 ---
 name: spec-code
-description: Design, update, or retrospectively document a technical specification from a user-selected local, inline, or Notion source through an active engineering work item and versioned derived docs. Use for specification authoring; keep Notion transport in sync-notion and implementation planning in plan-code.
+description: Design, update, or retrospectively document a technical specification from a user-selected local, inline, or Notion source through an active work stream and versioned derived docs. Use for specification authoring; keep Notion transport in sync-notion and implementation planning in plan-code.
 model: opus
 argument-hint: "<instruction> --capability=<slug> [--work-id=<id>] [--source=<path-or-ref>] [--source-direction=<direction>] [--transport-root=<dir>] [--transport-profile=<absolute-file>] [--template=<path-or-ref>] [--local-mdc=<path>] [--parent=<ref>] [--type=api|web-app|mobile|library|fullstack]"
 ---
@@ -47,7 +47,7 @@ for engineers.
   template path/ref, explicit local MDC path and parent for CREATE, project
   type, `--reference=<doc>`, `--discovery=<path>`, `--sync-template`, and
   `--skip-notion-sync`.
-- **Prerequisites**: active engineering work state. Notion credentials/tooling
+- **Prerequisites**: active local state. Notion credentials/tooling
   are required only when the selected direction uses Notion transport.
 
 <IMPORTANT>
@@ -59,7 +59,7 @@ section, or copied transport history.
 ## Workflow
 
 1. Before creating or materially rewriting a project artifact, read the
-   absolute `engineering-work.md` path injected by Essential. If unavailable,
+   absolute `state.md` path injected by Essential. If unavailable,
    stop artifact writes and report the missing contract. For a direct run, run
    Essential's workspace resolver with `--work-id` only for an explicit user
    override and accept its deterministic environment, Git-branch/jj-workspace,
@@ -177,7 +177,7 @@ section, or copied transport history.
    trip for this path. Read
    `${ESSENTIAL_ROOT}/templates/docs/docs-root-readme.template.md` and
    `${ESSENTIAL_ROOT}/templates/docs/specs-readme.template.md`, using the root
-   derived from the injected engineering-work contract, then reconcile
+   derived from the injected state contract, then reconcile
    `docs/specs/README.md` and `docs/README.md` so the capability remains
    reachable and its contract status is explicit.
 

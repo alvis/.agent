@@ -28,10 +28,10 @@ author product specifications, Notion pages, or implementation changes.
 - **Optional**: `--architecture` is on by default; `--no-architecture` and `--readme-only` disable it. `--force-plan` asks for an outline even when a local template or sibling README is authoritative. Free-form notes may clarify audience or positioning but cannot override code evidence.
 - **Prerequisites**: readable package metadata, exports, entry points, scripts, configuration, and relevant source/tests.
 
-## Engineering-work gate
+## State gate
 
 Before creating or materially rewriting a project artifact, read the absolute
-`engineering-work.md` path injected by Essential. If unavailable, stop artifact
+`state.md` path injected by Essential. If unavailable, stop artifact
 writes and report the missing contract. Use the resolver and ask only on
 `work_id_required`. When delegated, start from the mission capsule's exact source,
 specification, and design paths. Read `state/working.md` only when navigation is
@@ -74,7 +74,7 @@ independent-review audit checklist, and the retry/rollback criteria.
    At this write decision, read
    `${ESSENTIAL_ROOT}/templates/docs/docs-root-readme.template.md` and
    `${ESSENTIAL_ROOT}/templates/docs/architecture-readme.template.md`, using
-   the root derived from the injected engineering-work contract.
+   the root derived from the injected state contract.
    Reconcile `docs/architecture/README.md` and `docs/README.md`; individual
    architectural choices remain ADRs under `docs/architecture/decisions/`.
    Before creating or superseding one, apply the ADR contract at
