@@ -32,4 +32,4 @@ async function fetchUserProfile(userId: string): Promise<UserProfile> { // async
 
 ## Related
 
-NAM-FUNC-01, NAM-FUNC-03, NAM-FUNC-04
+NAM-FUNC-01, NAM-FUNC-03

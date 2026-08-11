@@ -477,7 +477,7 @@ def _remove_markdown_section(body: str, heading: str) -> str:
 
 
 def _codex_harness_neutral_text(text: str) -> str:
-    projected = text.replace("theriety:", "backend:").replace(
+    projected = text.replace(
         "run it inside my isolated worktree",
         "run it within the active harness boundaries",
     )

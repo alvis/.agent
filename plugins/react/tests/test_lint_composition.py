@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -15,7 +16,8 @@ PROFILE = PLUGINS / "react/skills/lint/assets/profile.json"
 def write_scanner(path: Path, label: str, *, exit_code: int = 0) -> None:
     path.write_text(
         "import json, os, sys\n"
-        f"print(json.dumps({{'label': '{label}', 'args': sys.argv[1:]}}))\n"
+        f"print(json.dumps({{'label': '{label}', 'args': sys.argv[1:], "
+        "'standard_roots': os.environ.get('CODING_LINT_STANDARD_ROOTS', '')}))\n"
         f"raise SystemExit({exit_code})\n"
     )
 
@@ -59,7 +61,7 @@ def test_runs_each_scanner_once_in_order_and_resolves_from_installed_roots(
         "eligibility": {"extensions": [".tsx", ".jsx"]},
         "exclusions": ["**/*.generated.tsx", "**/node_modules/**", "**/dist/**", "**/__snapshots__/**"],
         "scanners": [{"path": "../../scripts/react.py", "needs_coding_scanlib": True}],
-        "standards": ["../../standards/components"],
+        "standards": ["../../standards/components", "../../standards/hooks"],
         "report_label": "React lint",
     }))
     result = run_runner(
@@ -79,6 +81,14 @@ def test_runs_each_scanner_once_in_order_and_resolves_from_installed_roots(
     assert report["files"] == ["src/App.tsx"]
     assert sum(run["label"] == "generic" for run in report["scanner_runs"]) == 1
     assert sum(run["label"] == "react" for run in report["scanner_runs"]) == 1
+    expected_standard_roots = os.pathsep.join(
+        (
+            str((tmp_path / "react/standards/components").resolve()),
+            str((tmp_path / "react/standards/hooks").resolve()),
+        )
+    )
+    assert report["scanner_runs"][0]["output"]["standard_roots"] == expected_standard_roots
+    assert report["scanner_runs"][1]["output"]["standard_roots"] == expected_standard_roots
     react_args = report["scanner_runs"][1]["args"]
     assert str((tmp_path / "coding/scripts/scanlib").resolve()) in react_args
     assert report["report_label"] == "React lint"
@@ -108,6 +118,23 @@ def test_propagates_scanner_failure_with_generic_report_contract(
     assert report["status"] == "failure"
     assert "violations_found_total" in report
     assert len(report["scanner_runs"]) == 2
+
+
+def test_profile_without_standards_clears_inherited_standard_roots(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    profile_dir = tmp_path / "react/skills/lint"
+    profile_dir.mkdir(parents=True)
+    profile = profile_dir / "profile.json"
+    profile.write_text(json.dumps({"standards": []}))
+    monkeypatch.setenv("CODING_LINT_STANDARD_ROOTS", "/stale/standard/root")
+
+    result = run_runner(tmp_path, profile, "src/App.tsx")
+
+    assert result.returncode == 0, result.stderr + result.stdout
+    report = json.loads(result.stdout)
+    assert report["scanner_runs"][0]["output"]["standard_roots"] == ""
 
 
 def test_rejects_relative_profile_path(tmp_path: Path) -> None:

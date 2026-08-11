@@ -175,13 +175,13 @@ When to SKIP this section:
 - Packages where the overview already explains everything needed
 
 Good examples of packages that benefit from Core Concept:
-- @theriety/endpoint: Explains Request → initiator pipeline and security contract
+- Hypothetical request router: Explains middleware → handler → response flow
 - Hypothetical scheduler: Would explain job lifecycle and execution model
 - Hypothetical state-machine: Would explain state transition mechanics
 
 Bad fits (skip this section):
-- @theriety/validation: The concept (validate data against schemas) is self-evident
-- @theriety/cache: Simple adapter pattern doesn't need conceptual explanation
+- Hypothetical schema validator: The concept is self-evident
+- Hypothetical key-value cache: A simple adapter pattern needs no conceptual overview
 - Component libraries: Individual components are self-explanatory
 
 STRUCTURE & CONTENT GUIDELINES:
@@ -382,7 +382,7 @@ Legend: ✅ supported &nbsp; ⚠️ partial &nbsp; ❌ unsupported &nbsp; 🔜 p
 - Error handling patterns (where relevant)
 
 ```ts
-import { mainExport } from '@theriety/<package-name>';
+import { mainExport } from '@scope/<package-name>';
 
 // clear, practical example
 ```
@@ -430,7 +430,7 @@ This ensures examples remain accurate and useful as the package evolves.
 ```ts
 // complete, working example that combines multiple features
 // must be valid TypeScript that compiles without errors
-import { feature1, feature2 } from '@theriety/<package-name>';
+import { feature1, feature2 } from '@scope/<package-name>';
 
 // show imports, setup, execution, and result handling
 ```
@@ -482,7 +482,7 @@ Organization guidelines:
 
 ```ts
 // practical example showing typical usage
-import { functionName } from '@theriety/<package-name>';
+import { functionName } from '@scope/<package-name>';
 
 const result = functionName(value1, value2);
 // result: expected output
@@ -579,8 +579,8 @@ ALWAYS include this section. List packages that:
 Use relative links to other packages in the monorepo.
 -->
 
-- [`@theriety/<related-package-1>`](../<related-package-1>): Brief description of relationship
-- [`@theriety/<related-package-2>`](../<related-package-2>): How it relates to this package
+- [`@scope/<related-package-1>`](../<related-package-1>): Brief description of relationship
+- [`@scope/<related-package-2>`](../<related-package-2>): How it relates to this package
 <!-- Add more as needed -->
 
 ---

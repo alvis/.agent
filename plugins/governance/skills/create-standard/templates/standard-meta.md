@@ -11,7 +11,7 @@ _[Brief description of what this standard covers and its purpose]_
 <!-- INSTRUCTION: List all standards that must be read together with this one -->
 <!-- INSTRUCTION: Use the plugin reference format:
      - Same plugin: standard:name (e.g., standard:typescript)
-     - Cross-plugin: plugin:name:standard:name (e.g., plugin:coding:standard:typescript)
+     - Cross-plugin: `plugin:<plugin>:standard:<standard>` (e.g., `plugin:coding:standard:typescript`)
 -->
 
 You MUST also read the following standards together with this file:

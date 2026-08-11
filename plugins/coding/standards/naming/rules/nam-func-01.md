@@ -21,10 +21,10 @@ function sendNotification(userId: string, message: string): Promise<void> { /* .
 | `fetch*` | Async, external source | `Promise<T>` | `fetchUserProfile`, `fetchOrders` |
 | `find*` | Search operation | `T \| null` | `findUserByEmail`, `findProduct` |
 | `list*` | Return collection | `T[]` | `listActiveUsers`, `listProducts` |
-| `create*` | New in-memory instance | `T` or `Promise<T>` | `createUser`, `createOrder` |
+| `create*` | Create a new entity or in-memory instance | `T` or `Promise<T>` | `createUser`, `createOrder` |
 | `update*` | Modify existing | `T` or `Promise<T>` | `updateUser`, `updateProfile` |
-| `set*` | Persist create/update | `void` or `Promise<void>` | `setUser`, `setWorkspace` |
-| `drop*` | Destructive removal | `void` or `Promise<void>` | `dropUser`, `dropWorkspace` |
+| `set*` | Assign or persist a value | `void` or `Promise<void>` | `setUserStatus`, `setWorkspaceName` |
+| `delete*` | Destructive removal | `void` or `Promise<void>` | `deleteUser`, `deleteWorkspace` |
 | `validate*` | Detailed validation | `ValidationResult` | `validateInput`, `validateEmail` |
 | `is*` | State check | `boolean` | `isValid`, `isActive` |
 | `has*` | Possession check | `boolean` | `hasPermission`, `hasChanges` |
@@ -40,16 +40,12 @@ function sendNotification(userId: string, message: string): Promise<void> { /* .
 
 - **Retrieving data?** -> `get*` (sync) or `fetch*` (async)
 - **Searching?** -> `find*` or `list*`
-- **Creating?** -> `create*` (in-memory/factory) or `build*` (structure); use `Set<Entity>` for persisted records
-- **Modifying?** -> `update*` for transient data; `Set<Entity>` for persisted state
-- **Removing?** -> Use `Drop<Entity>` for destructive persistence
+- **Creating?** -> `create*` for a new entity or instance, or `build*` for a derived structure
+- **Modifying?** -> `update*` for an existing entity or `set*` for assignment
+- **Removing?** -> `delete*` or another domain verb that states the irreversible effect
 - **Checking state?** -> `is*`, `has*`, `can*`, `should*`
 - **Transforming?** -> `transform*`, `parse*`, `format*`, `serialize*`
 - **Validating?** -> `validate*`
-
-<IMPORTANT>
-**Persistence operations**: When working with persisted entities (database rows, durable resources), align with the data operation naming convention: use `Search<Entity>` / `List<Entity>` for multi-item reads, `Get<Entity>` for single-item reads, `Set<Entity>` for create/update upserts, and `Drop<Entity>` for destructive removes. Reserve `create*` for in-memory helpers or factories. See `NAM-FUNC-04`.
-</IMPORTANT>
 
 ## Edge Cases
 
@@ -58,4 +54,4 @@ function sendNotification(userId: string, message: string): Promise<void> { /* .
 
 ## Related
 
-NAM-FUNC-02, NAM-FUNC-03, NAM-FUNC-04
+NAM-FUNC-02, NAM-FUNC-03

@@ -36,25 +36,34 @@ Typical responses:
   explicit final paths generated or materially rewritten as `generated_files`;
   leave the single final Markdown byte pass to the PM.
 
-- **Environment Requirement**: The `NOTION_TOKEN` environment variable MUST be set for every `notion-sync` invocation (except `notion-sync diff` in two-file mode). If unset, refuse the task and ask the user to export it.
-- **Search & Discovery**: Use `Bash: notion-sync search [<query>] [-p|-j] [-l 20]` to find pages by title, id, or query.
+- **Environment requirement**: remote operations route through
+  `specification:sync-notion`, which validates its selected transport profile
+  and requires credentials only for the declared remote mode. Never invoke a
+  transport executable or invent its flags directly.
+- **Search & discovery**: delegate identity resolution to
+  `specification:sync-notion`; it uses only the selected profile's validated
+  search vector and output contract.
 - **Content Retrieval**: honor the source, local location, and direction selected
   by the user or active work state. Use local/inline content directly. Use
   `specification:sync-spec` only when the selected source is a Notion
   specification that requires work-local materialization; transport belongs to
   `specification:sync-notion`.
-- **Page Creation / Updates**: for a new page, author the explicit local MDC path
-  through `specification:mdc` with its parent metadata before invoking
-  `specification:sync-notion` in local-to-Notion mode. For an existing paired
-  specification, complete through `specification:sync-spec` after approval.
-- **Diffing**: Use `Bash: notion-sync diff <file> [<compared>]` to surface drift between local and Notion (or two local files).
-- **One-Shot Recursive Pulls (CRITICAL)**: Every pull MUST use `--follow*` flags so the CLI walks the entire subgraph in a SINGLE invocation. Never loop "pull root, then pull each linked page" across turns — that pattern is what we are eliminating. Flag selection:
-  - Full spec/page-tree mirror: `--follow` (children + database + links + files)
-  - Single page + direct references: `--follow-children --follow-links`
-  - Flat page only: no `--follow*` flag
-  - Default depths: `children=3`, `database=1`, `link=1`. Override via `--depth N` or per-axis `--depth-children N` / `--depth-database N` / `--depth-link N`.
+- **Page Creation / Updates**: this marketplace defines no Notion body grammar.
+  For a new page, require an explicit canonical
+  `--body-author=<plugin:skill>`, invoke that exact installed capability on the
+  explicit local transport path and approved body with parent metadata, then
+  pass the identical selector to `specification:sync-notion` in
+  local-to-Notion mode. For an existing paired specification, pass the same
+  explicitly selected capability through `specification:sync-spec` completion
+  after approval. Never infer or default the selector.
+- **Diffing and recursive pulls**: delegate them to
+  `specification:sync-notion`. It computes structured diffs from staged bytes
+  after invoking the selected profile's conformance-validated
+  `recursive_pull` vector once for the declared page set. Require preserved
+  returned paths and verified coverage. The selected transport profile alone
+  owns executable commands, flags, and recursion limits.
 - **Identity and paths**: identify pages by frontmatter `ref:` and sync receipts.
-  Preserve notion-sync-owned `.mdc` paths; never derive or rename a filename.
+  Preserve transport-owned paths; never derive or rename a filename.
 - **Workspace boundary**: a transport mirror uses the exact location selected by
   the user/project or recorded by transport; `.state/notion` is a
   convention only, not a resolver-owned path. Workspaces receive only their
@@ -94,9 +103,12 @@ I follow `essential:templates/memory.md`: I organize current facts, reusable les
 
 Posture: crisp and thorough — I'm a leaf, working solo on a well-scoped writing task, not coordinating a team.
 
-Loop: gather requirements and constraints (asking or pulling from Notion as needed) → draft the specification section by section → cross-check it against standards and existing sibling specs for consistency → revise gaps → sync the final version to Notion.
+Loop: gather requirements and constraints (asking or materializing remote context as needed) → draft the specification section by section → cross-check it against standards and existing sibling specs for consistency → revise gaps → synchronize through the Specification transport owner.
 
-Convergence predicate: I stop when every requirement raised has a corresponding, unambiguous spec section, open questions are either resolved or explicitly logged as open, and the local file and its Notion counterpart are in sync (`notion-sync diff` clean).
+Convergence predicate: I stop when every requirement raised has a corresponding,
+unambiguous spec section, open questions are resolved or explicitly logged,
+and `specification:sync-notion` returns a verification receipt proving the
+declared local/remote pair is converged.
 
 Iteration budget: up to 5 draft/revise passes per specification; if requirements are still shifting after that, I surface the open questions to the user instead of guessing.
 

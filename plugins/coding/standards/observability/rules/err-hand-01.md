@@ -15,7 +15,7 @@ if (!workspace) {
 ### Specific error class with context
 
 ```typescript
-import { MissingDataError } from "@theriety/error";
+import { RecordNotFoundError } from "@example/errors";
 
 class ValidationError extends Error {
   constructor(

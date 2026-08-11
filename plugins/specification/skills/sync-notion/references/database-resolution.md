@@ -58,6 +58,11 @@ branch:
 The resolved identity never determines the local filename. Preserve the path
 created by notion-sync or explicitly supplied by the caller.
 
-## Status Property Matching
+## Project property policy
 
-When this skill (or any downstream consumer) reads Notion **status** properties to decide branching, **always match by group + keyword regex**, never by exact option name. Notion database labels drift over time, and exact-name matching silently breaks. Preserve any regex-based status logic exactly as written elsewhere in this skill or its callers.
+Transport preserves property names and values but does not interpret them.
+Branch on a Notion property only when the caller supplies an explicit
+destination-owned mapping that identifies the property, accepted values or
+groups, and matching semantics. A missing or ambiguous mapping is a policy
+refusal, never permission to infer labels from the live database. Preserve
+unknown properties unchanged.

@@ -2,14 +2,15 @@
 name: implement-code
 description: Execute an approved specification work item from an authoritative local, inline, or Notion-backed contract through delegated coding, review, applicable completion sync, and durable derivation. Use after plan-code approval, when resuming partial work, or when auditing delivered ticket work.
 model: opus
-argument-hint: "<spec-path-or-ref> [--work-id=<id>] [--source-direction=<direction>] [--transport-root=<dir>] [--transport-profile=<absolute-file>] [--repo=<path>] [--dry-run] [--skip-approval] [--defer-publication]"
+argument-hint: "<spec-path-or-ref> [--work-id=<id>] [--source-direction=<direction>] [--transport-root=<dir>] [--transport-profile=<absolute-file>] [--body-author=<plugin:skill>] [--repo=<path>] [--dry-run] [--skip-approval] [--defer-publication]"
 ---
 
 # Implement Specification
 
 Orchestrate one specification work item. Coding skills own source/test edits;
 commit/push skills own history and publication; Specification skills own
-contract materialization, MDC authoring, alignment, and completion sync.
+contract materialization, selected body-author routing, alignment, and
+completion sync.
 
 ## Boundaries
 
@@ -36,7 +37,8 @@ contract materialization, MDC authoring, alignment, and completion sync.
 
 - **Required**: authoritative specification path/ref.
 - **Optional**: work id, source direction, transport root, target repo,
-  absolute destination-local transport profile file, `--dry-run`,
+  absolute destination-local transport profile file, explicit external
+  `--body-author=<plugin:skill>` for any Notion body mutation, `--dry-run`,
   `--skip-approval`, `--defer-publication`, and `--use-cache`.
 - **Prerequisites**: resolved active work state and target repository. Notion
   tooling is required only when the selected source/direction uses it.
@@ -113,8 +115,12 @@ contract materialization, MDC authoring, alignment, and completion sync.
    implemented, or contradictory behavior.
 5. Run an architecture/contract soundness pass. Stop for unresolved material
    decisions. Record an approved contract answer only through the selected
-   source owner's authoring path; invoke `Skill(mdc)` only for a Notion-backed
-   source whose selected transport owns that MDC. Refresh the source provenance
+   source owner's authoring path. For a Notion-backed source, require the
+   explicit canonical `--body-author`, bind it once, and invoke that exact
+   capability with only the approved body and exact path. Pass the identical
+   selector to `sync-spec`/`sync-notion`, reject a missing or changed selector
+   with `select_body_author`, and record its capability plus selection source
+   separately from transport evidence. Refresh the source provenance
    and content reference in the work receipt, then re-read the authoritative source
    before coding. Any semantic specification edit invalidates its approval,
    the plan approval, and implementation review until re-confirmed against the
@@ -148,7 +154,7 @@ contract materialization, MDC authoring, alignment, and completion sync.
    every Coding writer. Task-local commits may be created, but no child may
    push, open/update a PR, restack, or finalize shared history. On
    `pending_decision`, stop, ask, record the answer through the selected source
-   owner (`Skill(mdc)` only for the selected Notion-backed path), and resume the
+   owner (the explicitly bound `body_author` for a Notion-backed path), and resume the
    same run. Each child returns the same task identity, its `capability_id`
    (Essential's `truth.md`), attempt outcome
    (`pass|fail|partial`), evidence, generated files, and a requested status
@@ -198,7 +204,8 @@ contract materialization, MDC authoring, alignment, and completion sync.
     not promote either side, reread stale L, or push merged proposal M from the
     implementation stage. Route the B/L/R packet and immutable M proposal to
     the PM/user source owner. After explicit resolution, the owner may apply M
-    only through the specification authoring path (`Skill(mdc)` for Notion),
+    only through the specification authoring path (the exact bound
+    `body_author` for Notion),
     then must obtain specification
     approval of M's exact content. Invoke
     `Skill(sync-spec)` with that profile in
@@ -310,7 +317,8 @@ contract materialization, MDC authoring, alignment, and completion sync.
   completed the selected source owner's verification and derivation path;
   Notion-backed sources completed a verified round trip, while local/inline
   sources did not claim one.
-- No child wrote PM-owned files or MDC; collected `generated_files` is complete.
+- No child wrote PM-owned files or an opaque Notion transport body; collected
+  `generated_files` is complete.
 
 ## Completion
 
@@ -318,6 +326,7 @@ Report deterministic operational status plus sync `classification` and
 `next_action` (including `specification_reconciliation` when applicable),
 ticket/stage/mode, work and spec receipt paths,
 validated transport profile path/exact-byte SHA when applicable,
+the selected body-author capability and selection source when applicable,
 the reviewed specification content reference and observed revision,
 repo/base rev, `plan_source: state.md`, parent/per-parent
 graphs, runnable/blocked/invalidated task IDs, acceptance coverage, decisions,

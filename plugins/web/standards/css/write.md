@@ -117,13 +117,13 @@ Brand and color mode are **independent axes**. The brand layer (`@theme` from Ta
 
 | Axis | Attribute | Owner | Standard |
 |---|---|---|---|
-| Brand identity | `data-brand="acme"` | `@theme` semantic tokens | `plugin:web:standard:theming` |
+| Brand identity | `data-brand="example"` | `@theme` semantic tokens | `plugin:web:standard:theming` |
 | Color mode | `data-theme="light|dark"` | `@layer theme` raw + active UI tokens | This standard (`CSS-MODE-*`) |
 
 ```css
 @layer theme {
-  /* default acme + dark composition */
-  :root[data-brand="acme"][data-theme="dark"] {
+  /* default example + dark composition */
+  :root[data-brand="example"][data-theme="dark"] {
     --ui-bg: var(--theme-dark-bg);
     --ui-fg: var(--theme-dark-fg);
     --ui-accent: var(--color-accent); /* brand layer feeds in here */

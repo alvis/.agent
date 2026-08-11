@@ -183,17 +183,17 @@ def test_stitches_native_codex_agent_toml_from_the_same_template(
     assert definition == stitch_codex_agent_definition(template)
 
 
-def test_codex_projection_maps_backend_claude_namespace_without_changing_claude(
+def test_codex_projection_preserves_plugin_namespaces(
     tmp_path: Path,
 ) -> None:
     description = (
-        "Builds services with theriety:build-service. "
+        "Writes code with coding:write-code. "
         "Preferably named Ava, Kit, or June when the main agent spawns this role."
     )
     body = (
         "# Test agent\n\n"
-        "Use `theriety:build-service` and standards at "
-        "`theriety:standards/function/`.\n"
+        "Use `coding:write-code` and standards at "
+        "`coding:standards/function/`.\n"
     )
     template = write_template(
         tmp_path,
@@ -207,10 +207,8 @@ def test_codex_projection_maps_backend_claude_namespace_without_changing_claude(
 
     assert json.loads(claude.split("---\n", 2)[1])["description"] == description
     assert body in claude
-    assert codex["description"] == description.replace("theriety:", "backend:")
-    assert codex["developer_instructions"] == body.replace(
-        "theriety:", "backend:"
-    )
+    assert codex["description"] == description
+    assert codex["developer_instructions"] == body
 
 
 @pytest.mark.parametrize("harness", ("claude", "codex"))
@@ -1027,7 +1025,7 @@ def test_installed_mode_uses_only_enabled_plugins_from_essential_marketplace(
 ) -> None:
     essential = tmp_path / "cache/alvis/essential/1"
     web = tmp_path / "cache/alvis/web/1"
-    disabled = tmp_path / "cache/alvis/backend/1"
+    disabled = tmp_path / "cache/alvis/disabled/1"
     other = tmp_path / "cache/other/coding/1"
     for path in (essential, web, disabled, other):
         path.mkdir(parents=True)
@@ -1046,7 +1044,7 @@ def test_installed_mode_uses_only_enabled_plugins_from_essential_marketplace(
     records = [
         {"id": "essential@alvis", "enabled": True, "installPath": str(essential)},
         {"id": "web@alvis", "enabled": True, "installPath": str(web)},
-        {"id": "backend@alvis", "enabled": False, "installPath": str(disabled)},
+        {"id": "disabled@alvis", "enabled": False, "installPath": str(disabled)},
         {"id": "coding@other", "enabled": True, "installPath": str(other)},
     ]
 
@@ -1055,6 +1053,131 @@ def test_installed_mode_uses_only_enabled_plugins_from_essential_marketplace(
     assert {
         f"{template.owner}:{template.name}" for template in templates
     } == {"essential:essential-agent", "web:web-agent"}
+
+
+@pytest.mark.parametrize("harness", ("claude", "codex"))
+def test_installed_mode_includes_explicitly_trusted_marketplace(
+    tmp_path: Path,
+    harness: str,
+) -> None:
+    essential = tmp_path / "cache/alvis/essential/1"
+    external = tmp_path / "cache/external/analytics/1"
+    for plugin_root in (essential, external):
+        plugin_root.mkdir(parents=True)
+    write_template(
+        essential,
+        "essential-agent",
+        frontmatter={"name": "essential-agent"},
+    )
+    write_template(
+        external,
+        "analytics-agent",
+        frontmatter={"name": "analytics-agent"},
+    )
+    records = [
+        {
+            "id": "essential@alvis",
+            "enabled": True,
+            "version": "1",
+            "installPath": str(essential),
+        },
+        {
+            "id": "analytics@external",
+            "enabled": True,
+            "version": "1",
+            "installPath": str(external),
+        },
+    ]
+
+    default_templates = discover_agent_templates(essential, records, harness)
+    included_templates = discover_agent_templates(
+        essential,
+        records,
+        harness,
+        include_marketplaces=("external",),
+    )
+
+    assert {template.name for template in default_templates} == {
+        "essential-agent"
+    }
+    assert {template.name for template in included_templates} == {
+        "analytics-agent",
+        "essential-agent",
+    }
+
+
+def test_installed_mode_rejects_invalid_included_marketplace(tmp_path: Path) -> None:
+    essential = tmp_path / "cache/alvis/essential/1"
+    essential.mkdir(parents=True)
+    records = [
+        {"id": "essential@alvis", "enabled": True, "installPath": str(essential)}
+    ]
+
+    with pytest.raises(AgentTemplateError, match="invalid included marketplace"):
+        discover_agent_templates(
+            essential,
+            records,
+            include_marketplaces=("../external",),
+        )
+
+
+@pytest.mark.parametrize("harness", ("claude", "codex"))
+def test_cross_marketplace_duplicate_requires_original_plugin_disabled(
+    tmp_path: Path,
+    harness: str,
+) -> None:
+    essential = tmp_path / "cache/alvis/essential/1"
+    original_plugin = tmp_path / "cache/alvis/analytics/1"
+    external_plugin = tmp_path / "cache/external/analytics/1"
+    for plugin_root, agent_name in (
+        (essential, "essential-agent"),
+        (original_plugin, "analytics-agent"),
+        (external_plugin, "analytics-agent"),
+    ):
+        plugin_root.mkdir(parents=True)
+        write_template(
+            plugin_root,
+            agent_name,
+            frontmatter={"name": agent_name},
+        )
+    records = [
+        {
+            "id": "essential@alvis",
+            "enabled": True,
+            "version": "1",
+            "installPath": str(essential),
+        },
+        {
+            "id": "analytics@alvis",
+            "enabled": True,
+            "version": "1",
+            "installPath": str(original_plugin),
+        },
+        {
+            "id": "analytics@external",
+            "enabled": True,
+            "version": "1",
+            "installPath": str(external_plugin),
+        },
+    ]
+
+    with pytest.raises(AgentTemplateError, match="duplicate agent name 'analytics-agent'"):
+        install_agents(
+            essential,
+            tmp_path / "collision",
+            records,
+            harness,
+            include_marketplaces=("external",),
+        )
+
+    records[1]["enabled"] = False
+    assert install_agents(
+        essential,
+        tmp_path / "migrated",
+        records,
+        harness,
+        include_marketplaces=("external",),
+    ) == 2
 
 
 @pytest.mark.parametrize(

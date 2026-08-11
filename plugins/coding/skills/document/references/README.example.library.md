@@ -1,9 +1,9 @@
-# @theriety/retry
+# @scope/retry
 
 <br/>
 📌 A typed retry/backoff library for TypeScript that turns flaky operations into predictable, observable pipelines. It cures retry fatigue: the half-correct `try/catch + setTimeout` loops teams copy-paste — each with its own bug around jitter, non-retryable errors, and cancellation.
 
-The `@theriety/retry` package centers the retry decision around a **pluggable classifier** and a **small 4-phase pipeline** (`Attempt → Classify → Delay → Decide`), so the same engine handles HTTP calls, database reconnects, and message broker redelivery with one mental model. Compared to `p-retry` it exposes the classifier as a first-class citizen; compared to `async-retry` it is zero-dep, strictly typed, and cancel-aware via `AbortSignal`.
+The `@scope/retry` package centers the retry decision around a **pluggable classifier** and a **small 4-phase pipeline** (`Attempt → Classify → Delay → Decide`), so the same engine handles HTTP calls, database reconnects, and message broker redelivery with one mental model. Compared to `p-retry` it exposes the classifier as a first-class citizen; compared to `async-retry` it is zero-dep, strictly typed, and cancel-aware via `AbortSignal`.
 
 <br/>
 <div align="center">
@@ -17,7 +17,7 @@ The `@theriety/retry` package centers the retry decision around a **pluggable cl
 
 ## 💡 Core Concept
 
-Retry is deceptively easy to get wrong — teams reinvent the same half-correct `try/catch + setTimeout`, each with its own jitter, classification, and cancellation bug. `@theriety/retry` cures that retry fatigue with a single fixed pipeline: every attempt walks through **Attempt → Classify → Delay → Decide**, always in the same order, always with full context.
+Retry is deceptively easy to get wrong — teams reinvent the same half-correct `try/catch + setTimeout`, each with its own jitter, classification, and cancellation bug. `@scope/retry` cures that retry fatigue with a single fixed pipeline: every attempt walks through **Attempt → Classify → Delay → Decide**, always in the same order, always with full context.
 
 Because the four phases are isolated behind small interfaces, swapping one — a deterministic `DelayStrategy` in tests, a header-aware `Classifier` in production — never perturbs the rest. See [the architecture guide](./docs/architecture/retry-engine.md#-core-concepts) for per-phase rationale and invariants.
 
@@ -38,7 +38,7 @@ See [`docs/architecture/retry-engine.md`](./docs/architecture/retry-engine.md) f
 Wrap any async operation. Defaults cover the 90% case: 5 attempts, exponential backoff from 100 ms capped at 30 s, decorrelated jitter, retry on network errors and HTTP 5xx.
 
 ```ts
-import { retry } from '@theriety/retry';
+import { retry } from '@scope/retry';
 
 const user = await retry(async () => {
   const response = await fetch(`/api/users/${id}`);
@@ -52,7 +52,7 @@ const user = await retry(async () => {
 The classifier is the most common extension point. Return `'retryable'` for anything transient, `'fatal'` for programmer errors, and `'abort'` when a caller explicitly cancelled.
 
 ```ts
-import { createRetryPolicy, retry } from '@theriety/retry';
+import { createRetryPolicy, retry } from '@scope/retry';
 import { RateLimitError, ValidationError } from './errors';
 
 const policy = createRetryPolicy()
@@ -69,11 +69,11 @@ const result = await retry(() => chargeCard(payment), policy);
 
 ### Example: Retry with an external circuit breaker
 
-Compose with `@theriety/circuit-breaker` to short-circuit once a downstream is known bad; the breaker's `OpenError` is classified as `fatal` so retry exits cleanly.
+Compose with `@scope/circuit-breaker` to short-circuit once a downstream is known bad; the breaker's `OpenError` is classified as `fatal` so retry exits cleanly.
 
 ```ts
-import { createCircuitBreaker, OpenError } from '@theriety/circuit-breaker';
-import { createRetryPolicy, retry } from '@theriety/retry';
+import { createCircuitBreaker, OpenError } from '@scope/circuit-breaker';
+import { createRetryPolicy, retry } from '@scope/retry';
 
 const breaker = createCircuitBreaker({ threshold: 5, resetMs: 30_000 });
 
@@ -116,7 +116,7 @@ Runs `operation` under the retry engine. Resolves with the first successful valu
 **Example:**
 
 ```ts
-import { retry } from '@theriety/retry';
+import { retry } from '@scope/retry';
 
 const data = await retry(() => fetchJson('/api/health'));
 ```
@@ -143,13 +143,13 @@ Returns a fluent builder for a `Policy`. Each chained method narrows the retry b
 | `.maxElapsedMs(ms: number)` | wall-clock cap before `RetryError` with reason `'max-elapsed'` |
 | `.classify(fn: Classifier)` | override verdict mapping; replaces the default classifier entirely |
 | `.delay(strategy: DelayStrategy)` | override wait computation; built-ins include `exponential`, `decorrelatedJitter` |
-| `.circuitBreaker(opts)` | optional integration with `@theriety/circuit-breaker`; classifies `OpenError` as fatal |
+| `.circuitBreaker(opts)` | optional integration with `@scope/circuit-breaker`; classifies `OpenError` as fatal |
 | `.build()` | freeze and return an immutable `Policy` |
 
 **Example:**
 
 ```ts
-import { createRetryPolicy } from '@theriety/retry';
+import { createRetryPolicy } from '@scope/retry';
 
 const policy = createRetryPolicy()
   .maxAttempts(4)
@@ -174,7 +174,7 @@ Aggregate error thrown when a retry policy is exhausted. Preserves every attempt
 **Example:**
 
 ```ts
-import { RetryError, retry } from '@theriety/retry';
+import { RetryError, retry } from '@scope/retry';
 
 try {
   await retry(() => flakyCall());
@@ -191,7 +191,7 @@ try {
 
 ## 📦 Related Packages
 
-- [`@theriety/circuit-breaker`](../circuit-breaker): pairs with retry to stop hammering a known-bad downstream; its `OpenError` is naturally fatal to classify
-- [`@theriety/rate-limiter`](../rate-limiter): sits in front of retry to bound request volume; its `RateLimitError` is the canonical retryable error in the default classifier
+- [`@scope/circuit-breaker`](../circuit-breaker): pairs with retry to stop hammering a known-bad downstream; its `OpenError` is naturally fatal to classify
+- [`@scope/rate-limiter`](../rate-limiter): sits in front of retry to bound request volume; its `RateLimitError` is the canonical retryable error in the default classifier
 
 ---

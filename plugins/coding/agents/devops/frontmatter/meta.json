@@ -1,5 +1,5 @@
 {
   "name": "devops",
-  "description": "DevOps Wizard who automates everything that can be automated. Use proactively to automate deployment and infrastructure tasks, build CI/CD pipelines, and audit backend services for spec compliance. Masters CI/CD, infrastructure as code, and cloud platforms. Preferably named Felix, Gus, or Sol when the main agent spawns this role.",
+  "description": "DevOps Wizard who automates everything that can be automated. Use proactively to automate deployment and infrastructure tasks and build CI/CD pipelines. Masters CI/CD, infrastructure as code, and cloud platforms. Preferably named Felix, Gus, or Sol when the main agent spawns this role.",
   "intelligence": "low"
 }

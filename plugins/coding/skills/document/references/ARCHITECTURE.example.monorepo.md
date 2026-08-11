@@ -1,10 +1,10 @@
-# @theriety/platform — ARCHITECTURE
+# @scope/platform — ARCHITECTURE
 
 <br/>
 
 ARCHITECTURE = how it works. For usage/install, see readme.md.
 
-📌 **First paragraph:** This document is the **INDEX** for the `@theriety/platform` monorepo. The platform hosts three peer subsystems — **core**, **services**, and **sdks**. This file explains the cross-cutting shape, invariants, and onboarding path; independently owned subsystem deep dives live under `docs/architecture/platform/`.
+📌 **First paragraph:** This document is the **INDEX** for the `@scope/platform` monorepo. The platform hosts three peer subsystems — **core**, **services**, and **sdks**. This file explains the cross-cutting shape, invariants, and onboarding path; independently owned subsystem deep dives live under `docs/architecture/platform/`.
 
 **Second paragraph:** The split follows ownership and retrieval boundaries, not file size. A reader can enter through this overview and open only the subsystem relevant to the current change.
 

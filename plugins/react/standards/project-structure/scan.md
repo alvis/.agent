@@ -56,4 +56,4 @@ If a violation is detected, load the matching rule guide at `./rules/<rule-id>.m
 | `RPS-UTIL-01` | React in utilities, or domain type in global types | `src/utilities/useDebounce.ts` (hook in utilities); `src/types/Invoice.ts` |
 | `RPS-PROMO-01` | Premature promotion | A `Button` lives in `src/components/primitives/` but is imported by exactly one feature |
 | `RPS-WS-01` | Premature hoist to workspace package | `packages/ui/Button.tsx` imported by exactly one app; a monorepo with one app and a "shared" `packages/ui` |
-| `RPS-WS-02` | App-specific or brand-coded code in workspace package | `packages/ui/Button.tsx` accepts a `client="acme"` prop; `packages/ui/Card.tsx` imports from `apps/web/src/features/checkout`; `#ff6600` hard-coded in a `packages/ui` component class |
+| `RPS-WS-02` | App-specific or brand-coded code in workspace package | `packages/ui/Button.tsx` accepts a `client="example"` prop; `packages/ui/Card.tsx` imports from `apps/web/src/features/checkout`; `#ff6600` hard-coded in a `packages/ui` component class |

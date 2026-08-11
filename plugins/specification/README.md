@@ -37,8 +37,7 @@ Specification owns the capability carriers it derives:
 | `specification:implement-code` | Executing an approved work item end to end: dispatches ready tasks to coding skills, enforces spec freshness before each batch, reconciles worker evidence (with `capability_id`), runs review and completion sync. |
 | `specification:review-implementation` | The seven-area review (alignment, correctness, security, quality, testing, docs, style); approvals carry the full binding tuple; changed specs or task definitions return `needs_revalidation` — marking stale validity, never flipping done rows. |
 | `specification:sync-spec` | Materializing a Notion spec into the work directory and completing approved changes; owns the base/local/remote decision matrix and immutable materialization receipts. |
-| `specification:sync-notion` | Raw Notion transport: pairing, guarded conditional writes, per-page leases, conflict packets. |
-| `specification:mdc` | The only skill that authors `.mdc` body content, preserving grammar and `ref:` identity. |
+| `specification:sync-notion` | Raw Notion transport: pairing, guarded conditional writes, per-page leases, conflict packets, and read-only identity-metadata validation. |
 
 ## Notion-backed specifications
 
@@ -47,7 +46,7 @@ Treat a synchronized specification as three copies:
 | Copy | Purpose |
 |---|---|
 | Base | Immutable content and remote revision from the last verified materialization. |
-| Local | The work-local authored `.mdc` used by planning, implementation, and review. |
+| Local | The work-local transport copy used by planning, implementation, and review. |
 | Remote | A fresh staging pull of the current Notion page immediately before a sync decision. |
 
 Materialize before planning or implementation:
@@ -78,9 +77,12 @@ external executable by checksum and proves `conditional_update` /
 refuses with `next_action: provide_conditional_transport`. Each run also takes
 a per-page lease under the shared transport root — that serializes local
 racers, while proven conditional writes remain the real cross-client guard.
-Never hand-edit the mirror; edit the local copy through
-`/specification:mdc`. Generate a starter profile with
-`python3 skills/sync-notion/scripts/validate-transport-profile.py
+Never hand-edit the mirror. This marketplace deliberately defines no Notion
+body grammar: any creation or semantic body change requires an explicitly
+selected installed capability passed as `--body-author=<plugin:skill>` through
+the complete operation chain. Byte-preserving materialization may omit it.
+Generate a starter profile with
+`uv run --python 3.13 skills/sync-notion/scripts/validate-transport-profile.py
 --print-template` and attach real conformance evidence before use.
 
 When a spec change lands mid-work, the revalidation sweep marks affected

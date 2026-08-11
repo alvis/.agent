@@ -1,9 +1,9 @@
 # Sync mode execution
 
-Choose exactly one branch per declared pair. Use the pinned `notion-sync`
-version's real help/output; never invent flags. Recursive operations use its
-supported follow flags in one invocation, and every returned relative path is
-preserved.
+Choose exactly one branch per declared pair. Use only the selected transport
+profile's conformance-validated capability vectors and output contracts; never
+invent commands or flags. Recursive operations invoke the validated
+`recursive_pull` vector once, and every returned relative path is preserved.
 
 ## `local-to-notion`
 
@@ -47,8 +47,8 @@ preserved.
 
 ## `notion-to-local`
 
-1. Pull once into a unique sibling staging directory with the pinned CLI's
-   recursive options.
+1. Pull once into a unique sibling staging directory with the selected
+   profile's validated `recursive_pull` vector and output contract.
 2. Verify the requested root by `ref:`, returned relationships, completeness,
    path containment, metadata, and content manifests. Specification transport
    must remain `.mdc`.
@@ -66,9 +66,10 @@ preserved.
 2. If any conflict is skipped, unresolved, failed, or changed after approval,
    return `partial` and do not edit canonical local/mirror bytes or push. Never
    insert a TODO as a merge substitute.
-3. Apply an approved `.mdc` proposal only through `Skill(mdc)` in a staged
-   transport copy. Re-verify it against the approved synthesis by direct content
-   comparison and require an exact match before applying.
+3. Apply an approved `.mdc` proposal only through the exact capability bound as
+   `body_author`, in a staged transport copy. Require the selector to match the
+   caller and receipt, pass only the approved body and exact path, then re-verify
+   it against the approved synthesis by direct content comparison.
 4. Re-fetch/re-diff the remote revision immediately before push. Abort/restart
    on change and require proven conditional-update support. Merge never creates
    a page, so conditional-create evidence is not a substitute here. If

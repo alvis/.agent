@@ -15,9 +15,9 @@ flowchart LR
 %% --- Worked example ---
 %%
 %% flowchart LR
-%%     base["@acme/preset-base"] -->|extended by| web["@acme/preset-web"]
-%%     web -->|combined with| strict["@acme/preset-strict"]
-%%     strict -->|consumed by| app["acme-web-app"]
+%%     base["@scope/preset-base"] -->|extended by| web["@scope/preset-web"]
+%%     web -->|combined with| strict["@scope/preset-strict"]
+%%     strict -->|consumed by| app["example-web-app"]
 %%
-%%     a11y["@acme/plugin-a11y"] -.->|registered in| web
-%%     security["@acme/plugin-security"] -.->|registered in| strict
+%%     a11y["@scope/plugin-a11y"] -.->|registered in| web
+%%     security["@scope/plugin-security"] -.->|registered in| strict

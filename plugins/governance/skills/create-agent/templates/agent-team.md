@@ -10,7 +10,7 @@
 ## When to reach for this
 
 An Agent Team earns its overhead when several roles need persistent, high-signal coordination and warm context —
-a design review, incident bridge, or multi-role build where `service-implementation-engineer`,
+a design review, incident bridge, or multi-role build where `generalist-engineer`,
 `testing-evangelist`, and `code-quality-critic` will exchange decisions over time. Reasoning and evidence belong
 in durable artifacts, not repeated messages. Independent dispatch-and-score slices belong to parallel `Agent`
 calls; high-volume scored iteration belongs to a Dynamic Workflow.
@@ -30,7 +30,7 @@ Keep the three identifiers separate:
 ## Warm core
 
 The default warm core is `tech-lead`, `code-quality-critic`, `testing-evangelist`,
-`service-implementation-engineer`, `generalist-engineer`, and `harness-eval-engineer`. Their own
+`generalist-engineer`, and `harness-eval-engineer`. Their own
 `Coordination Posture` sections carry the trust and working style; this team template does not invent personas.
 
 ## Reusing a warm teammate
@@ -84,10 +84,10 @@ first hand-off, that edge carries deltas only. Every `Agent`, `Task`, and `SendM
 before the first message:
 
 ```text
-service-implementation-engineer -> code-quality-critic: implementation complete, before commit
-code-quality-critic -> service-implementation-engineer: gate failure, with findings
+generalist-engineer -> code-quality-critic: implementation complete, before commit
+code-quality-critic -> generalist-engineer: gate failure, with findings
 code-quality-critic -> tech-lead: gate pass, or two rounds exhausted
-testing-evangelist -> service-implementation-engineer: coverage gap found during implementation
+testing-evangelist -> generalist-engineer: coverage gap found during implementation
 ```
 
 At runtime, the sender uses the recipient's captured ID, for example
@@ -121,8 +121,8 @@ Teammates:
   - role: specification-expert
     configured name: sam-specification-expert-plan-auth
     agent_id: agent-42b
-  - role: service-implementation-engineer
-    configured name: james-service-implementation-engineer-build-auth
+  - role: generalist-engineer
+    configured name: leo-generalist-engineer-build-auth
     agent_id: agent-52b
   - role: testing-evangelist
     configured name: ava-testing-evangelist-cover-auth

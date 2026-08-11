@@ -2,7 +2,7 @@
 
 ## Intent
 
-When a client app — or one feature within a client app — needs a shared component to look different, the correct tool is a scoped CSS variable override: declare a scope class (`.checkout-flow`, `.marketing-hero`) and re-bind the component's variables under it. Forking the component, adding a `client="acme"` prop, or introducing one-off boolean flags (`isMarketingHeroButton`) is forbidden — every fork or branded prop is a permanent maintenance tax and a leak of brand identity into the type system. The variable contract exists exactly so re-skins are zero-cost.
+When a client app — or one feature within a client app — needs a shared component to look different, the correct tool is a scoped CSS variable override: declare a scope class (`.checkout-flow`, `.marketing-hero`) and re-bind the component's variables under it. Forking the component, adding a `client="example"` prop, or introducing one-off boolean flags (`isMarketingHeroButton`) is forbidden — every fork or branded prop is a permanent maintenance tax and a leak of brand identity into the type system. The variable contract exists exactly so re-skins are zero-cost.
 
 ## Fix
 
@@ -13,7 +13,7 @@ When a client app — or one feature within a client app — needs a shared comp
 
 ```css
 /* ✅ GOOD: feature-scoped variable override */
-/* apps/acme/src/features/checkout/CheckoutFlow.css */
+/* apps/example/src/features/checkout/CheckoutFlow.css */
 .checkout-flow {
   --button-primary-bg: #2563eb;
   --button-radius: 0.25rem;
@@ -32,13 +32,13 @@ export const CheckoutFlow: FC<PropsWithChildren> = ({ children }) => (
 
 ```tsx
 // ❌ BAD: branded prop leaks client identity into the shared API
-<Button variant="primary" client="acme" />
+<Button variant="primary" client="example" />
 
 // ❌ BAD: one-off boolean flag
 <Button variant="primary" isMarketingHeroButton />
 
 // ❌ BAD: forked component
-// apps/acme/src/components/MarketingButton.tsx
+// apps/example/src/components/MarketingButton.tsx
 // (a copy of @company/ui/Button.tsx with edited colors)
 ```
 

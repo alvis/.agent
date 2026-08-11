@@ -10,7 +10,7 @@ Read this before specification, architecture, requirements, documentation, imple
 | Plan approved specification work | `specification:plan-code` |
 | Implement an approved plan | `specification:implement-code` |
 | Review implementation against its specification | `specification:review-implementation` |
-| Materialize or synchronize a specification | `specification:sync-spec` or `specification:sync-notion`; use `specification:mdc` only for the selected MDC transport |
+| Materialize or synchronize a specification | `specification:sync-spec` or `specification:sync-notion`; semantic Notion body changes additionally require the caller's explicit `--body-author=<plugin:skill>` because this marketplace ships none |
 | Write, review, save, or publish code | Read `coding:references/WORKFLOW.md`, then use its action owner |
 | Create or materially rewrite project artifacts | Follow the injected `essential:references/state.md` contract |
 

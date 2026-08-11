@@ -1,4 +1,4 @@
-# @theriety/queue-worker
+# @scope/queue-worker
 
 > README = how to run it. For design rationale, see [`docs/architecture/durable-job-worker.md`](./docs/architecture/durable-job-worker.md).
 
@@ -6,7 +6,7 @@
 
 📌 A horizontally-scalable background job runner for TypeScript services that turns ad-hoc cron scripts and in-process `setInterval` loops into a uniform, observable work queue. It solves the "background job drift" problem: every team writes their own half-correct worker with different retry semantics, different idempotency stories, and different ways to drain safely during deploys.
 
-The `@theriety/queue-worker` package centres job execution around a **pluggable adapter pair** — one `JobAdapter` for durable storage (Postgres / MySQL / SQLite) and one `BrokerAdapter` for dispatch (Redis / RabbitMQ / in-memory) — driven by a small hexagonal core. Compared to BullMQ it is broker-agnostic and ships a Postgres-only mode for teams who do not want a Redis dependency; compared to Agenda it exposes the adapter contract as a first-class extension seam so new stores can land in under 200 lines.
+The `@scope/queue-worker` package centres job execution around a **pluggable adapter pair** — one `JobAdapter` for durable storage (Postgres / MySQL / SQLite) and one `BrokerAdapter` for dispatch (Redis / RabbitMQ / in-memory) — driven by a small hexagonal core. Compared to BullMQ it is broker-agnostic and ships a Postgres-only mode for teams who do not want a Redis dependency; compared to Agenda it exposes the adapter contract as a first-class extension seam so new stores can land in under 200 lines.
 
 <br/>
 <div align="center">
@@ -53,7 +53,7 @@ The worker reads its configuration from the process environment so that the same
 Install the package and run the bundled migrations against the target database, then start the worker with a minimal configuration.
 
 ```bash
-npm install @theriety/queue-worker @theriety/adapter-postgres
+npm install @scope/queue-worker @scope/adapter-postgres
 npx queue-worker migrate --url "$QUEUE_DB_URL"
 npx queue-worker start
 ```
@@ -61,8 +61,8 @@ npx queue-worker start
 For a code-first startup — which is the recommended path in most services — register handlers and start the worker from your own entrypoint:
 
 ```ts
-import { createWorker } from '@theriety/queue-worker';
-import { postgresAdapter } from '@theriety/adapter-postgres';
+import { createWorker } from '@scope/queue-worker';
+import { postgresAdapter } from '@scope/adapter-postgres';
 
 const worker = createWorker({
   store: postgresAdapter({ url: process.env.QUEUE_DB_URL! }),
@@ -86,8 +86,8 @@ await worker.start();
 Producers talk to the queue through `JobClient`, which validates the payload against the registered handler's schema and writes the job durably before returning.
 
 ```ts
-import { createJobClient } from '@theriety/queue-worker';
-import { postgresAdapter } from '@theriety/adapter-postgres';
+import { createJobClient } from '@scope/queue-worker';
+import { postgresAdapter } from '@scope/adapter-postgres';
 
 const jobs = createJobClient({
   store: postgresAdapter({ url: process.env.QUEUE_DB_URL! }),
@@ -106,8 +106,8 @@ await jobs.enqueue({
 Handlers are registered once at startup; the type of `payload` is inferred from the Zod schema passed to `defineJob`, so producers and consumers cannot drift.
 
 ```ts
-import { createWorker, defineJob } from '@theriety/queue-worker';
-import { postgresAdapter } from '@theriety/adapter-postgres';
+import { createWorker, defineJob } from '@scope/queue-worker';
+import { postgresAdapter } from '@scope/adapter-postgres';
 import { z } from 'zod';
 
 const sendEmail = defineJob({
@@ -136,8 +136,8 @@ await worker.start();
 The worker exposes a lightweight HTTP probe suitable for liveness and readiness checks; a failing adapter fails the probe so the pod is restarted or removed from the service pool.
 
 ```ts
-import { createWorker } from '@theriety/queue-worker';
-import { postgresAdapter } from '@theriety/adapter-postgres';
+import { createWorker } from '@scope/queue-worker';
+import { postgresAdapter } from '@scope/adapter-postgres';
 import { createServer } from 'node:http';
 
 const worker = createWorker({
@@ -189,8 +189,8 @@ Constructs a `Worker` bound to the chosen adapters. Does not open connections un
 **Example:**
 
 ```ts
-import { createWorker } from '@theriety/queue-worker';
-import { postgresAdapter } from '@theriety/adapter-postgres';
+import { createWorker } from '@scope/queue-worker';
+import { postgresAdapter } from '@scope/adapter-postgres';
 
 const worker = createWorker({
   store: postgresAdapter({ url: process.env.QUEUE_DB_URL! }),
@@ -226,12 +226,12 @@ The worker is only as capable as the adapter pair you plug in. The matrix below 
 
 | Adapter | Batch processing | Streaming | Transactional | Delay support | Priority queue |
 | --- | --- | --- | --- | --- | --- |
-| `@theriety/adapter-postgres` | ✅ | ⚠️ via `LISTEN/NOTIFY` | ✅ | ✅ | ✅ |
-| `@theriety/adapter-mysql` | ✅ | ❌ | ✅ | ✅ | ⚠️ single-tier only |
-| `@theriety/adapter-sqlite` | ⚠️ single-writer | ❌ | ✅ | ✅ | ❌ |
-| `@theriety/adapter-redis-broker` | ✅ | ✅ | ❌ | ✅ | ✅ |
-| `@theriety/adapter-rabbitmq-broker` | ✅ | ✅ | ⚠️ publisher confirms | 🔜 | ✅ |
-| `@theriety/adapter-memory-broker` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `@scope/adapter-postgres` | ✅ | ⚠️ via `LISTEN/NOTIFY` | ✅ | ✅ | ✅ |
+| `@scope/adapter-mysql` | ✅ | ❌ | ✅ | ✅ | ⚠️ single-tier only |
+| `@scope/adapter-sqlite` | ⚠️ single-writer | ❌ | ✅ | ✅ | ❌ |
+| `@scope/adapter-redis-broker` | ✅ | ✅ | ❌ | ✅ | ✅ |
+| `@scope/adapter-rabbitmq-broker` | ✅ | ✅ | ⚠️ publisher confirms | 🔜 | ✅ |
+| `@scope/adapter-memory-broker` | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 Legend: ✅ supported &nbsp; ⚠️ partial &nbsp; ❌ unsupported &nbsp; 🔜 planned
 
@@ -247,10 +247,10 @@ See [`docs/architecture/durable-job-worker.md`](./docs/architecture/durable-job-
 
 ## 📦 Related Packages
 
-- [`@theriety/queue-client`](../queue-client): browser-and-server-safe client for enqueuing jobs without pulling in the worker runtime — use this from edge functions and HTTP handlers
-- [`@theriety/adapter-postgres`](../adapter-postgres): first-party `JobAdapter` implementation backed by `pg`; the recommended default for most teams
-- [`@theriety/adapter-redis-broker`](../adapter-redis-broker): first-party `BrokerAdapter` backed by Redis streams; pairs with any `JobAdapter`
-- [`@theriety/retry`](../retry): underlying retry engine reused for attempt scheduling and classifier logic
+- [`@scope/queue-client`](../queue-client): browser-and-server-safe client for enqueuing jobs without pulling in the worker runtime — use this from edge functions and HTTP handlers
+- [`@scope/adapter-postgres`](../adapter-postgres): first-party `JobAdapter` implementation backed by `pg`; the recommended default for most teams
+- [`@scope/adapter-redis-broker`](../adapter-redis-broker): first-party `BrokerAdapter` backed by Redis streams; pairs with any `JobAdapter`
+- [`@scope/retry`](../retry): underlying retry engine reused for attempt scheduling and classifier logic
 
 ---
 
@@ -260,7 +260,7 @@ See [`docs/architecture/durable-job-worker.md`](./docs/architecture/durable-job-
 A: The admin surface is disabled by default; `worker.admin({ port })` accepts a `verify(req)` hook that returns the caller identity or rejects the request. In our reference deployment, the hook validates a short-lived service-to-service JWT minted by the platform's auth gateway — the worker itself never sees long-lived credentials. `/health` is the only endpoint exempt from the hook so liveness probes do not need a token; `/jobs`, `/jobs/:id`, and `/admin/drain` all require a valid principal.
 
 **Q: Are there rate limits on `JobClient.enqueue` or the `POST /jobs` endpoint?**
-A: The worker does not impose a fixed RPS limit; throughput is gated by the `JobAdapter` write path (for `@theriety/adapter-postgres`, that is a single `INSERT ... RETURNING`). In practice we recommend callers keep enqueue concurrency below `QUEUE_CONCURRENCY` on the writer side, and lean on the broker's backpressure — `@theriety/adapter-redis-broker` will reject enqueues once its stream depth exceeds the configured high-water mark, surfacing as a typed `QueueBackpressureError`.
+A: The worker does not impose a fixed RPS limit; throughput is gated by the `JobAdapter` write path (for `@scope/adapter-postgres`, that is a single `INSERT ... RETURNING`). In practice we recommend callers keep enqueue concurrency below `QUEUE_CONCURRENCY` on the writer side, and lean on the broker's backpressure — `@scope/adapter-redis-broker` will reject enqueues once its stream depth exceeds the configured high-water mark, surfacing as a typed `QueueBackpressureError`.
 
 **Q: When is the `idempotencyKey` required and how is it enforced?**
 A: It is optional but strongly recommended for anything triggered from an HTTP handler or webhook. When present, the store enforces a unique constraint over `(kind, idempotencyKey)`; a duplicate enqueue returns the existing job rather than creating a second row, so retried producers cannot double-dispatch. The key is also surfaced in structured logs and in the `attempts[]` response so operators can trace a user action through every retry.

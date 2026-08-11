@@ -17,7 +17,10 @@ may receive another explicit output root and must resolve the required
 default workspace, validate the actual root's ignore state, and report that
 root's remediation path. A mirror contains exact `.mdc` paths owned by
 notion-sync. Never derive, rename, or publish assumptions about those
-filenames. They may be mutated only through the MDC-aware owner.
+filenames. Transport bodies are opaque to this marketplace. Semantic creation
+or change requires one explicitly selected external
+`--body-author=<plugin:skill>`, passed unchanged through every nested
+specification and transport call; this marketplace supplies no default.
 
 `sync-spec` materializes only the required temporary working specification
 under the active work's `spec/`. Record stable Notion page/block IDs, exact
@@ -61,8 +64,9 @@ design documents drift silently without this sweep.
 ## Completion
 
 For a Notion-backed specification, completion closes review dispositions and
-identifies approved changes against an exact source hash. The MDC-aware
-writer applies them to the selected transport path. The completion entrypoint
+identifies approved changes against an exact source hash. The explicitly
+selected body-author capability applies them to the selected transport path.
+The completion entrypoint
 delegates outbound push, merge, and conflict resolution to `sync-notion`,
 then re-pulls and verifies stable identity, explicit conflict dispositions,
 and zero unexpected diff. Regenerate affected `docs/specs/<capability>/`

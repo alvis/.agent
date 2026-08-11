@@ -25,7 +25,7 @@
   "color": "red|blue|green|yellow|purple|orange|pink|cyan",
   "permissionMode": "EXACTLY ONE of default|acceptEdits|auto — never plan, never bypassPermissions, never dontAsk",
   "disallowedTools": "durable edit-prevention that binds in every launch scenario — main session, spawned subagent, workflow, or teammate",
-  "skills": ["plugin:skill-name — always plugin-manifest-namespaced, e.g. coding:review-code, theriety:build-service, client:create-screen-design"],
+  "skills": ["plugin:skill-name — always plugin-manifest-namespaced, e.g. coding:review-code, essential:deep-research, client:create-screen-design"],
   "mcpServers": "only if this agent needs a specific MCP server beyond what the plugin already wires in",
   "hooks": "critic:true+fence:true agents embed the PreToolUse write fence verbatim; no agent hooks its own review — independent review is carried by the charter and shared orchestration policy",
   "memory": "REQUIRED and always project — every roster agent owns .claude/agent-memory/<name>/MEMORY.md",
@@ -148,7 +148,7 @@ personal data, or ephemeral task logs.
 
 <!-- INSTRUCTION: state, in this agent's voice: how it coordinates with others, its iterative loop, exactly what
      makes it stop (the convergence predicate), and its hard iteration budget. Warm-core roles (`tech-lead`,
-     `code-quality-critic`, `testing-evangelist`, `service-implementation-engineer`, and
+     `code-quality-critic`, `testing-evangelist`, `generalist-engineer`, and
      `harness-eval-engineer`) read as trusting team members; leaf/mechanical agents are crisp and terse — match
      the register to the role, not a template default. -->
 

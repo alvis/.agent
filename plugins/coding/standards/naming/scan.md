@@ -23,7 +23,6 @@ If a violation is detected, load the matching rule guide at `./rules/<rule-id>.m
 - DO NOT use noun-only function names [`NAM-FUNC-01`]
 - DO NOT hide async behavior in function names [`NAM-FUNC-02`]
 - DO NOT use inconsistent factory naming [`NAM-FUNC-03`]
-- DO NOT use ambiguous data operation verbs, such as `FindById` or `process` for persisted-data operations [`NAM-FUNC-04`]
 - DO NOT use legacy type prefixes [`NAM-TYPE-01`]
 - DO NOT use non-standard parameter names [`NAM-TYPE-02`] (→ `FUNC-SIGN-03`)
 - DO NOT use short or generic verbs on capability fields of a class companion contract; companion types must be `<Class>Params` / `<Class>Config` / `<Class>Dependencies` and `#private` fields must mirror capability names 1:1 [`NAM-TYPE-03`]. Bad: `interface SearchIndexDeps { tokenize: …; score: …; record: …; }` — should be `interface SearchIndexDependencies { tokenizeSearchQuery: …; scoreSearchDocument: …; recordSearchMetric: …; }`.
@@ -44,7 +43,6 @@ If a violation is detected, load the matching rule guide at `./rules/<rule-id>.m
 | `NAM-FUNC-01` | Function name is noun-only | `function user() {}`; `user()` |
 | `NAM-FUNC-02` | Async behavior hidden by naming | `function user(){return fetch()}` |
 | `NAM-FUNC-03` | Factory naming is inconsistent | `const createUserFactory = buildUserFactory()` |
-| `NAM-FUNC-04` | Ambiguous data operation verb | `FindUserById(id)`; `process()` |
 | `NAM-TYPE-01` | Legacy type prefixes used | `interface IUser {}`; `IUser` |
 | `NAM-TYPE-02` | Parameter names are non-standard | `fn(payload, cfg, extra)` |
 | `NAM-TYPE-03` | Class companion type uses abbreviation suffix, capability field uses short/generic verb, or `#field` does not mirror capability name | `interface SearchIndexDeps { tokenize: …; score: …; }`; `class SearchIndex { #tokenize: …; #deps: SearchIndexDependencies; }` |

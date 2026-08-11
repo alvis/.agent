@@ -7,7 +7,7 @@
 
 - **Library = clay, client = sculpture** — the library publishes a base CSS-variable contract with safe fallbacks; the client owns the final theme.
 - **Three-tier fallback chain** — every styled declaration resolves through `var(--component-specific, var(--semantic-token, hardcoded-default))`.
-- **Variants are semantic intent** — `primary | secondary | ghost | danger`, never brand identity (`blue`, `acme`).
+- **Variants are semantic intent** — `primary | secondary | ghost | danger`, never brand identity (`blue`, `example`).
 - **Brand is scoped via `[data-brand="…"]`** — never via a component prop. Color mode rides alongside on `data-theme` (`light` / `dark`; absent = system) per `CSS-MODE-*`.
 
 ## Core Rules Summary
@@ -166,16 +166,16 @@ If a button needs a radius one notch larger than `rounded-md`, mint `--radius-bu
 
 ## Client `theme.css` — Overriding Tokens
 
-A client app overrides the semantic tokens (preferred, broad reach) and/or component tokens (narrow, targeted) under a `[data-brand="…"]` selector. Setting `<html data-brand="acme">` activates the theme for the entire tree.
+A client app overrides the semantic tokens (preferred, broad reach) and/or component tokens (narrow, targeted) under a `[data-brand="…"]` selector. Setting `<html data-brand="example">` activates the theme for the entire tree.
 
 ```css
-/* apps/acme/src/theme.css */
-[data-brand="acme"] {
+/* apps/example/src/theme.css */
+[data-brand="example"] {
   /* semantic-tier overrides — affects every component using --color-brand */
   --color-brand: #ff6600;
   --color-surface: #fffaf5;
   --radius-card: 999px;
-  --font-sans: "Acme Display", system-ui, sans-serif;
+  --font-sans: "Example Display", system-ui, sans-serif;
 
   /* component-tier overrides — only the buttons */
   --button-primary-bg: #ff6600;
@@ -190,7 +190,7 @@ Semantic overrides are the default tool. Drop to component overrides only when o
 Brand identity (`data-brand`) and color mode (`data-theme`) compose at the selector level. The library's `@theme` block carries the brand-wide semantic palette; the `@layer theme` rules from `CSS-MODE-*` (see `plugin:web:standard:css`) carry the raw-mode tokens (`--theme-dark-bg`, …) plus the active-UI aliases (`--ui-bg`, …). A brand override scoped to a color mode chains both attributes:
 
 ```css
-:root[data-brand="acme"][data-theme="dark"] {
+:root[data-brand="example"][data-theme="dark"] {
   --color-accent: #ff6600;
   --ui-bg: var(--theme-dark-bg);
 }
@@ -201,9 +201,9 @@ The brand selector reaches for raw-mode tokens via `var(--theme-dark-bg)` so the
 ## CSS Import Order
 
 ```typescript
-// apps/acme/src/app.tsx
+// apps/example/src/app.tsx
 import '@company/ui/styles.css';   // 1. library — declares @theme + component contract
-import './theme.css';              // 2. client theme — overrides under [data-brand="acme"]
+import './theme.css';              // 2. client theme — overrides under [data-brand="example"]
 import './app.css';                // 3. app-level CSS — page layouts, route-specific styles
 ```
 
@@ -254,10 +254,10 @@ export const Button: FC<ButtonProps> = ({ variant, size, className, ...props }) 
 type ButtonProps = { variant?: 'blue' | 'rounded' | 'wide' };
 
 // ❌ BAD: brand baked into a prop
-type ButtonProps = { client?: 'acme' | 'globex' };
+type ButtonProps = { client?: 'example' | 'globex' };
 
 // ❌ BAD: brand switched via prop instead of [data-brand]
-type ButtonProps = { brand?: 'acme' | 'globex' };
+type ButtonProps = { brand?: 'example' | 'globex' };
 ```
 
 ## Scoped Local Override Pattern
@@ -265,7 +265,7 @@ type ButtonProps = { brand?: 'acme' | 'globex' };
 When a single feature needs one-off variation without forking the component, declare a scope class that overrides the component's CSS variables locally:
 
 ```css
-/* apps/acme/src/features/checkout/CheckoutFlow.css */
+/* apps/example/src/features/checkout/CheckoutFlow.css */
 .checkout-flow {
   --button-primary-bg: #2563eb;
   --button-radius: 0.25rem;
@@ -273,7 +273,7 @@ When a single feature needs one-off variation without forking the component, dec
 ```
 
 ```tsx
-// apps/acme/src/features/checkout/CheckoutFlow.tsx
+// apps/example/src/features/checkout/CheckoutFlow.tsx
 export const CheckoutFlow: FC<PropsWithChildren> = ({ children }) => (
   <section className="checkout-flow">
     <Button variant="primary">Pay now</Button>
@@ -289,7 +289,7 @@ Any `<Button variant="primary">` rendered inside `.checkout-flow` now resolves t
 When the variation goes beyond style (different icon, different DOM, different behavior), wrap the shared component in a client-owned component. The wrapper composes the library primitive; it does not re-implement it.
 
 ```tsx
-// apps/acme/src/components/CheckoutButton.tsx
+// apps/example/src/components/CheckoutButton.tsx
 import { Button, type ButtonProps } from '@company/ui';
 import { LockIcon } from './LockIcon';
 
@@ -358,7 +358,7 @@ Each component's CSS MUST list its tokens in a comment block at the top of the f
 | Three-tier fallback              | All component CSS declarations                      | `var(--button-primary-bg, var(--color-brand, #111827))`          | `WT-CONTRACT-01`  |
 | `@theme` block                   | Semantic tokens that generate Tailwind utilities    | `@theme { --color-brand: …; --radius-card: …; }`                 | `WT-TAILWIND-01`  |
 | `@layer components`              | Component CSS lives here                            | `@layer components { .ui-button { … } }`                         | `WT-TAILWIND-01`  |
-| `[data-brand="…"]` scope         | Client brand activation                             | `<html data-brand="acme" data-theme="dark">…</html>`             | `WT-VARIANT-01`   |
+| `[data-brand="…"]` scope         | Client brand activation                             | `<html data-brand="example" data-theme="dark">…</html>`             | `WT-VARIANT-01`   |
 | Semantic variants                | All component variant props                         | `variant?: 'primary' \| 'secondary' \| 'ghost' \| 'danger'`     | `WT-VARIANT-01`   |
 | Role-named tokens                | All CSS variable declarations                       | `--color-ink-heading`, `--color-surface-base`, `--color-accent` | `WT-VARIANT-01`   |
 | Tailwind utility for default sizes | Default radius / shadow / text scale              | `rounded-md`, `shadow-sm`, `text-lg`                            | `WT-VARIANT-01`   |
@@ -376,7 +376,7 @@ Each component's CSS MUST list its tokens in a comment block at the top of the f
 
 2. **Adding a new variant to a shared component?**
    - If semantic intent (`primary`, `ghost`) → Add to the variant union, resolve via CSS variables
-   - If brand or visual (`blue`, `acme`) → STOP. Use `[data-brand]` and variable overrides instead.
+   - If brand or visual (`blue`, `example`) → STOP. Use `[data-brand]` and variable overrides instead.
 
 3. **Adding a new design token?**
    - If it should generate a Tailwind utility (`bg-brand`) → Add to `@theme`

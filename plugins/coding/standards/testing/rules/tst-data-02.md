@@ -80,25 +80,24 @@ When a test pairs `toHaveBeenCalledTimes(n)` with `toHaveBeenCalledWith(...)`, i
 
 ```typescript
 // ❌ Count + args as two assertions — and dropping an argument silently loses coverage
-expect(stackReferenceConstructor).toHaveBeenCalledTimes(1);
-expect(stackReferenceConstructor).toHaveBeenCalledWith(
-  'theriety/deployment-Test/Test',
-  { name: 'theriety/deployment-Test/Test' },
+expect(sendNotification).toHaveBeenCalledTimes(1);
+expect(sendNotification).toHaveBeenCalledWith(
+  { channel: 'email' },
+  { template: 'welcome', userId: 'user-42' },
 );
 
 // ✅ Complete record — one structural assertion (count + every arg)
-expect(stackReferenceConstructor.mock.calls).toEqual([
-  ['theriety/deployment-Test/Test', { name: 'theriety/deployment-Test/Test' }],
+expect(sendNotification.mock.calls).toEqual([
+  [{ channel: 'email' }, { template: 'welcome', userId: 'user-42' }],
 ]);
 
 // ❌ Indexing a recorded call
-expect(stackReferenceConstructor.mock.calls[0]![0]).toBe(
-  'theriety/svc-eu-prod/theriety-alpha',
-);
+expect(sendNotification.mock.calls[0]![1]).toEqual({ userId: 'user-42' });
 
 // ✅ Just "called with these args", count not pinned
-expect(stackReferenceConstructor).toHaveBeenCalledWith(
-  'theriety/svc-eu-prod/theriety-alpha',
+expect(sendNotification).toHaveBeenCalledWith(
+  { channel: 'email' },
+  expect.objectContaining({ userId: 'user-42' }),
 );
 ```
 

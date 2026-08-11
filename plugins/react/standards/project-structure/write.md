@@ -252,7 +252,7 @@ In a monorepo, the tier above `src/components/<bucket>/` is the shared workspace
 **What never belongs (`RPS-WS-02`)**
 
 - Imports from any app's `features/**` or `app/**`.
-- Brand or client identity baked into the component (no `client="acme"` props, no `theme="acme"` enums, no hard-coded brand colors like `#ff6600`).
+- Brand or client identity baked into the component (no `client="example"` props, no `theme="example"` enums, no hard-coded brand colors like `#ff6600`).
 - Domain-typed props (e.g., `props: { invoice: Invoice }`).
 - App-specific routing, analytics, or environment access.
 
@@ -281,12 +281,12 @@ export interface ButtonProps {
 export const Button: FC<ButtonProps> = ({ variant = 'primary', children }) => (
   <button data-variant={variant} className="ui-button">{children}</button>
 );
-// brand variation handled at the app root via [data-brand="acme"] + CSS variables (WT-CONTRACT-01, WT-VARIANT-01)
+// brand variation handled at the app root via [data-brand="example"] + CSS variables (WT-CONTRACT-01, WT-VARIANT-01)
 
 // ❌ BAD: brand identity baked into the workspace package
 // packages/ui/src/primitives/Button.tsx
-export const Button: FC<{ client: 'acme' | 'globex' }> = ({ client }) => (
-  <button style={{ background: client === 'acme' ? '#ff6600' : '#0066ff' }} />
+export const Button: FC<{ client: 'example' | 'globex' }> = ({ client }) => (
+  <button style={{ background: client === 'example' ? '#ff6600' : '#0066ff' }} />
 );
 
 // ❌ BAD: workspace package importing an app feature
@@ -343,7 +343,7 @@ See `references/tabs-placement.md` for the full 8-section case study.
 - `useDebounce` or any hook inside `src/utilities/` (`RPS-UTIL-01`).
 - Domain types in `src/types/` (`RPS-UTIL-01`).
 - A monorepo `packages/ui` consumed by exactly one app — single-app catch-all is not a workspace package (`RPS-WS-01`).
-- `client="acme"` / `theme="acme"` props or hard-coded brand colors inside the workspace package — brand identity belongs at the app root via CSS variables (`RPS-WS-02`, `WT-CONTRACT-01`, `WT-VARIANT-01`).
+- `client="example"` / `theme="example"` props or hard-coded brand colors inside the workspace package — brand identity belongs at the app root via CSS variables (`RPS-WS-02`, `WT-CONTRACT-01`, `WT-VARIANT-01`).
 - Workspace-package files importing from any app's `features/**` or `app/**` (`RPS-WS-02`).
 
 ## Quick Decision Tree

@@ -1,10 +1,10 @@
-# @theriety/edge-cdn-stack
+# @scope/edge-cdn-stack
 
 > ARCHITECTURE = how it works.
 
 <br/>
 
-📌 **Architectural shape:** `@theriety/edge-cdn-stack` is a **declarative resource graph** expressed as a Pulumi program. There is one TypeScript entrypoint per process, one stack per environment, and a fixed topology of `ComponentResource` nodes wrapping AWS primitives (CloudFront, S3, WAF, Lambda@Edge). No imperative wiring exists at deploy time — the engine diffs the desired graph against cloud state and performs the minimum set of create/update/replace operations.
+📌 **Architectural shape:** `@scope/edge-cdn-stack` is a **declarative resource graph** expressed as a Pulumi program. There is one TypeScript entrypoint per process, one stack per environment, and a fixed topology of `ComponentResource` nodes wrapping AWS primitives (CloudFront, S3, WAF, Lambda@Edge). No imperative wiring exists at deploy time — the engine diffs the desired graph against cloud state and performs the minimum set of create/update/replace operations.
 
 **Why this shape:** edge delivery is a resource graph whose nodes rarely move but whose properties change often (TTLs, WAF rules, cache policies). Modelling it declaratively lets `pulumi preview` produce a human-readable diff before any mutation, and lets every environment share the same code path with different config values. The public CLI surface described in [`readme.md`](../../readme.md) is intentionally narrow — three commands (`preview`, `up`, `destroy`) operating on the same stack graph.
 
@@ -316,8 +316,8 @@ Most changes land in `environments/` or `policies/`; the component boundary rare
 
 ## 📦 Related Packages
 
-- [`@theriety/iac-common`](../iac-common): shared Pulumi helpers — `ComponentResource` base, tag composition, config resolver used by `resolveConfig`
-- [`@theriety/edge-policies`](../edge-policies): versioned WAF rule groups and cache fragments imported by `src/policies`
-- [`@theriety/lambda-router`](../lambda-router): routing library consumed by `src/lambdas/viewer-request.ts`
+- [`@scope/iac-common`](../iac-common): shared Pulumi helpers — `ComponentResource` base, tag composition, config resolver used by `resolveConfig`
+- [`@scope/edge-policies`](../edge-policies): versioned WAF rule groups and cache fragments imported by `src/policies`
+- [`@scope/lambda-router`](../lambda-router): routing library consumed by `src/lambdas/viewer-request.ts`
 
 ---

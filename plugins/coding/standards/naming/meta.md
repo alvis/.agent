@@ -19,7 +19,6 @@ This standard enforces requirements beyond typical naming practices:
 |---------------------------------------------|------------------------------------------------------------------------|
 | Abbreviations often tolerated               | **Only allowlisted abbreviations are allowed**                         |
 | Mixed naming styles across teams            | **One canonical naming model per symbol type**                         |
-| `Find*`/`Query*` used loosely               | **Operation verbs are strictly semantic (`Search/List/Get/Set/Drop`)** |
 | Prefix-heavy type naming (`IUser`, `TUser`) | **No legacy type prefixes**                                            |
 
 ## Exception Policy

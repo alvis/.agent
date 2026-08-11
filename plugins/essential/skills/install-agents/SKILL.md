@@ -1,17 +1,21 @@
 ---
 name: install-agents
-description: "Discover, validate, stitch, and install specialist agent templates contributed by Essential and other enabled plugins in the same marketplace. Use when asked to install agents, set up subagents, refresh the agent team, or configure Claude Code or Codex on a new machine."
+description: "Discover, validate, stitch, and install specialist agent templates contributed by Essential, its marketplace, and explicitly trusted enabled marketplaces. Use when asked to install agents, set up subagents, refresh the agent team, or configure Claude Code or Codex on a new machine."
 ---
 
 # Install Agents
 
-Installs agent templates contributed by Essential and the other enabled plugins in this marketplace. The same authoritative template becomes a Claude Code Markdown definition under `~/.claude/agents/` or a Codex TOML definition under `~/.codex/agents/`.
+Installs agent templates contributed by Essential, the other enabled plugins in
+its marketplace, and any enabled marketplace named explicitly with
+`--include-marketplace`. The same authoritative template becomes a Claude Code
+Markdown definition under `~/.claude/agents/` or a Codex TOML definition under
+`~/.codex/agents/`.
 
 ## What the installer does
 
 `scripts/install-agents.sh` is idempotent and safe to re-run:
 
-1. In a source checkout, discovers `plugins/*/agents/*`; from an installed Essential plugin, reads the current harness's plugin list and discovers templates only from enabled plugins in Essential's marketplace. Codex plugin IDs and versions resolve beneath the loaded Essential cache root; marketplace source paths are never treated as installed roots.
+1. In a source checkout, discovers `plugins/*/agents/*`; from an installed Essential plugin, reads the current harness's plugin list and discovers templates from enabled plugins in Essential's marketplace plus explicitly included marketplaces. Codex plugin IDs and versions resolve beneath the loaded Essential cache root; marketplace source paths are never treated as installed roots.
 2. Validates every `base.md` plus `frontmatter/meta.json`, `claude.json`, and `codex.json` source set, including its role-only definition name, three distinct preferred short teammate names, runtime tool inheritance, intelligence, field ownership, centralized-policy boundary, and required project-memory path and maintenance contract, and rejects malformed or duplicate names before touching the destination. Installed mode translates recognized legacy single-file intelligence or model/effort projections from lagging sibling-plugin caches; source checkouts require the split schema.
 3. Stitches all definitions into Claude Code Markdown or native Codex TOML. Shared `name`, `description`, and `intelligence` come only from `meta.json`; harness overlays contribute only harness-specific fields. `intelligence` is projected through the authoritative [intelligence matrix](references/intelligence-levels.json), which owns both harnesses' model and effort fields. Codex `nickname_candidates` are derived from the three validated preferred names in `description`. Neither `intelligence` nor the retired `intelligenceLevel` key is emitted.
 4. Copies staged definitions into the selected harness's agent directory and regenerates shared lead support under `.essential/`, overwriting discovered same-named agents while leaving unrelated and formerly managed files untouched.
@@ -34,6 +38,10 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/install-agents/scripts/install-agents.sh" \
 bash "<absolute directory containing this loaded SKILL.md>/scripts/install-agents.sh" \
   --harness codex
 ```
+
+Add repeatable `--include-marketplace <name>` arguments only for enabled
+marketplaces the user explicitly trusts. Use the exact configured marketplace
+name; this repository does not require an external marketplace.
 
 For Codex, replace the placeholder with the directory from the loaded
 `essential:install-agents` skill resource path exposed by the runtime; ordinary shell

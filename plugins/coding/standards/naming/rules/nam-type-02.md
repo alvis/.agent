@@ -10,7 +10,7 @@ For class constructors, prefer `params` when the contract carries injected capab
 
 ```typescript
 // canonical parameter names by purpose
-function searchCommunities(params: SearchParams): SearchResult[] { /* ... */ }
+function searchDocuments(params: SearchParams): SearchResult[] { /* ... */ }
 function listUsers(query: UserQuery): User[] { /* ... */ }
 function formatName(name: string, options?: FormatOptions): string { /* ... */ }
 function setUser(data: SetUserData): Promise<void> { /* ... */ }

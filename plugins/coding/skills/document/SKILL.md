@@ -48,8 +48,9 @@ independent-review audit checklist, and the retry/rollback criteria.
 1. Resolve the package/workspace and its anchors. Precedence is local explicit
    template/checklist, existing `readme.md` and `docs/architecture/` structure,
    repository documentation rules, then closest same-archetype sibling. Use
-   this skill's bundled templates and one matching example only when repository
-   anchors do not decide the shape. A bundled template/example entrypoint may
+   this skill's bundled templates and, when `references/package-types.md` maps
+   the archetype to one, a matching public example only when repository anchors
+   do not decide the shape. A bundled template/example entrypoint may
    be a split manifest; when it is, load every linked child in manifest order
    before drafting.
 2. When `--force-plan` is set, or neither a repository anchor nor a bundled template decides the document shape, propose a section outline with a one-line rationale per section and wait for user approval before drafting.

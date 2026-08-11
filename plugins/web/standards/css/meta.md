@@ -6,7 +6,7 @@ _Standards for the light / dark / system color-mode contract: a CSS-only, two-ti
 
 You MUST also read the following standards together with this file:
 
-- React Theming Standards (standard:theming) — `@theme` (Tailwind v4.3) owns the brand semantic palette; this standard owns the raw per-mode palette and the active UI tokens. They compose at selectors like `:root[data-brand="acme"][data-theme="dark"]`.
+- React Theming Standards (standard:theming) — `@theme` (Tailwind v4.3) owns the brand semantic palette; this standard owns the raw per-mode palette and the active UI tokens. They compose at selectors like `:root[data-brand="example"][data-theme="dark"]`.
 - Design Standards (standard:design) — color and contrast rules (`DES-COLR-*`) apply to both modes; both light and dark palettes MUST meet WCAG AA contrast.
 - Naming Standards (plugin:coding:standard:naming) — token names (`--theme-{mode}-{role}`, `--ui-{role}`) and `data-theme` values follow naming conventions.
 

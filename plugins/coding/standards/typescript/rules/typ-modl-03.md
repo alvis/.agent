@@ -28,11 +28,11 @@ export default userService;
 
 ```typescript
 // ✅ GOOD: default export for primary symbol in a uniform set
-// operations/get-payment-account.ts
-export default async function getPaymentAccount(...) { ... }
+// routes/health-check.ts
+export default async function healthCheck(...) { ... }
 
-// operations/set-invoice.ts
-export default async function setInvoice(...) { ... }
+// pages/account-settings.tsx
+export default function AccountSettingsPage(...) { ... }
 ```
 
 ## Related

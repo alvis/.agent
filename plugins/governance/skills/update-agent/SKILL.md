@@ -28,7 +28,7 @@ stated behavior change. `create-agent` owns genuinely new roles.
 - **Optional**: `--changes=...` describing the requested behavior,
   configuration, or template migration.
 - **Owner token**: paths and ownership use the source-directory name under
-  `plugins/` (for example, `backend`; its manifest namespace is `theriety`).
+  `plugins/` (for example, `coding`).
 - **Prerequisites**: the [agent template](../../skills/create-agent/templates/agent.md),
   `role-prompt.md` beside it, and the
   [context catalog](../../references/context-catalog.md). Follow

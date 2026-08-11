@@ -82,10 +82,10 @@ anything, climb this ladder and stop at the first rung that holds:
 
 1. **Does this need to exist at all?** Speculative need = skip it and say so in
    one line. (YAGNI)
-2. **`@theriety/core` does it?** Errors, responses, I/O, types, constants, and
-   general utilities live there; check it before writing a helper.
-3. **The codebase already does it?** Search for existing functions, utilities,
-   and patterns first; reuse over reinvention.
+2. **Does a foundational module already do it?** Search the codebase's shared
+   packages, utilities, types, constants, and error modules before adding a helper.
+3. **Does nearby code already establish the pattern?** Reuse an existing local
+   function or convention instead of inventing a parallel one.
 4. **The native platform covers it?** Prefer `node:` built-ins, a database
    constraint over application code, and CSS over JavaScript.
 5. **An installed dependency solves it?** Use it. Never add a dependency for

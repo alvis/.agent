@@ -8,7 +8,7 @@
 - Names must communicate domain intent at point-of-use; avoid vague placeholders like `data`, `temp`, `value`
 - Enforce canonical casing: `camelCase` for functions/variables, `PascalCase` for types/classes, `UPPER_SNAKE_CASE` for exported constants
 - Only allowlisted abbreviations: `fn`, `params`, `args`, `id`, `url`, `urn`, `uri`, `meta`, `info`
-- Functions start with verbs; data operations use canonical verbs (`Search/List/Get/Set/Drop`)
+- Functions start with verbs that communicate their actual action and effects
 - Booleans use `is*`, `has*`, `can*`, `should*` prefixes
 - Collections use plural names; maps use `*By*` or `*To*` naming
 - No legacy type prefixes (`I`, `T`, `E`)
@@ -30,7 +30,6 @@
 - **NAM-FUNC-01**: Functions start with verbs and clearly encode action.
 - **NAM-FUNC-02**: Async/promise-returning functions use explicit operation verbs (`fetch`, `load`, `save`, `set`) and do not masquerade as pure local computation.
 - **NAM-FUNC-03**: `createX` for one-off creation; `xFactory` only for reusable/stateful factories.
-- **NAM-FUNC-04**: Persisted-data operations follow taxonomy: `Search`/`List` for multi-item reads, `Get` for single-item reads, `Set` for create/update/upsert, `Drop` for irreversible deletion.
 
 ### Type Naming (NAM-TYPE)
 
@@ -69,16 +68,6 @@ class SearchIndex { readonly #tokenize: SearchIndexDeps['tokenize']; }
 | Types, interfaces, classes, enums | `PascalCase` | `UserService`, `AuthConfig` |
 | Exported global constants | `UPPER_SNAKE_CASE` | `MAX_RETRY_COUNT` |
 
-### Data Operation Verb Taxonomy
-
-| Operation | Verb | Example |
-|---|---|---|
-| Multi-item read (filtered) | `Search` | `SearchUsers(query)` |
-| Multi-item read (all/paginated) | `List` | `ListOrders(page)` |
-| Single-item read | `Get` | `GetUser(id)` |
-| Create/update/upsert | `Set` | `SetUser(data)` |
-| Irreversible deletion | `Drop` | `DropUser(id)` |
-
 ### Boolean Prefix Guide
 
 | Prefix | Usage |
@@ -97,6 +86,5 @@ class SearchIndex { readonly #tokenize: SearchIndexDeps['tokenize']; }
 ## Quick Decision Tree
 
 1. Naming a function? Choose an action verb first (`NAM-FUNC-01`).
-2. Naming a data operation? Enforce canonical operation verbs (`NAM-FUNC-04`).
-3. Naming collections/maps/booleans? Apply structural conventions (`NAM-DATA-01`, `NAM-DATA-02`, `NAM-DATA-03`).
-4. Uncertain? Optimize for explicit domain meaning over brevity (`NAM-CORE-01`).
+2. Naming collections/maps/booleans? Apply structural conventions (`NAM-DATA-01`, `NAM-DATA-02`, `NAM-DATA-03`).
+3. Uncertain? Optimize for explicit domain meaning over brevity (`NAM-CORE-01`).

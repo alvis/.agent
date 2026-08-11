@@ -2,15 +2,16 @@
 name: sync-spec
 description: Materialize a required Notion specification into an active work directory or complete approved specification changes through an explicitly selected local transport pair. Use before specification planning, implementation, or review and when publishing a reviewed contract. Delegate transport and conflicts to sync-notion.
 model: opus
-argument-hint: "<notion-url-or-id> [--work-id=<id>] [--mirror=<path>] [--transport-profile=<absolute-file>] [--mode=materialize|complete] [--stage=specification|implementation] [--capability=<slug>]"
+argument-hint: "<notion-url-or-id> [--work-id=<id>] [--mirror=<path>] [--transport-profile=<absolute-file>] [--body-author=<plugin:skill>] [--mode=materialize|complete] [--stage=specification|implementation] [--capability=<slug>]"
 ---
 
 # Sync Spec
 
 Safely coordinate three copies of a Notion-backed specification: an immutable
 recorded base, the work-local authored copy, and a fresh remote staging pull.
-`specification:sync-notion` owns transport; `specification:mdc` owns authored
-MDC body changes. Detect changes by comparing the specification content
+`specification:sync-notion` owns transport. This marketplace treats body syntax
+as opaque: an explicitly selected external `body_author` owns semantic body
+changes. Detect changes by comparing the specification content
 directly (byte-for-byte, or via `git diff`), disregarding only the volatile
 Notion `last_edited_time` line for semantic equality. Approvals bind to the
 approved specification content, not to any hash.
@@ -45,6 +46,11 @@ approved specification content, not to any hash.
   logical profile name. The mapping selects a file only; `sync-notion`
   revalidates its current bytes/executable on every invocation. Never infer a
   profile path from a logical name, mirror, workspace, or origin receipt.
+- **Required for completion that applies authored content**: explicit
+  `--body-author=<plugin:skill>` in canonical capability form. Materialization
+  that only preserves pulled bytes may omit it. Resolve the selector once,
+  never infer a default, and require every nested call plus existing
+  creation/materialization receipt to match it exactly.
 - **Completion only**: `--stage=specification|implementation` is required.
   Specification stage requires explicit specification approval of the final
   specification content. Implementation stage requires a clean implementation
@@ -65,6 +71,9 @@ approved specification content, not to any hash.
    - `mirror_root` from explicit input, active state, or an immutable receipt;
    - `transport_profile_file` from explicit input or the exact validated
      active-state mapping described above;
+   - `body_author` from the explicit argument only when this chain may apply
+     authored body bytes, with `selection_source: explicit_argument` (or
+     `delegated_caller` when already bound by the parent);
    - `receipt_root = <work-dir>/artifacts/spec-sync`;
    - immutable receipts at `materializations/<base-id>.json` and base snapshots
      at `bases/<base-id>/`, where `<base-id>` is a stable identifier derived from
@@ -73,6 +82,13 @@ approved specification content, not to any hash.
      page's observed revision alone, which collides when a child page or layout
      changes while the root revision is unchanged and would let a later
      materialization overwrite or compare against a stale base.
+   Validate `body_author` against canonical `<plugin>:<skill>` identity and
+   retain it separately from the transport profile. A missing or changed
+   selector before semantic body mutation returns `status: refused`,
+   `next_action: select_body_author`; it is never `transport_unverified`.
+   Creation, materialization, completion, and derivation receipts record the
+   selected capability and selection source when present; nested calls compare
+   them before authoring.
    State may point to the current receipt, but the PM owns that update. Require
    the real work/mirror targets to be ignored and untracked in their owning VCS
    workspaces; otherwise return `requires_ignore` with the exact ignore file.
@@ -166,8 +182,9 @@ approved specification content, not to any hash.
    content. Any semantic edit after the gate invalidates it; a declared
    metadata-only refresh (only the `last_edited_time` line differs) does not,
    but must refresh the exact base evidence.
-   Apply approved authored changes only to a staged mirror copy through
-   `Skill(mdc)`.
+   Apply approved authored changes only to a staged mirror copy through the
+   exact capability bound as `body_author`. Pass only the approved staged body
+   and exact path, and require the selector to match the parent and receipt.
 7. Immediately before each outbound operation, use `Skill(sync-notion)` to
    re-fetch/re-diff the exact remote revision and content,
    passing the same exact `--transport-profile` file and mirror root.
@@ -228,7 +245,8 @@ documentation or a handoff artifact. Preserve its exact user-selected location.
   the immediate remote recheck matched the exact comparison revision and content.
 - Every successful publication has a verification pull and a new
   base/receipt keyed by `<base-id>`; no fixed `materialization.json` was overwritten.
-- MDC content and Notion transport stayed with their owning skills.
+- Opaque body content and Notion transport stayed with their selected owners;
+  every semantic mutation used the exact recorded `body_author`.
 
 ## Completion
 
@@ -238,11 +256,12 @@ documentation or a handoff artifact. Preserve its exact user-selected location.
 skill: sync-spec
 status: success|partial|refused|requires_ignore|transport_unverified
 classification: initial|unchanged|metadata_only|local_only|remote_only|structural_change|converged|concurrent|baseline_required|materialization_conflict|invalid_evidence|not_applicable
-next_action: none|revalidate|establish_baseline|resolve_conflict|specification_reconciliation|recover_partial|repair_evidence|provide_conditional_transport
+next_action: none|revalidate|establish_baseline|resolve_conflict|specification_reconciliation|recover_partial|repair_evidence|provide_conditional_transport|select_body_author
 mode: materialize|complete
 stage: specification|implementation|null
 work_id: '<id>'
 transport_profile: {logical_name: '', profile_file: '<absolute destination-local path>', profile_file_sha256: '', verification: verified|transport_unverified}
+body_author: {capability_id: '<plugin>:<skill>|null', selection_source: explicit_argument|delegated_caller|null, verification: matched|not_required|refused}
 outputs:
   transport_mirror: '<absolute selected path or null>'
   work_spec_root: '<absolute active-workspace path>'
@@ -284,3 +303,6 @@ mutation.
 An absent or mismatched transport profile/mapping propagates
 `transport_unverified`; missing mirror ignore coverage propagates
 `requires_ignore`.
+A missing or changed body-author selector before semantic mutation returns
+`status: refused`, preserves the observed classification, and sets
+`next_action: select_body_author` without changing body or transport bytes.

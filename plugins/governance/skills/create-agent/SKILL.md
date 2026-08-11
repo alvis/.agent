@@ -31,7 +31,7 @@ anything is written. `update-agent` owns changes to existing definitions.
   setting and skip its confirmation prompt; `--yes` accepts every
   recommendation without prompting.
 - **Owner token**: use the plugin's source-directory name under `plugins/`
-  (for example, `backend`; its manifest namespace remains `theriety`).
+  (for example, `coding`).
 - **Prerequisites**: the [agent template](../../skills/create-agent/templates/agent.md),
   `role-prompt.md` beside it, and the
   [context catalog](../../references/context-catalog.md). Follow

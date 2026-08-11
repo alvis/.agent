@@ -45,12 +45,6 @@
       "category": "frontend"
     },
     {
-      "name": "backend",
-      "source": "./plugins/backend",
-      "description": "Domain-specific service and data orchestrator lifecycle management for Theriety",
-      "category": "development"
-    },
-    {
       "name": "client",
       "source": "./plugins/client",
       "description": "Client-facing screen design and UX documentation with Notion integration",

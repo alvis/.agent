@@ -1,10 +1,10 @@
-# @theriety/platform — ARCHITECTURE: core
+# @scope/platform — ARCHITECTURE: core
 
 <br/>
 
 ARCHITECTURE = how it works. For usage/install, see the subsystem READMEs.
 
-📌 **First paragraph:** The `core` subsystem is the contract floor of the `@theriety/platform` monorepo. It ships three packages — `core-types`, `core-errors`, `core-contracts` — that together define every shape that crosses a package boundary anywhere in the workspace. Core has zero runtime dependencies on its own: it is pure types, schemas, and discriminated error classes.
+📌 **First paragraph:** The `core` subsystem is the contract floor of the `@scope/platform` monorepo. It ships three packages — `core-types`, `core-errors`, `core-contracts` — that together define every shape that crosses a package boundary anywhere in the workspace. Core has zero runtime dependencies on its own: it is pure types, schemas, and discriminated error classes.
 
 **Second paragraph:** See the [index](../platform.md) for monorepo-wide invariants and the other subsystem documents. Core is the only subsystem every other subsystem imports; changes here fan out through CI to every downstream package, which is why contract changes require a `minor` bump at minimum.
 
@@ -128,8 +128,8 @@ The class diagram captures the contract/error/type triangle — every wire paylo
 
 ## 📦 Related Packages
 
-- [`@theriety/core-types`](./packages/core/types): the branded domain types
-- [`@theriety/core-errors`](./packages/core/errors): the error taxonomy
-- [`@theriety/core-contracts`](./packages/core/contracts): the schema registry
+- [`@scope/core-types`](./packages/core/types): the branded domain types
+- [`@scope/core-errors`](./packages/core/errors): the error taxonomy
+- [`@scope/core-contracts`](./packages/core/contracts): the schema registry
 
 ---

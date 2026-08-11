@@ -21,7 +21,7 @@ consumers are external.
 export const INLINE_PATTERNS = /(\*\*|__|~~)/g;
 
 // ❌ BAD: constant asserted by a test but read by no production code
-export const logo = "███ ACME";
+export const logo = "███ EXAMPLE";
 
 // ✅ GOOD: delete the unreferenced symbol entirely
 ```

@@ -50,7 +50,7 @@ When a component switches variants, the only thing that changes in the JSX/TSX i
 
 - Grep variant class selectors (`.<component>--<variant>`) for hex codes, `rgb(…)`, `hsl(…)`, or px values — every match is a violation
 - Confirm every variant class only re-assigns CSS variables (or applies a one-off non-themable property like `text-decoration`)
-- Verify that overriding `--color-brand` under `[data-brand="acme"]` re-skins ALL variants without touching variant CSS
+- Verify that overriding `--color-brand` under `[data-brand="example"]` re-skins ALL variants without touching variant CSS
 
 ## Common Mistakes
 

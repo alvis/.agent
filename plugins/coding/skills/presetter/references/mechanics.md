@@ -29,7 +29,7 @@ import root from '../../presetter.config';
 import node from '@presetter/preset-node';
 import { preset } from 'presetter';
 
-export default preset('@acme/api', {
+export default preset('@scope/api', {
   extends: [root, node],
 });
 ```

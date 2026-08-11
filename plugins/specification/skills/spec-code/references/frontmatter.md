@@ -3,7 +3,7 @@
 Use separate schemas for Notion transport and durable derivation. Never copy
 transport-only metadata into versioned docs without purpose.
 
-## Notion-backed MDC
+## Notion transport metadata
 
 Paths are returned by notion-sync and never derived. Preserve all existing
 properties; the keys below are the minimum identity/provenance surface:
@@ -20,13 +20,14 @@ parent: 01234567-89ab-cdef-0123-456789abcdef # only for an unsynced child
 - `ref` is the stable Notion identity and never derives a local filename.
 - `parent` is present only when needed to create an unsynced page.
 - `last_edited_time` is remote revision metadata returned and updated only by
-  Notion transport. Local MDC authoring preserves it byte-for-byte and never
+  Notion transport. The selected external body author preserves it byte-for-byte and never
   replaces it with a local clock. An unsynced locally authored page omits this
   key until transport supplies it.
 - Local edit timestamps belong in ignored work evidence or the sync receipt,
-  never in Notion-backed MDC frontmatter.
+  never in Notion transport frontmatter.
 - Preserve Notion properties and relationship annotations verbatim.
-- MDC remains transport state and is edited only through its owning workflow.
+- The transport body remains opaque state and is edited only through the exact
+  explicitly selected body-author capability.
 
 ## Versioned contract carrier and provenance
 
@@ -46,6 +47,7 @@ derivation metadata in `docs/specs/<capability>/provenance.json` instead:
   "source_revision": "<git-blob-oid-or-notion-revision-or-empty>",
   "carrier_revision": "<git-blob-oid-or-empty>",
   "approved_content_ref": "<durable reachable locator to the exact approved specification content>",
+  "body_author": {"capability_id": "<plugin>:<skill>", "selection_source": "explicit_argument|delegated_caller"},
   "logical_units": [
     {"id": "contract:root", "source_path": "requirements/capability.md", "output_path": "docs/specs/capability/README.md"}
   ],
@@ -59,6 +61,11 @@ derivation metadata in `docs/specs/<capability>/provenance.json` instead:
 ```
 
 - `source_kind` is exactly `notion`, `local`, or `inline`.
+- `body_author` is required when a Notion body was created or semantically
+  changed. It records the exact stable capability and how the parent selected
+  it, separately from executable transport evidence. Omit it when no body
+  author was required. A later selector change blocks the next authored
+  mutation but does not invalidate otherwise unchanged approved bytes.
 - `source_locators` contains only durable, portable identifiers. Use
   `notion:<page-uuid>` for Notion, `repo:<repository-relative-path>` for a
   reachable local source, and `inline-approved:sha256:<exact-byte-hash>` for an

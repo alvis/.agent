@@ -1,6 +1,6 @@
 # Claude Code and Codex Plugin Marketplace
 
-Nine composable plugins for Claude Code and Codex: specifications with real
+Eight composable plugins for Claude Code and Codex: specifications with real
 provenance, plans with stable task identity, execution state that survives
 crashes and machine moves, and decisions that never silently rewrite history.
 Both harnesses install the same plugins and load the same Agent Skills;
@@ -200,7 +200,6 @@ or PR publication only after the local flow is understood.
 | `specification` | Specs with provenance: authoring, planning, implementation orchestration, seven-area review, and safe Notion synchronization. | [plugins/specification](plugins/specification/README.md) |
 | `coding` | General code production: TDD write/fix/refactor, scoped saves, stacked PRs, lint, docs, cleanup. | [plugins/coding](plugins/coding/README.md) |
 | `governance` | The meta-layer: creating and verifying agents, skills, and standards. | [plugins/governance](plugins/governance/README.md) |
-| `backend` | Theriety-specific service and data orchestrator build/audit (manifest name `theriety`). | [plugins/backend](plugins/backend/README.md) |
 | `client` | Client-facing screen-design contracts with Notion integration. | [plugins/client](plugins/client/README.md) |
 | `react` | React/JSX standards routing over the shared coding workflows. | [plugins/react](plugins/react/README.md) |
 | `web` | Web UX design, audits, imaging, Next.js diagnosis, Storybook checks. | [plugins/web](plugins/web/README.md) |
@@ -234,9 +233,9 @@ or PR publication only after the local flow is understood.
 
 ## Agent team
 
-A 23-agent team for Claude Code organized into a main-session Project Manager, domain leads, and their teammates. Shared operation lives in `plugins/essential/hooks/ALLAGENT.md` and `plugins/essential/hooks/MAINAGENT.md`, subagent conduct including the Workflow-proxy protocol lives in `plugins/essential/hooks/SUBAGENT.md`, owner-specific routing lives in each contributing plugin's `plugins/<owner>/hooks/ALLAGENT.md`, and per-agent delegation topology lives in each agent definition. A plugin that owns a domain lead also carries a `plugins/<owner>/hooks/MAINAGENT.md`, injected at `SessionStart` only, binding the main agent to hand that domain's work to the lead rather than decomposing it itself: `coding` to `tech-lead`, `web` to `design-lead`, and `backend` to `ai-research-lead`. Each of those leads wraps its `## Collaboration` map in an `<IMPORTANT>` tag, marking it as the map the lead routes from.
+A 22-agent team for Claude Code organized into a main-session Project Manager, domain leads, and their teammates. Shared operation lives in `plugins/essential/hooks/ALLAGENT.md` and `plugins/essential/hooks/MAINAGENT.md`, subagent conduct including the Workflow-proxy protocol lives in `plugins/essential/hooks/SUBAGENT.md`, owner-specific routing lives in each contributing plugin's `plugins/<owner>/hooks/ALLAGENT.md`, and per-agent delegation topology lives in each agent definition. A plugin that owns an injected domain binding carries a `plugins/<owner>/hooks/MAINAGENT.md`, injected at `SessionStart` only: `coding` binds to `tech-lead` and `web` binds to `design-lead`. Each lead wraps its `## Collaboration` map in an `<IMPORTANT>` tag, marking it as the map the lead routes from.
 
-Install via the `essential:install-agents` skill (ask Claude to "install the agents"). Canonical sources live under `plugins/<owner>/agents/<name>/` as `base.md` plus `frontmatter/meta.json`, `claude.json`, and `codex.json`. The installer discovers source-checkout siblings or enabled same-marketplace plugins, validates the complete discovered roster, stages stitched files, and copies them into the selected harness's personal agent directory. It overwrites current same-named discoveries and leaves unrelated or stale files untouched. Edits require a re-install, and changes take effect in the next session.
+Install via the `essential:install-agents` skill (ask Claude to "install the agents"). Canonical sources live under `plugins/<owner>/agents/<name>/` as `base.md` plus `frontmatter/meta.json`, `claude.json`, and `codex.json`. The installer discovers source-checkout siblings, enabled same-marketplace plugins, and explicitly trusted marketplaces passed with `--include-marketplace`; it validates the complete discovered roster, stages stitched files, and copies them into the selected harness's personal agent directory. It overwrites current same-named discoveries and leaves unrelated or stale files untouched. Edits require a re-install, and changes take effect in the next session.
 
 ### Roster
 
@@ -246,7 +245,6 @@ Install via the `essential:install-agents` skill (ask Claude to "install the age
 | `design-lead` | Design Lead — decomposes and directs design initiatives across platforms | opus | high | auto | memory |
 | `ai-research-lead` | AI Research Lead — decomposes and directs ML/RL/AI research initiatives | fable | medium | auto | memory |
 | `principal-engineer` | Principal Engineer — escalation sink for hard debugging/perf/algorithms | fable | high | auto | worktree, memory |
-| `service-implementation-engineer` | Service Implementation — backend/API build-out | sonnet | medium | acceptEdits | worktree, memory |
 | `generalist-engineer` | Generalist Engineer — libraries, data pipelines, CLIs, glue code | sonnet | high | acceptEdits | worktree, memory |
 | `data-architect` | Data Architect — schemas, data models, pipelines | opus | high | auto | memory |
 | `frontend-designer` | Frontend Designer — designs all app screens (web/mobile/desktop), never builds | fable | high | auto | worktree, memory |
@@ -280,9 +278,8 @@ Project Manager (forms and names teams; brokers the user and session tools)
   │   └── any registered teammate
   ├── design-lead ──► frontend-designer, frontend-implementer, desktop-implementer, mobile-implementer, aesthetic-evaluator
   └── ai-research-lead ──► ml-engineer, harness-eval-engineer, data-architect
-service-implementation-engineer ──► principal-engineer, security-champion, test-runner, code-quality-critic, testing-evangelist
 generalist-engineer ──► data-architect, code-quality-critic, test-runner, testing-evangelist, principal-engineer, tech-lead
-data-architect ──► ml-engineer, service-implementation-engineer, test-runner, principal-engineer, code-quality-critic
+data-architect ──► ml-engineer, test-runner, principal-engineer, code-quality-critic
 principal-engineer ──► security-champion, test-runner, code-quality-critic
 frontend-designer ──► aesthetic-evaluator, frontend-implementer, desktop-implementer, mobile-implementer
 frontend-implementer ──► aesthetic-evaluator, code-quality-critic, test-runner, frontend-designer, tech-lead
@@ -303,10 +300,8 @@ Team hand-off edges are documented by role for readability, but every `SendMessa
 design-lead → frontend-designer/frontend-implementer/desktop-implementer/mobile-implementer: initiative slice per platform
 design-lead → aesthetic-evaluator: initiative sign-off
 ai-research-lead → ml-engineer/harness-eval-engineer/data-architect: research or experiment slice
-service-implementation-engineer → code-quality-critic: implementation complete, before commit
-code-quality-critic → service-implementation-engineer: gate failure, with findings
 code-quality-critic → tech-lead: gate pass, or two rounds exhausted
-testing-evangelist → service-implementation-engineer/frontend-implementer/generalist-engineer: coverage gap found
+testing-evangelist → frontend-implementer/generalist-engineer: coverage gap found
 frontend-designer → frontend-implementer/desktop-implementer/mobile-implementer: approved design handoff
 frontend-implementer/desktop-implementer/mobile-implementer → aesthetic-evaluator: build complete, fidelity check
 data-architect ↔ ml-engineer: schema design and data-profiling consults
@@ -320,7 +315,7 @@ Only the main agent names persistent teammates. It chooses one of the three shor
 ### Team shapes
 
 - **Domain leads**: `tech-lead` for coding delivery, `design-lead` for design delivery, and `ai-research-lead` for research delivery.
-- **Warm-core specialists** (trusting, low-friction hand-offs): `code-quality-critic`, `testing-evangelist`, `service-implementation-engineer`, `generalist-engineer`, `harness-eval-engineer`.
+- **Warm-core specialists** (trusting, low-friction hand-offs): `code-quality-critic`, `testing-evangelist`, `generalist-engineer`, `harness-eval-engineer`.
 - **On-demand specialists**: `principal-engineer`, `data-architect`, `frontend-designer`, `frontend-implementer`, `desktop-implementer`, `mobile-implementer`, `ml-engineer`, `security-champion`, `aesthetic-evaluator`, `adversarial-red-team`, `specification-expert`, `project-initializer`.
 - **Background** (one run per spawn): `devops`, `workflow-optimizer`.
 - **Mechanical**: `test-runner`.
@@ -339,7 +334,6 @@ Only the main agent names persistent teammates. It chooses one of the three shor
 ### Notes
 
 - The copy-install into `~/.claude/agents/` is load-bearing for the hooks: Claude Code honors `hooks`, `permissionMode`, and `mcpServers` frontmatter only for agents in `~/.claude/agents/` / `.claude/agents/` — agents registered via a plugin ignore those fields. Do not convert the roster to plugin-registered agents, or every embedded fence goes dead.
-- `ml-engineer` uses the `theriety:build-service` skill — it requires the plugin whose manifest name is `theriety` (this marketplace registers it under the entry name `backend`; the manifest-vs-marketplace name mismatch is known).
 - Installed agent definitions are intentionally single self-contained files even though their canonical source is split. This is why the write fence is embedded verbatim in both fenced critics.
 - Standards references in the definitions never use literal installation paths. They name a standard plus its owning plugin, resolved at runtime when that plugin is enabled. A partial enabled roster is valid, so cross-plugin handoffs and context are best-effort when their owner plugin is absent.
 

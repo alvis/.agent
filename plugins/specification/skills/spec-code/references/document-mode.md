@@ -77,15 +77,19 @@ DOCUMENT mode does NOT research; it extracts.
 - For a local or inline destination, author the work-local specification and
   derive reviewed versioned capability docs directly. Do not search a Notion
   database, create a remote page, author MDC, or claim a 1:1 remote mapping.
-- Only for an explicitly selected Notion destination, author through the
-  selected MDC mechanism and follow the transport flow below.
+- Only for an explicitly selected Notion destination, require the caller's
+  exact `--body-author=<plugin:skill>`, author through that installed
+  capability, and follow the transport flow below.
 
 ## Notion sync considerations
 
 Only when the caller explicitly selects a Notion destination:
 
-- Set page property `Status = "Implemented"` (CREATE mode uses `"Drafting"`).
-- For a new page, author the explicit local MDC path with its parent first, then
+- Preserve existing properties. Set or change a property only when the caller
+  supplies an explicit destination-owned mapping and the approved body-author
+  policy authorizes that value; this marketplace defines no status labels.
+- For a new page, author the explicit local transport path with its parent first
+  through the bound `body_author`, then
   create it through `Skill(sync-notion)`, accept the canonical `ref` only from
   its conformance-bound create output, and verification-pull that identity.
 - For an existing paired specification, delegate completion to

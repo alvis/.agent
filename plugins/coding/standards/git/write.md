@@ -6,7 +6,7 @@
 ## Key Principles
 
 - Use Conventional Commits format: `<type>(<scope>): <summary>`
-- Scope = short package name — drop the catalog prefix (`@theriety/`, `@amino/`)
+- Scope = short package name — drop the catalog prefix (`@scope/`, `@amino/`)
 - Title: aim for ≤50 characters, up to 72 for clarity, 72 hard limit; present-tense imperative mood
 - Body: wrap at 72 characters, keep short but descriptive
 - Footer: `Closes #<issue-number>, #<issue-number>...` (use commas, not `Fixes`)
@@ -56,15 +56,15 @@
 
 ### Scope Convention
 
-Use the **short package name** as scope — drop the catalog prefix (e.g., `@theriety/`, `@amino/`). Scopes should be short and scannable in `git log`.
+Use the **short package name** as scope — drop the catalog prefix (e.g., `@scope/`, `@amino/`). Scopes should be short and scannable in `git log`.
 
 | Scenario | Scope Rule | Example |
 |---|---|---|
 | Single package | Short package name | `ai`, `gateway-microservice`, `hmr`, `authentication` |
 | Multiple packages, shared concern | Name the concern | `local-stack`, `a11y`, `signals` |
-| Whole catalog or infra | Catalog or infra name | `theriety`, `pulumi`, `github-actions` |
+| Whole catalog or infra | Catalog or infra name | `example`, `pulumi`, `github-actions` |
 | Truly global | Omit scope entirely | _(no scope)_ |
-| Name collision across catalogs | Prefix with short catalog name | `amino-auth` vs `theriety-auth` |
+| Name collision across catalogs | Prefix with short catalog name | `amino-auth` vs `example-auth` |
 
 Comma-separated scopes are acceptable when touching exactly two packages:
 
@@ -75,8 +75,8 @@ Comma-separated scopes are acceptable when touching exactly two packages:
 - ✅ `feat(ai): add structured extraction pipeline`
 - ✅ `fix(client-desktop): correct StableSnapshot diff serialization`
 - ✅ `refactor(gateway): extract shared middleware into dispatch module`
-- ✅ `refactor(local-stack): align LocalGatewayConfig across development and theriety` _(cross-package, shared concern)_
-- ✅ `build(theriety): update shared tsconfig base` _(catalog-level)_
+- ✅ `refactor(local-stack): align LocalGatewayConfig across development and example` _(cross-package, shared concern)_
+- ✅ `build(example): update shared tsconfig base` _(catalog-level)_
 - ✅ `chore: update TypeScript to 5.7 across all packages` _(global, no scope)_
 - ✅ `fix(auth): allow login with email alias`
 - ✅ `fix(profile, auth): stop access when role is missing (#123, #789)`
@@ -111,7 +111,7 @@ A work stream is the one exception, and its branch shape is owned by `naming.md`
 | Single package | `feat/ai/add-extraction-pipeline` |
 | Single package (different catalog) | `fix/client-desktop/stable-snapshot-diff` |
 | Cross-package concern | `refactor/local-stack/align-gateway-config` |
-| Catalog-level | `build/theriety/update-shared-tsconfig` |
+| Catalog-level | `build/example/update-shared-tsconfig` |
 | Infra | `ci/github-actions/add-pnpm-cache` |
 | Global (no scope) | `chore/update-typescript` |
 

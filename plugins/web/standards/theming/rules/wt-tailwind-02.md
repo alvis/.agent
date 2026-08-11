@@ -22,7 +22,7 @@ import './app.css';
 import './theme.css';
 
 // ✅ GOOD: library → client theme → app
-// apps/acme/src/app/layout.tsx
+// apps/example/src/app/layout.tsx
 import '@company/ui/styles.css';
 import './theme.css';
 import './app.css';

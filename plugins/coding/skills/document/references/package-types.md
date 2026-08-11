@@ -37,8 +37,8 @@ Resolve to `<skill_root>/references/README.example.<type>.md`:
 - `library` (OSS) → `README.example.oss-library.md`
 - `cli` → `README.example.cli.md`
 - `microservice` → `README.example.microservice.md`
-- `stateless` → `README.example.stateless.md`
-- `data-controller` → `README.example.data-controller.md`
+- `stateless` → no bundled example; use `README.template.md` plus source evidence
+- `data-controller` → no bundled example; use `README.template.md` plus source evidence
 - `iac` → `README.example.iac.md`
 - `monorepo-root` (internal) → `README.example.monorepo.md`
 - `monorepo-root` (OSS) → `README.example.oss-monorepo.md`
@@ -50,11 +50,11 @@ Resolve to `<skill_root>/references/ARCHITECTURE.example.<type>.md` (no OSS vari
 - `library` → `ARCHITECTURE.example.library.md`
 - `cli` → `ARCHITECTURE.example.cli.md`
 - `microservice` → `ARCHITECTURE.example.microservice.md`
-- `stateless` → `ARCHITECTURE.example.stateless.md`
-- `data-controller` → `ARCHITECTURE.example.data-controller.md`
+- `stateless` → no bundled example; use `ARCHITECTURE.template.md` plus source evidence
+- `data-controller` → no bundled example; use `ARCHITECTURE.template.md` plus source evidence
 - `iac` → `ARCHITECTURE.example.iac.md`
 - `monorepo-root` → `ARCHITECTURE.example.monorepo.md`
 
 ## Usage Note
 
-When using bundled templates, read the type-matched example to see the template instantiated, then re-skin emojis/TOC to match any sibling READMEs found in Step 2 (bundled templates carry the `@theriety` flavor). An entrypoint that contains an ordered child manifest is an overview, not the complete source: read every linked child in order. Bundled compatibility entrypoints may retain legacy uppercase names, but newly generated project artifacts and split-child paths are lowercase.
+When using bundled templates, read the type-matched example to see the template instantiated, then re-skin emojis/TOC to match any sibling READMEs found in Step 2 (bundled templates carry the `@example` flavor). An entrypoint that contains an ordered child manifest is an overview, not the complete source: read every linked child in order. Bundled compatibility entrypoints may retain legacy uppercase names, but newly generated project artifacts and split-child paths are lowercase.

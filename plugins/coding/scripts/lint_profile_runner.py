@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import fnmatch
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -40,8 +41,13 @@ def eligible_files(files: list[str], profile: dict) -> list[str]:
     ]
 
 
-def scanner_result(command: list[str], label: str) -> tuple[dict, int]:
-    result = subprocess.run(command, text=True, capture_output=True)
+def scanner_result(
+    command: list[str],
+    label: str,
+    *,
+    env: dict[str, str] | None = None,
+) -> tuple[dict, int]:
+    result = subprocess.run(command, text=True, capture_output=True, env=env)
     run = {"label": label, "args": command[2:], "exit_code": result.returncode}
     lines = result.stdout.splitlines()
     if lines:
@@ -122,12 +128,16 @@ def main() -> int:
     if validation_error:
         return failure(validation_error)
     files = eligible_files(args.files, profile)
+    standards = [
+        str((profile_path.parent / item).resolve())
+        for item in profile.get("standards", [])
+    ] if profile_path else []
     report = {
         "violations_found_total": 0,
         "status": "compliant",
         "report_label": profile.get("report_label", "Coding lint"),
         "files": files,
-        "standards": [str((profile_path.parent / item).resolve()) for item in profile.get("standards", [])] if profile_path else [],
+        "standards": standards,
         "scanner_runs": [],
     }
     if not files:
@@ -136,7 +146,9 @@ def main() -> int:
 
     common = [*files, "--category", "all", "--before", "5", "--after", "10"]
     command = [sys.executable, str(args.generic_scanner.resolve()), *common]
-    run, exit_code = scanner_result(command, "generic")
+    scanner_env = os.environ.copy()
+    scanner_env["CODING_LINT_STANDARD_ROOTS"] = os.pathsep.join(standards)
+    run, exit_code = scanner_result(command, "generic", env=scanner_env)
     report["scanner_runs"].append(run)
     if exit_code:
         report["status"] = "failure"
@@ -149,7 +161,7 @@ def main() -> int:
         if scanner.get("needs_coding_scanlib"):
             command.extend(["--scanlib", str((args.coding_root.resolve() / "scripts/scanlib"))])
         command.extend(common)
-        run, exit_code = scanner_result(command, scanner_path.stem)
+        run, exit_code = scanner_result(command, scanner_path.stem, env=scanner_env)
         report["scanner_runs"].append(run)
         if exit_code:
             report["status"] = "failure"

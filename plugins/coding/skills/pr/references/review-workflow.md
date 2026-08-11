@@ -301,8 +301,8 @@ The diff is the subject of the review, not the limit of the reading.
   hanging off a line in it are different things: a deleted file and a chore the PR
   owes are squarely about the diff and anchor to nothing.
 - **Ask whether the diff is the best solution**, not only whether it works: walk
-  the lean ladder in [WORKFLOW.md](../../../references/WORKFLOW.md) — need, `@theriety/core`,
-  existing codebase, platform, installed dependency, then minimum new code. A
+  the lean ladder in [WORKFLOW.md](../../../references/WORKFLOW.md) — need,
+  foundational modules, nearby code, platform, installed dependency, then minimum new code. A
   hand-rolled helper duplicating what the repository already provides is a finding.
 - **Say so when the change belongs somewhere else.** A guard repeated at each call
   site that belongs in the callee, validation in a controller that belongs in the

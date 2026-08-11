@@ -39,23 +39,23 @@ flowchart TD
 %%
 %% flowchart TD
 %%     subgraph foundation[Foundation]
-%%         core["@acme/core"]
-%%         types["@acme/types"]
+%%         core["@scope/core"]
+%%         types["@scope/types"]
 %%     end
 %%
 %%     subgraph runtime[Runtime]
-%%         cli["@acme/cli"]
-%%         server["@acme/server"]
+%%         cli["@scope/cli"]
+%%         server["@scope/server"]
 %%     end
 %%
 %%     subgraph extension[Extension]
-%%         react["@acme/react"]
-%%         vue["@acme/vue"]
+%%         react["@scope/react"]
+%%         vue["@scope/vue"]
 %%     end
 %%
 %%     subgraph integrations[Integrations]
-%%         nextjs["@acme/nextjs"]
-%%         nuxt["@acme/nuxt"]
+%%         nextjs["@scope/nextjs"]
+%%         nuxt["@scope/nuxt"]
 %%     end
 %%
 %%     cli --> core

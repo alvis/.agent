@@ -1,7 +1,7 @@
-# @theriety/platform
+# @scope/platform
 
 <br/>
-📌 `@theriety/platform` is the monorepo root for the Theriety developer platform — a federated set of TypeScript packages that share a single toolchain, release train, and type system. It solves the "three-repo drift" problem: when domain types, runtime services, and client SDKs live in separate repos, they drift out of sync and cross-team changes become archaeology.
+📌 `@scope/platform` is the monorepo root for the example developer platform — a federated set of TypeScript packages that share a single toolchain, release train, and type system. It solves the "three-repo drift" problem: when domain types, runtime services, and client SDKs live in separate repos, they drift out of sync and cross-team changes become archaeology.
 
 This workspace ships three peer subsystems — **core** (domain types, contracts, errors), **services** (queue worker, api gateway, scheduler), and **sdks** (browser, node, python) — under one `pnpm` workspace so a breaking change in `core` immediately surfaces as a CI failure in every dependent service and SDK. The root is intentionally thin: it owns tooling, CI, and release orchestration only; every package stays self-contained with its own README, tests, and version.
 
@@ -36,16 +36,16 @@ Every top-level folder under `packages` is a *subsystem*; every nested folder un
 
 | Package | Purpose | Status |
 | --- | --- | --- |
-| [`@theriety/core-types`](./packages/core/types) | Shared domain types (User, Tenant, Job) | stable |
-| [`@theriety/core-errors`](./packages/core/errors) | Error taxonomy and classification | stable |
-| [`@theriety/core-contracts`](./packages/core/contracts) | Zod schemas for public API surfaces | stable |
-| [`@theriety/service-api`](./packages/services/api) | REST + GraphQL gateway | stable |
-| [`@theriety/service-worker`](./packages/services/worker) | Background job runner | stable |
-| [`@theriety/service-scheduler`](./packages/services/scheduler) | Cron and delayed job dispatch | beta |
-| [`@theriety/sdk-browser`](./packages/sdks/browser) | Browser client with fetch adapter | stable |
-| [`@theriety/sdk-node`](./packages/sdks/node) | Node client with pooling | stable |
-| [`@theriety/sdk-python`](./packages/sdks/python) | Python client (codegen from contracts) | beta |
-| [`@theriety/tools-release`](./tools/release) | Changesets-driven release orchestrator | internal |
+| [`@scope/core-types`](./packages/core/types) | Shared domain types (User, Tenant, Job) | stable |
+| [`@scope/core-errors`](./packages/core/errors) | Error taxonomy and classification | stable |
+| [`@scope/core-contracts`](./packages/core/contracts) | Zod schemas for public API surfaces | stable |
+| [`@scope/service-api`](./packages/services/api) | REST + GraphQL gateway | stable |
+| [`@scope/service-worker`](./packages/services/worker) | Background job runner | stable |
+| [`@scope/service-scheduler`](./packages/services/scheduler) | Cron and delayed job dispatch | beta |
+| [`@scope/sdk-browser`](./packages/sdks/browser) | Browser client with fetch adapter | stable |
+| [`@scope/sdk-node`](./packages/sdks/node) | Node client with pooling | stable |
+| [`@scope/sdk-python`](./packages/sdks/python) | Python client (codegen from contracts) | beta |
+| [`@scope/tools-release`](./tools/release) | Changesets-driven release orchestrator | internal |
 
 ---
 
@@ -69,15 +69,15 @@ pnpm test             # run unit tests across the workspace
 ### Running one service
 
 ```sh
-pnpm --filter @theriety/service-worker dev    # start worker with hot reload
-pnpm --filter @theriety/service-api dev       # start api gateway
+pnpm --filter @scope/service-worker dev    # start worker with hot reload
+pnpm --filter @scope/service-api dev       # start api gateway
 ```
 
 The `--filter` flag scopes any script to a single workspace; `--filter ...worker` would also include packages the worker depends on.
 
 ### Cross-package linking
 
-`pnpm` handles symlinks automatically. When `@theriety/service-worker` declares a dependency on `@theriety/core-types` with the `workspace:*` protocol, `pnpm install` symlinks the local copy so changes are picked up without publish. The release tool rewrites `workspace:*` to real version ranges at publish time.
+`pnpm` handles symlinks automatically. When `@scope/service-worker` declares a dependency on `@scope/core-types` with the `workspace:*` protocol, `pnpm install` symlinks the local copy so changes are picked up without publish. The release tool rewrites `workspace:*` to real version ranges at publish time.
 
 ---
 
@@ -120,7 +120,7 @@ See [`docs/architecture/platform.md`](./docs/architecture/platform.md) for the s
 ## 📦 Related External Packages
 
 - [`pnpm`](https://pnpm.io): the workspace manager that underpins the root; chosen over npm/yarn for strict peer resolution and disk-efficient linking
-- [`changesets`](https://github.com/changesets/changesets): version and changelog orchestration used by `@theriety/tools-release`
+- [`changesets`](https://github.com/changesets/changesets): version and changelog orchestration used by `@scope/tools-release`
 - [`turbo`](https://turbo.build): task runner that caches build/test output across the workspace
 
 ---
