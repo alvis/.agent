@@ -67,6 +67,64 @@ LOADED_RESOURCE_ROOT = re.compile(
     r"the\s+absolute\s+directory\s+containing\s+this\s+loaded\s+`SKILL\.md`",
     re.IGNORECASE | re.MULTILINE,
 )
+REMOVED_CONTRACT_TERMS = (
+    "ac" + "me",
+    "plugins/" + "backend",
+    "service-implementation-" + "engineer",
+    "audit-" + "data",
+    "audit-" + "service",
+    "build-" + "data",
+    "build-" + "service",
+    "data-" + "entity",
+    "data-" + "operation",
+)
+INLINE_QUALIFIED_TOKEN = re.compile(
+    r"`(?P<token>/?[a-z][a-z0-9-]*:[A-Za-z0-9_./{},*-]+)`"
+)
+EXACT_QUALIFIED_TOKEN = re.compile(
+    r"^/?(?P<owner>[a-z][a-z0-9-]*):"
+    r"(?P<target>[A-Za-z0-9_./{},*:-]+)$"
+)
+EMBEDDED_QUALIFIED_TOKEN = re.compile(
+    r"(?<![A-Za-z0-9_/-])"
+    r"(?P<token>/?[a-z][a-z0-9-]*:"
+    r"[A-Za-z0-9_./{},*:-]*[A-Za-z0-9_/{},*-])"
+    r"(?![A-Za-z0-9_/-])"
+)
+NON_PLUGIN_NAMESPACES = {
+    "available",
+    "aws",
+    "build",
+    "file",
+    "focus-visible",
+    "https",
+    "leaf",
+    "memory",
+    "node",
+    "spawned",
+    "svg",
+    "test",
+    "workspace",
+    "xlink",
+}
+TRACKED_TEXT_SUFFIXES = {
+    "",
+    ".css",
+    ".html",
+    ".ini",
+    ".js",
+    ".json",
+    ".md",
+    ".mmd",
+    ".py",
+    ".sh",
+    ".template",
+    ".toml",
+    ".ts",
+    ".tsx",
+    ".txt",
+    ".yml",
+}
 
 QUICK_VALIDATE_SPEC = importlib.util.spec_from_file_location(
     "governance_quick_validate",
@@ -200,6 +258,189 @@ def marketplace_plugins() -> list[dict]:
     return plugins
 
 
+def available_capabilities(plugin_root: Path) -> set[str]:
+    available = set()
+    for container_name in ("skills", "agents"):
+        container = plugin_root / container_name
+        if container.is_dir():
+            available.update(
+                path.name for path in container.iterdir() if path.is_dir()
+            )
+    available.update(
+        name
+        for name in ("references", "standards", "templates", "scripts")
+        if (plugin_root / name).is_dir()
+    )
+    return available
+
+
+def tracked_paths() -> list[Path]:
+    completed = subprocess.run(
+        ["git", "ls-files", "-z"],
+        cwd=ROOT,
+        capture_output=True,
+        check=True,
+    )
+    paths = [
+        ROOT / relative
+        for relative in completed.stdout.decode().split("\0")
+        if relative
+    ]
+    return [path for path in paths if path.is_file()]
+
+
+def test_tracked_paths_skip_deleted_worktree_entries(monkeypatch) -> None:
+    def fake_run(*args, **kwargs):
+        return subprocess.CompletedProcess(
+            args,
+            0,
+            stdout=b"README.md\0plugins/removed-contract.md\0",
+        )
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    assert tracked_paths() == [ROOT / "README.md"]
+
+
+def nested_strings(value: object) -> list[str]:
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, list):
+        return [item for child in value for item in nested_strings(child)]
+    if isinstance(value, dict):
+        return [item for child in value.values() for item in nested_strings(child)]
+    return []
+
+
+def qualified_tokens(path: Path) -> list[str]:
+    if path.suffix == ".json":
+        return [
+            match.group("token")
+            for value in nested_strings(load_json(path))
+            for match in EMBEDDED_QUALIFIED_TOKEN.finditer(value)
+        ]
+    text = path.read_text(encoding="utf-8")
+    inline_tokens = [
+        match.group("token")
+        for match in INLINE_QUALIFIED_TOKEN.finditer(text)
+    ]
+    standard_tokens = [
+        match.group("token")
+        for match in EMBEDDED_QUALIFIED_TOKEN.finditer(text)
+        if match.group("token").startswith("plugin:")
+        and ":standard:" in match.group("token")
+    ]
+    return list(dict.fromkeys([*inline_tokens, *standard_tokens]))
+
+
+def expanded_targets(target: str) -> list[str]:
+    match = re.search(r"\{([^{}]+)\}", target)
+    if match is None:
+        return [target]
+    return [
+        *(
+            expanded
+            for option in match.group(1).split(",")
+            for expanded in expanded_targets(
+                target[: match.start()] + option + target[match.end() :]
+            )
+        )
+    ]
+
+
+def qualified_token_failure(
+    root: Path,
+    plugin_names: set[str],
+    source_path: Path,
+    raw_token: str,
+) -> str | None:
+    token = raw_token.removeprefix("/")
+    match = EXACT_QUALIFIED_TOKEN.fullmatch(token)
+    assert match
+    owner = match.group("owner")
+    target = match.group("target")
+
+    if owner in plugin_names:
+        plugin_root = root / "plugins" / owner
+        if target == "*":
+            return None
+        if "/" not in target:
+            if target in available_capabilities(plugin_root):
+                return None
+            return f"unknown local capability {token}"
+        plugin_root = plugin_root.resolve()
+        invalid = [
+            candidate
+            for candidate in expanded_targets(target)
+            if not (plugin_root / candidate.rstrip("/")).resolve().is_relative_to(
+                plugin_root
+            )
+            or not (plugin_root / candidate.rstrip("/")).resolve().exists()
+        ]
+        if invalid:
+            return f"missing local resource {owner}:{invalid[0]}"
+        return None
+
+    if owner == "plugin":
+        if target == "path":
+            return None
+        standard_match = re.fullmatch(
+            r"(?P<plugin>[a-z][a-z0-9-]*):standard:"
+            r"(?P<standard>[a-z][a-z0-9-]*)",
+            target,
+        )
+        if standard_match:
+            plugin_name = standard_match.group("plugin")
+            if plugin_name not in plugin_names:
+                return f"unknown plugin standard {token}"
+            candidate = (
+                root
+                / "plugins"
+                / plugin_name
+                / "standards"
+                / standard_match.group("standard")
+            )
+            if not candidate.is_dir():
+                return f"missing plugin standard {token}"
+            return None
+        parts = target.split("/")
+        if len(parts) < 3 or parts[0] not in plugin_names:
+            return f"unknown plugin resource {token}"
+        skills_root = (root / "plugins" / parts[0] / "skills").resolve()
+        candidate = (skills_root / Path(*parts[1:])).resolve()
+        if not candidate.is_relative_to(skills_root) or not candidate.exists():
+            return f"missing plugin resource {token}"
+        return None
+
+    if owner == "standard":
+        relative = source_path.relative_to(root / "plugins")
+        standards_root = (
+            root / "plugins" / relative.parts[0] / "standards"
+        ).resolve()
+        candidate = (standards_root / target).resolve()
+        if not candidate.is_relative_to(standards_root) or not candidate.exists():
+            return f"missing local standard {token}"
+        return None
+
+    if owner in NON_PLUGIN_NAMESPACES:
+        return None
+    return f"unknown marketplace owner {owner} in {token}"
+
+
+def qualified_contract_failures(
+    root: Path,
+    plugin_names: set[str],
+    paths: list[Path],
+) -> list[str]:
+    failures = []
+    for path in paths:
+        for token in qualified_tokens(path):
+            failure = qualified_token_failure(root, plugin_names, path, token)
+            if failure:
+                failures.append(f"{path.relative_to(root)}: {failure}")
+    return failures
+
+
 def codex_marketplace_plugins() -> list[dict]:
     marketplace = load_json(CODEX_MARKETPLACE_PATH)
     assert_matches_schema(
@@ -307,6 +548,144 @@ def test_shared_skills_follow_the_cross_harness_agent_skills_contract() -> None:
             assert policy_report["errors"] == [], (
                 f"{skill_path.relative_to(ROOT)}: {policy_report['errors']}"
             )
+
+
+def test_shipped_qualified_capabilities_exist_in_this_marketplace() -> None:
+    plugin_names = {plugin["name"] for plugin in marketplace_plugins()}
+    shipped_paths = [
+        path
+        for path in tracked_paths()
+        if path.suffix in TRACKED_TEXT_SUFFIXES
+        and path.is_relative_to(ROOT / "plugins")
+        and "tests" not in path.parts
+    ]
+
+    assert qualified_contract_failures(ROOT, plugin_names, shipped_paths) == []
+
+
+@pytest.mark.parametrize(
+    ("suffix", "content", "expected"),
+    (
+        (
+            ".md",
+            "Use `foreign:missing-skill`.\n",
+            "unknown marketplace owner foreign",
+        ),
+        (
+            ".json",
+            '{"description":"Use foreign:missing-skill when needed."}\n',
+            "unknown marketplace owner foreign",
+        ),
+        (
+            ".md",
+            "Use `local:missing-skill`.\n",
+            "unknown local capability",
+        ),
+        (
+            ".md",
+            "Read `local:references/missing.md`.\n",
+            "missing local resource",
+        ),
+        (
+            ".md",
+            "Follow plugin:local:standard:missing.\n",
+            "missing plugin standard",
+        ),
+        (
+            ".md",
+            "Read `local:../../README.md`.\n",
+            "missing local resource",
+        ),
+        (
+            ".md",
+            "Read `local:/etc/passwd`.\n",
+            "missing local resource",
+        ),
+        (
+            ".md",
+            "Read `plugin:local/present/../../../README.md`.\n",
+            "missing plugin resource",
+        ),
+        (
+            ".md",
+            "Read `standard:../README.md`.\n",
+            "missing local standard",
+        ),
+    ),
+)
+def test_qualified_contract_rejects_non_standalone_tokens(
+    tmp_path: Path,
+    suffix: str,
+    content: str,
+    expected: str,
+) -> None:
+    skill = tmp_path / "plugins/local/skills/present/SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text("---\nname: present\ndescription: Present.\n---\n")
+    source = tmp_path / f"plugins/local/assets/broken{suffix}"
+    source.parent.mkdir(parents=True)
+    source.write_text(content)
+    failures = qualified_contract_failures(
+        tmp_path,
+        {"local"},
+        [source],
+    )
+
+    assert len(failures) == 1
+    assert expected in failures[0]
+
+
+def test_qualified_contract_accepts_existing_cross_plugin_standard(
+    tmp_path: Path,
+) -> None:
+    standard = tmp_path / "plugins/shared/standards/function"
+    standard.mkdir(parents=True)
+    source = tmp_path / "plugins/local/README.md"
+    source.parent.mkdir(parents=True)
+    source.write_text("Follow plugin:shared:standard:function.\n")
+
+    assert qualified_contract_failures(
+        tmp_path,
+        {"local", "shared"},
+        [source],
+    ) == []
+
+
+def test_qualified_contract_scans_shipped_assets(tmp_path: Path) -> None:
+    skill = tmp_path / "plugins/local/skills/present/SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text("---\nname: present\ndescription: Present.\n---\n")
+    asset = tmp_path / "plugins/local/assets/broken.md"
+    asset.parent.mkdir(parents=True)
+    asset.write_text("Use `foreign:missing-skill`.\n")
+
+    assert qualified_contract_failures(tmp_path, {"local"}, [asset]) == [
+        "plugins/local/assets/broken.md: unknown marketplace owner foreign "
+        "in foreign:missing-skill"
+    ]
+
+
+def test_repository_omits_removed_marketplace_contracts() -> None:
+    failures = []
+
+    for path in tracked_paths():
+        if path.suffix not in TRACKED_TEXT_SUFFIXES:
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        folded = text.casefold()
+        if any(term.casefold() in folded for term in REMOVED_CONTRACT_TERMS):
+            failures.append(str(path.relative_to(ROOT)))
+            continue
+        if re.search(r"backend:[a-z]", text, re.IGNORECASE):
+            failures.append(str(path.relative_to(ROOT)))
+            continue
+        if re.search(r"\b(?:D" + "EN|D" + "OP)-[A-Z0-9-]+", text):
+            failures.append(str(path.relative_to(ROOT)))
+
+    assert failures == []
 
 
 def shared_codex_skill_root_violations(plugin_root: Path) -> list[str]:
@@ -649,7 +1028,6 @@ def test_codex_role_bindings_wait_for_installed_custom_agents(
     tmp_path: Path,
 ) -> None:
     required_agents = {
-        "backend": "ai-research-lead",
         "coding": "tech-lead",
         "essential": "tech-lead",
         "web": "design-lead",

@@ -1,9 +1,9 @@
-# @theriety/tsx-lint
+# @scope/tsx-lint
 
 <br/>
 📌 A zero-config TypeScript + JSX linter that runs as a single CLI binary, designed for monorepos where every package currently reinvents its own `eslint` wiring. It solves the config-drift problem: teams copy half-working `.eslintrc` files across workspaces, drift apart, and eventually stop trusting the linter entirely.
 
-The `@theriety/tsx-lint` CLI bundles a parser, a deterministic rule engine, and a reporter behind one command, so a fresh checkout lints in under a second with no `node_modules` gymnastics. Compared to `eslint` it ships opinionated defaults and a stable cache layout; compared to `biome` it keeps a pluggable rule interface so teams can author custom rules in plain TypeScript without forking the tool.
+The `@scope/tsx-lint` CLI bundles a parser, a deterministic rule engine, and a reporter behind one command, so a fresh checkout lints in under a second with no `node_modules` gymnastics. Compared to `eslint` it ships opinionated defaults and a stable cache layout; compared to `biome` it keeps a pluggable rule interface so teams can author custom rules in plain TypeScript without forking the tool.
 
 <br/>
 <div align="center">
@@ -21,13 +21,13 @@ Install the CLI into your project or globally. The binary is named `tsx-lint` an
 
 ```sh
 # npm
-npm install --save-dev @theriety/tsx-lint
+npm install --save-dev @scope/tsx-lint
 
 # yarn
-yarn add --dev @theriety/tsx-lint
+yarn add --dev @scope/tsx-lint
 
 # pnpm
-pnpm add --save-dev @theriety/tsx-lint
+pnpm add --save-dev @scope/tsx-lint
 ```
 
 Generate a starter config and run your first lint:
@@ -71,7 +71,7 @@ npx tsx-lint fix "src/**/*.ts" --rules recommended --format pretty
 Every subcommand is also exposed as an async function so build scripts can embed the linter without shelling out.
 
 ```ts
-import { lint } from '@theriety/tsx-lint';
+import { lint } from '@scope/tsx-lint';
 
 const report = await lint({
   patterns: ['src/**/*.tsx'],
@@ -137,7 +137,7 @@ The CLI reads a small set of environment variables to support CI pipelines and c
 
 ## 📐 Architecture
 
-The CLI is a thin argv parser around a three-stage pipeline: **parse** the source with `@theriety/tsx-parser`, **run** each rule as a visitor over the resulting AST, and **report** findings through a pluggable formatter. Rule plugins are loaded once per process and cached on disk by content hash.
+The CLI is a thin argv parser around a three-stage pipeline: **parse** the source with `@scope/tsx-parser`, **run** each rule as a visitor over the resulting AST, and **report** findings through a pluggable formatter. Rule plugins are loaded once per process and cached on disk by content hash.
 
 A full architectural breakdown — system context, module topology, data flow diagrams, state machine, and invariants — lives in [`docs/architecture/code-linter.md`](./docs/architecture/code-linter.md).
 
@@ -145,8 +145,8 @@ A full architectural breakdown — system context, module topology, data flow di
 
 ## 📦 Related Packages
 
-- [`@theriety/tsx-parser`](../tsx-parser): the parser backing the `lint` and `fix` subcommands; exposes the same AST nodes rule authors receive
-- [`@theriety/rules-recommended`](../rules-recommended): the default ruleset loaded by `--rules recommended`; depend on it directly to compose custom presets
+- [`@scope/tsx-parser`](../tsx-parser): the parser backing the `lint` and `fix` subcommands; exposes the same AST nodes rule authors receive
+- [`@scope/rules-recommended`](../rules-recommended): the default ruleset loaded by `--rules recommended`; depend on it directly to compose custom presets
 
 ---
 

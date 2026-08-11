@@ -99,8 +99,9 @@ implementation-stage completion requires a clean implementation review that was
 performed against that exact final content, confirmed by direct comparison.
 
 Immediately before each push, fetch/re-diff the remote page and require the
-same remote revision/hash used to build R. If the pinned `notion-sync` version
-demonstrably supports a conditional update, use it and record the condition.
+same remote revision/hash used to build R. Require the selected transport
+profile to independently prove `conditional_update` support through its
+conformance evidence; use that exact vector and record the condition.
 Otherwise return `status: refused`, preserve the observed B/L/R
 classification, set `next_action: provide_conditional_transport`, and change
 neither Notion nor canonical L/mirror bytes. Repeated reads, timing assumptions,

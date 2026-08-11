@@ -2,7 +2,7 @@
 name: spec-code
 description: Design, update, or retrospectively document a technical specification from a user-selected local, inline, or Notion source through an active work stream and versioned derived docs. Use for specification authoring; keep Notion transport in sync-notion and implementation planning in plan-code.
 model: opus
-argument-hint: "<instruction> --capability=<slug> [--work-id=<id>] [--source=<path-or-ref>] [--source-direction=<direction>] [--transport-root=<dir>] [--transport-profile=<absolute-file>] [--template=<path-or-ref>] [--local-mdc=<path>] [--parent=<ref>] [--type=api|web-app|mobile|library|fullstack]"
+argument-hint: "<instruction> --capability=<slug> [--work-id=<id>] [--source=<path-or-ref>] [--source-direction=<direction>] [--transport-root=<dir>] [--transport-profile=<absolute-file>] [--body-author=<plugin:skill>] [--template=<path-or-ref>] [--local-mdc=<path>] [--parent=<ref>] [--type=api|web-app|mobile|library|fullstack]"
 ---
 
 # Spec Code
@@ -11,7 +11,7 @@ Author a technical specification as one coherent contract. An explicit local
 path or selected Notion identity can be an authoritative source. Inline prompt
 text is requirements evidence, not by itself a durable final contract: it must
 first become an approved work-local candidate and then a reachable versioned
-carrier. When the selected source is Notion, its MDC pairing remains
+carrier. When the selected source is Notion, its transport pairing remains
 authoritative; versioned `docs/specs/<capability>/*.md` is a reviewed derivation
 for engineers.
 
@@ -23,7 +23,10 @@ for engineers.
   Temporary reasoning belongs in the active work's `design/`, `proposals/`,
   `changes/`, or `decisions/`; durable specification docs belong under
   `docs/specs/<capability>/` only after verified completion.
-- All authored `.mdc` changes route through `specification:mdc`. Use
+- This marketplace treats Notion body syntax as opaque and ships no authoring
+  grammar. Before creating or semantically changing a Notion body, require an
+  explicit `--body-author=<plugin:skill>`, validate its canonical capability
+  identity, and invoke that exact installed capability. Use
   `specification:sync-spec` only for a selected existing Notion specification's
   work-local materialization or verified completion; local and inline sources
   do not detour through it. For a Notion source, the work-local materialization
@@ -43,8 +46,9 @@ for engineers.
 
 - **Required**: instruction and lowercase `--capability=<slug>`.
 - **Optional**: work id, authoritative source/location/direction, explicit
-  transport root, absolute destination-local transport profile file, live
-  template path/ref, explicit local MDC path and parent for CREATE, project
+  transport root, absolute destination-local transport profile file, exact
+  external body-author capability for Notion body mutation, live template
+  path/ref, explicit local transport path and parent for CREATE, project
   type, `--reference=<doc>`, `--discovery=<path>`, `--sync-template`, and
   `--skip-notion-sync`.
 - **Prerequisites**: active local state. Notion credentials/tooling
@@ -83,7 +87,12 @@ section, or copied transport history.
    specification exists, UPDATE when one exists, and DOCUMENT when current code
    must be described without inventing requirements. Load
    [references/document-mode.md](references/document-mode.md) only for DOCUMENT.
-   Compare every candidate, source, and promoted carrier by direct content
+   When this run may create or semantically change a Notion body, resolve
+   `--body-author` once from the explicit argument. Require the canonical
+   `<plugin>:<skill>` form, record `selection_source: explicit_argument`, and
+   pass the identical value to every nested `sync-spec`/`sync-notion` call. Do
+   not infer it from the file extension, transport profile, repository, or
+   installed plugins. Compare every candidate, source, and promoted carrier by direct content
    comparison (disregarding only the volatile `last_edited_time` line for
    semantic equality).
 3. Acquire and read the complete canonical template before drafting. Use an
@@ -123,24 +132,29 @@ section, or copied transport history.
    and the status schema in the Essential contract. Return an index
    reconciliation request to the PM; do not edit PM-owned overview files.
 5. Prepare source and durable derivation metadata according to
-   [references/frontmatter.md](references/frontmatter.md). For an existing MDC
-   pair, modify only its exact transport-returned path through `Skill(mdc)`.
+   [references/frontmatter.md](references/frontmatter.md). For an existing
+   Notion pair, modify only its exact transport-returned path through the
+   capability bound as `body_author`.
    For CREATE or DOCUMENT with no existing page and Notion sync requested,
-   require explicit `--local-mdc` and `--parent`; first author that local file
-   through `Skill(mdc)` using the live template and parent metadata. Creation
+   require explicit `--local-mdc`, `--parent`, and `--body-author`; first author
+   that local file through the bound capability using the live template and
+   parent metadata. Pass only the approved body and exact path; the authoring
+   capability cannot choose identity, path, transport, or authority. Creation
    injects stable semantic `ref` identity and may remove creation-only `parent`,
    so pre-create content cannot be final specification approval. Obtain explicit
    **creation authorization** bound to the candidate
    content, parent, and exact diff scope. Only then invoke
-   `Skill(sync-notion)` in local-to-Notion mode with the exact transport root
-   and `--transport-profile=<absolute-file>`. Verification-pull the new stable
+   `Skill(sync-notion)` in local-to-Notion mode with the exact transport root,
+   `--transport-profile=<absolute-file>`, and the identical
+   `--body-author=<plugin:skill>`. Verification-pull the new stable
    `ref:`, preserve pre-create bytes, and present every transport-created stable
    metadata/content difference. Record verified R and obtain final specification
    approval of its post-create content. The creation receipt
    stores both the pre- and post-create content references, authorized
    transition/diff, returned identity/revision,
-   and exact verification evidence. Invoke `Skill(sync-spec)` materialization
-   with that receipt and profile to atomically establish verified R as initial
+   and exact verification evidence, including the body-author capability and
+   `selection_source`. Invoke `Skill(sync-spec)` materialization with that
+   receipt, profile, and identical body-author value to atomically establish verified R as initial
    L/B. Never pretend pre/post-create content matches, exclude stable `ref` as
    volatile, or establish a base without post-create approval.
    Never ask transport to create a page before the local MDC exists. For an
@@ -240,8 +254,9 @@ mechanical size limit, but it is still length-calibrated — see
 
 - The authoritative contract follows the verified live template with no
   invented or duplicate sections.
-- Every authored MDC body change went through `specification:mdc` and retained
-  Notion identity/path.
+- Every authored Notion body change used the one explicitly selected
+  `body_author`; nested calls and receipts retained the exact capability and
+  selection source, plus Notion identity/path.
 - A completed Notion run has verified sync, verification pull, derivation
   provenance, `README.md`, and revalidation results. A skipped Notion sync
   remains explicitly temporary. A local/inline run always has a versioned
@@ -258,7 +273,8 @@ mechanical size limit, but it is still length-calibrated — see
 ## Completion
 
 Report mode, work id, capability, authoritative source/location/direction,
-template snapshot, Notion refs and validated transport profile
+template snapshot, Notion refs, selected body-author capability/selection
+source, and validated transport profile
 path/exact-byte SHA when applicable, work artifacts,
 `ready_for_completion` or sync/verification result, derived specification paths
 and provenance receipt, the exact `authoritative_spec_path`,

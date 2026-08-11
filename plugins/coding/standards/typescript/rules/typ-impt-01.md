@@ -2,22 +2,22 @@
 
 ## Intent
 
-Import order is strict across **five groups**: built-in (`node:`), scoped internal-org packages (`@theriety/*`, other `@scope/*` packages belonging to the org), generic third-party, project modules (alias/subpath/relative), then type-only imports — with blank-line separation between categories. Never mix runtime and `type` imports in a single statement.
+Import order is strict across **five groups**: built-in (`node:`), scoped internal-org packages (`@scope/*`, where `@scope` is the owning organization's package scope), generic third-party, project modules (alias/subpath/relative), then type-only imports — with blank-line separation between categories. Never mix runtime and `type` imports in a single statement.
 
 ## Fix
 
 ```typescript
 import { readFile } from 'node:fs/promises';
 
-import { operationMockFactory } from '@theriety/mock-service';
+import { createRequestFixture } from '@example/test-support';
 
 import { describe, expect, it, vi } from 'vitest';
 
-import listSuites from '#operations/list-suites';
+import { listUsers } from '#handlers/list-users';
 
 import type { TestContext } from 'vitest';
 
-import type { Suite } from '#types/suite';
+import type { User } from '#types/user';
 ```
 
 ### Strict Import Order
@@ -25,7 +25,7 @@ import type { Suite } from '#types/suite';
 **STRICT order** (blank lines separate each category):
 
 1. **Built-in modules** (`node:`)
-2. **Scoped internal-org packages** (`@theriety/*`, other `@scope/*` packages belonging to the org)
+2. **Scoped internal-org packages** (`@scope/*`, where `@scope` is the owning organization's package scope)
 3. **Generic third-party libraries** (`vitest`, `react`, `axios`, …)
 4. **Project modules** (subpath `#*`, path alias `@*`, or relative `../`)
 5. **Type imports** (repeat the same 4-group order within)
@@ -33,7 +33,7 @@ import type { Suite } from '#types/suite';
 ```typescript
 import { readFile } from 'node:fs/promises';
 
-import { operationMockFactory } from '@theriety/mock-service';
+import { createRequestFixture } from '@example/test-support';
 
 import { useState } from 'react';
 import axios from 'axios';

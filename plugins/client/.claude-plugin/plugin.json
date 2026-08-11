@@ -1,7 +1,7 @@
 {
   "name": "client",
   "author": {"name": "Alvis"},
-  "dependencies": ["essential"],
+  "dependencies": ["essential", "specification"],
   "description": "Client-facing screen design and UX documentation with Notion integration",
   "version": "1.0.0"
 }

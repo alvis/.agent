@@ -1,10 +1,10 @@
-# @theriety/edge-cdn-stack
+# @scope/edge-cdn-stack
 
 <br/>
 
 📌 A Pulumi stack that provisions an AWS-backed edge CDN — CloudFront distribution, S3 origin bucket, WAF policy, and Lambda@Edge request routing — with one opinionated command per environment. It solves the "snowflake CDN" problem: web properties each roll their own mix of Terraform modules, hand-edited cache behaviours, and `aws` CLI scripts, making drift between dev/staging/prod invisible until a cache miss storm hits production.
 
-The `@theriety/edge-cdn-stack` package treats the whole delivery path as a **single declarative resource graph**: one Pulumi stack per environment, one config schema validated at `pulumi preview`, and one set of policies shared across every environment. Compared to raw Terraform it ships a strongly-typed config surface (TypeScript + Zod) and an `IaC-common` utility layer; compared to hand-rolled CDK stacks it keeps the plan/apply semantics that platform teams already run in their pipelines.
+The `@scope/edge-cdn-stack` package treats the whole delivery path as a **single declarative resource graph**: one Pulumi stack per environment, one config schema validated at `pulumi preview`, and one set of policies shared across every environment. Compared to raw Terraform it ships a strongly-typed config surface (TypeScript + Zod) and an `IaC-common` utility layer; compared to hand-rolled CDK stacks it keeps the plan/apply semantics that platform teams already run in their pipelines.
 
 <br/>
 <div align="center">
@@ -35,7 +35,7 @@ After the one-time login every command is idempotent.
 
 Read by the Pulumi CLI and AWS SDK at process start.
 
-- `PULUMI_STACK`: fully-qualified stack name (e.g. `theriety/edge-cdn/prod`); selects the environment preset
+- `PULUMI_STACK`: fully-qualified stack name (e.g. `example/edge-cdn/prod`); selects the environment preset
 - `AWS_REGION`: primary region for regional resources such as the origin bucket; defaults to `us-east-1` because Lambda@Edge is bound there
 - `AWS_PROFILE`: named profile resolved by the AWS SDK; omit when using instance metadata or SSO
 - `PULUMI_ACCESS_TOKEN`: optional; set in CI to authenticate non-interactively against Pulumi Cloud
@@ -62,9 +62,9 @@ Use `pulumi config set --secret <key> <value>` for anything sensitive (WAF IP li
 The three commands below are the full happy path. Run them from the package root; `pulumi stack init` is safe to skip if the stack already exists remotely.
 
 ```bash
-pulumi stack init theriety/edge-cdn/dev
+pulumi stack init example/edge-cdn/dev
 pulumi config set cdnDomain cdn.dev.example.com
-pulumi config set originBucket theriety-edge-dev
+pulumi config set originBucket example-edge-dev
 pulumi up
 ```
 
@@ -98,7 +98,7 @@ Each environment is a named Pulumi stack with its own config. The table below li
 ### Promote a change
 
 ```bash
-pulumi stack select theriety/edge-cdn/staging
+pulumi stack select example/edge-cdn/staging
 pulumi preview --diff
 pulumi up --yes
 npm run smoke -- --base https://cdn.staging.example.com
@@ -124,7 +124,7 @@ const apiCache = new CachePolicy('api-cache', {
 
 export const distribution = new EdgeDistribution('edge', {
   domain: 'cdn.dev.example.com',
-  bucket: 'theriety-edge-dev-origin',
+  bucket: 'example-edge-dev-origin',
   additionalBehaviours: [
     {
       pathPattern: '/api/*',
@@ -166,7 +166,7 @@ Consume them from another stack:
 ```ts
 import * as pulumi from '@pulumi/pulumi';
 
-const edge = new pulumi.StackReference('theriety/edge-cdn/prod');
+const edge = new pulumi.StackReference('example/edge-cdn/prod');
 export const uploadBucket = edge.getOutput('originBucketName');
 ```
 
@@ -229,9 +229,9 @@ The repository layout follows the Pulumi TypeScript convention: `Pulumi.yaml` at
 
 ## 📦 Related Packages
 
-- [`@theriety/iac-common`](../iac-common): shared Pulumi helpers — tag composition, `ComponentResource` base class, config-schema validation; imported by every stack in this monorepo
-- [`@theriety/edge-policies`](../edge-policies): reusable WAF rule groups and cache policy fragments; versioned independently so stack bumps do not drag policy churn
-- [`@theriety/lambda-router`](../lambda-router): Lambda@Edge routing library consumed by the functions under `src/lambdas`
+- [`@scope/iac-common`](../iac-common): shared Pulumi helpers — tag composition, `ComponentResource` base class, config-schema validation; imported by every stack in this monorepo
+- [`@scope/edge-policies`](../edge-policies): reusable WAF rule groups and cache policy fragments; versioned independently so stack bumps do not drag policy churn
+- [`@scope/lambda-router`](../lambda-router): Lambda@Edge routing library consumed by the functions under `src/lambdas`
 
 ---
 

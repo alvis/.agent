@@ -15,7 +15,9 @@ SKILLS = PLUGIN / "skills"
 TRANSPORT_PROFILE_VALIDATOR = (
     SKILLS / "sync-notion/scripts/validate-transport-profile.py"
 )
-MDC_METADATA_CHECK = SKILLS / "mdc/scripts/validate-transport-metadata.sh"
+TRANSPORT_METADATA_CHECK = (
+    SKILLS / "sync-notion/scripts/validate-transport-metadata.sh"
+)
 
 
 def make_profile(root: Path) -> tuple[Path, dict[str, object]]:
@@ -287,7 +289,7 @@ def test_conditional_create_is_independent_from_conditional_update(
     assert report["capabilities"]["conditional_create"]["support"] == "unavailable"
 
 
-_mdc_counter = itertools.count()
+_transport_file_counter = itertools.count()
 
 
 @pytest.fixture
@@ -295,10 +297,10 @@ def run_validator(tmp_path: Path):
     def _run(content: bytes) -> tuple[subprocess.CompletedProcess[str], bytes]:
         # a fresh file per invocation mirrors the one-directory-per-call
         # isolation the original tempfile-based helper provided
-        path = tmp_path / f"page-{next(_mdc_counter)}.mdc"
+        path = tmp_path / f"page-{next(_transport_file_counter)}.mdc"
         path.write_bytes(content)
         result = subprocess.run(
-            ["bash", str(MDC_METADATA_CHECK), str(path)],
+            ["bash", str(TRANSPORT_METADATA_CHECK), str(path)],
             check=False,
             capture_output=True,
             text=True,
@@ -413,10 +415,86 @@ def test_validator_rejects_non_exact_delimiter_and_symlink_input(
     alias = tmp_path / "alias.mdc"
     alias.symlink_to(target)
     result = subprocess.run(
-        ["bash", str(MDC_METADATA_CHECK), str(alias)],
+        ["bash", str(TRANSPORT_METADATA_CHECK), str(alias)],
         check=False,
         capture_output=True,
         text=True,
     )
     assert result.returncode != 0
     assert "regular non-symlink" in result.stderr
+
+
+def test_body_author_is_external_and_bound_through_specification_calls() -> None:
+    assert not any(path.is_file() for path in (SKILLS / "mdc").rglob("*"))
+    assert TRANSPORT_METADATA_CHECK.is_file()
+
+    contracts = (
+        PLUGIN / "README.md",
+        PLUGIN / "agents/specification-expert/base.md",
+        SKILLS / "spec-code/SKILL.md",
+        SKILLS / "implement-code/SKILL.md",
+        SKILLS / "sync-spec/SKILL.md",
+        SKILLS / "sync-notion/SKILL.md",
+    )
+    stale_owner = "specification:" + "mdc"
+    stale_invocation = "Skill(" + "mdc)"
+    for contract in contracts:
+        text = contract.read_text(encoding="utf-8")
+        assert "--body-author=<plugin:skill>" in text, contract
+        assert stale_owner not in text, contract
+        assert stale_invocation not in text, contract
+
+    sync_notion = (SKILLS / "sync-notion/SKILL.md").read_text(encoding="utf-8")
+    assert "next_action: select_body_author" in sync_notion
+    assert "Never infer a default" in sync_notion
+
+    provenance = json.loads(
+        (SKILLS / "spec-code/assets/provenance.template.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert provenance["body_author"] == {
+        "capability_id": "<plugin>:<skill>",
+        "selection_source": "<explicit_argument|delegated_caller>",
+    }
+
+
+def test_specification_contracts_do_not_bypass_profile_or_property_policy() -> None:
+    agent = (PLUGIN / "agents/specification-expert/base.md").read_text(
+        encoding="utf-8"
+    )
+    direct_transport_tokens = (
+        "Bash: " + "notion-sync",
+        "--follow-" + "children",
+        "--depth-" + "children",
+        "--depth-" + "database",
+        "--depth-" + "link",
+    )
+    for token in direct_transport_tokens:
+        assert token not in agent
+    assert "specification:sync-notion" in agent
+    assert "selected transport profile alone" in agent
+    assert ("conformance-validated " + "diff") not in agent
+    assert "conformance-validated\n  `recursive_pull` vector" in agent
+
+    document_mode = (
+        SKILLS / "spec-code/references/document-mode.md"
+    ).read_text(encoding="utf-8")
+    assert ('Status = "' + 'Implemented"') not in document_mode
+    assert ('Status = "' + 'Drafting"') not in document_mode
+    assert "explicit destination-owned mapping" in document_mode
+
+    database_resolution = (
+        SKILLS / "sync-notion/references/database-resolution.md"
+    ).read_text(encoding="utf-8")
+    status_matching = "match by group + " + "keyword regex"
+    assert status_matching not in database_resolution
+    assert "destination-owned mapping" in " ".join(database_resolution.split())
+
+    concurrent_edit = (
+        SKILLS / "sync-spec/references/concurrent-edit-matrix.md"
+    ).read_text(encoding="utf-8")
+    assert ("pinned `notion-sync` " + "version") not in concurrent_edit
+    assert "independently prove `conditional_update`" in " ".join(
+        concurrent_edit.split()
+    )

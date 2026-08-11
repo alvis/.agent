@@ -1,19 +1,19 @@
 <div align="center">
 
 <!-- insert logo here: docs/logo.svg (200x200) -->
-<img src="./docs/logo.svg" alt="@acme/compose logo" width="200" />
+<img src="./docs/logo.svg" alt="@scope/compose logo" width="200" />
 
-# @acme/compose
+# @scope/compose
 
 **Composable workspace configuration for modern JavaScript projects.**
 _Stop copy-pasting configs. Extend a preset. Override what you need. Ship._
 
-[![npm version](https://img.shields.io/npm/v/@acme/compose.svg?style=flat-square)](https://www.npmjs.com/package/@acme/compose)
-[![CI](https://img.shields.io/github/actions/workflow/status/acme/compose/ci.yml?branch=main&style=flat-square)](https://github.com/acme/compose/actions)
-[![Coverage](https://img.shields.io/codecov/c/github/acme/compose?style=flat-square)](https://codecov.io/gh/acme/compose)
+[![npm version](https://img.shields.io/npm/v/@scope/compose.svg?style=flat-square)](https://www.npmjs.com/package/@scope/compose)
+[![CI](https://img.shields.io/github/actions/workflow/status/example/compose/ci.yml?branch=main&style=flat-square)](https://github.com/example/compose/actions)
+[![Coverage](https://img.shields.io/codecov/c/github/example/compose?style=flat-square)](https://codecov.io/gh/example/compose)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](./LICENSE)
-[![Downloads](https://img.shields.io/npm/dm/@acme/compose.svg?style=flat-square)](https://www.npmjs.com/package/@acme/compose)
-[![Discord](https://img.shields.io/discord/000000000000000000?style=flat-square&label=discord)](https://discord.gg/acme-compose)
+[![Downloads](https://img.shields.io/npm/dm/@scope/compose.svg?style=flat-square)](https://www.npmjs.com/package/@scope/compose)
+[![Discord](https://img.shields.io/discord/000000000000000000?style=flat-square&label=discord)](https://discord.gg/example-compose)
 
 </div>
 
@@ -34,14 +34,14 @@ _Stop copy-pasting configs. Extend a preset. Override what you need. Ship._
 Install the engine and a preset that matches your stack:
 
 ```bash
-npm install --save-dev @acme/compose @acme/preset-node
+npm install --save-dev @scope/compose @scope/preset-node
 ```
 
 Add a minimal `.composerc` to your project root:
 
 ```jsonc
 {
-  "preset": "@acme/preset-node",
+  "preset": "@scope/preset-node",
   "config": {
     "tsconfig": { "compilerOptions": { "target": "ES2023" } },
     "eslint": { "rules": { "no-console": "off" } }
@@ -63,15 +63,15 @@ Done. You now have a curated `tsconfig.json`, `eslint.config.js`, `prettier.conf
 
 ```mermaid
 graph TD
-  Core["@acme/compose<br/>(engine + CLI)"]
-  IO["@acme/compose-io<br/>(filesystem + merge)"]
-  Types["@acme/compose-types<br/>(shared types)"]
-  Node["@acme/preset-node"]
-  React["@acme/preset-react"]
-  Lib["@acme/preset-library"]
-  Eslint["@acme/plugin-eslint"]
-  Vitest["@acme/plugin-vitest"]
-  Docs["@acme/docs<br/>(website)"]
+  Core["@scope/compose<br/>(engine + CLI)"]
+  IO["@scope/compose-io<br/>(filesystem + merge)"]
+  Types["@scope/compose-types<br/>(shared types)"]
+  Node["@scope/preset-node"]
+  React["@scope/preset-react"]
+  Lib["@scope/preset-library"]
+  Eslint["@scope/plugin-eslint"]
+  Vitest["@scope/plugin-vitest"]
+  Docs["@scope/docs<br/>(website)"]
 
   Core --> IO
   Core --> Types
@@ -99,46 +99,46 @@ The repo is a pnpm workspace organised into four layers:
 
 | Package | Description | Link |
 | --- | --- | --- |
-| `@acme/compose` | Engine + CLI that resolves presets and writes config files | [packages/core/compose](./packages/core/compose) |
-| `@acme/compose-types` | Shared TypeScript interfaces for presets and plugins | [packages/core/types](./packages/core/types) |
-| `@acme/compose-io` | Filesystem utilities and deep-merge strategies | [packages/core/io](./packages/core/io) |
+| `@scope/compose` | Engine + CLI that resolves presets and writes config files | [packages/core/compose](./packages/core/compose) |
+| `@scope/compose-types` | Shared TypeScript interfaces for presets and plugins | [packages/core/types](./packages/core/types) |
+| `@scope/compose-io` | Filesystem utilities and deep-merge strategies | [packages/core/io](./packages/core/io) |
 
 ### Runtime presets
 
 | Package | Description | Link |
 | --- | --- | --- |
-| `@acme/preset-node` | Node 20+ service preset (TypeScript, ESLint, Vitest) | [packages/presets/node](./packages/presets/node) |
-| `@acme/preset-react` | React + Vite app preset | [packages/presets/react](./packages/presets/react) |
-| `@acme/preset-library` | Dual-CJS/ESM library preset with API extractor | [packages/presets/library](./packages/presets/library) |
+| `@scope/preset-node` | Node 20+ service preset (TypeScript, ESLint, Vitest) | [packages/presets/node](./packages/presets/node) |
+| `@scope/preset-react` | React + Vite app preset | [packages/presets/react](./packages/presets/react) |
+| `@scope/preset-library` | Dual-CJS/ESM library preset with API extractor | [packages/presets/library](./packages/presets/library) |
 
 ### Extension plugins
 
 | Package | Description | Link |
 | --- | --- | --- |
-| `@acme/plugin-eslint` | Flat-config ESLint bundle with sensible defaults | [packages/plugins/eslint](./packages/plugins/eslint) |
-| `@acme/plugin-vitest` | Vitest config with coverage thresholds and JUnit output | [packages/plugins/vitest](./packages/plugins/vitest) |
-| `@acme/plugin-prettier` | Prettier config + ignore file generator | [packages/plugins/prettier](./packages/plugins/prettier) |
-| `@acme/plugin-typescript` | Strict `tsconfig` base with project-reference helpers | [packages/plugins/typescript](./packages/plugins/typescript) |
+| `@scope/plugin-eslint` | Flat-config ESLint bundle with sensible defaults | [packages/plugins/eslint](./packages/plugins/eslint) |
+| `@scope/plugin-vitest` | Vitest config with coverage thresholds and JUnit output | [packages/plugins/vitest](./packages/plugins/vitest) |
+| `@scope/plugin-prettier` | Prettier config + ignore file generator | [packages/plugins/prettier](./packages/plugins/prettier) |
+| `@scope/plugin-typescript` | Strict `tsconfig` base with project-reference helpers | [packages/plugins/typescript](./packages/plugins/typescript) |
 
 ### Integrations
 
 | Package | Description | Link |
 | --- | --- | --- |
-| `@acme/compose-turbo` | Turborepo task graph integration | [packages/integrations/turbo](./packages/integrations/turbo) |
-| `@acme/compose-changesets` | Changesets-powered release flow for presets | [packages/integrations/changesets](./packages/integrations/changesets) |
+| `@scope/compose-turbo` | Turborepo task graph integration | [packages/integrations/turbo](./packages/integrations/turbo) |
+| `@scope/compose-changesets` | Changesets-powered release flow for presets | [packages/integrations/changesets](./packages/integrations/changesets) |
 
 ---
 
 ## 🔍 How It Works
 
-`@acme/compose` is a two-phase engine: **resolve** (load preset graph, merge configs) and **materialise** (write files to disk as symlinks or generated artefacts).
+`@scope/compose` is a two-phase engine: **resolve** (load preset graph, merge configs) and **materialise** (write files to disk as symlinks or generated artefacts).
 
 ```mermaid
 sequenceDiagram
   participant User as Developer
   participant CLI as compose CLI
   participant Engine as Resolver
-  participant Preset as @acme/preset-*
+  participant Preset as @scope/preset-*
   participant FS as Filesystem
 
   User->>CLI: compose bootstrap
@@ -161,7 +161,7 @@ Presets declare _what_ plugins they need; plugins declare _how_ to build a confi
 Point `.composerc` at a preset and run `compose bootstrap`. That is the entire happy path.
 
 ```jsonc
-{ "preset": "@acme/preset-node" }
+{ "preset": "@scope/preset-node" }
 ```
 
 ### Advanced customisation
@@ -170,7 +170,7 @@ Extend multiple presets and override fields inline. Objects deep-merge; arrays c
 
 ```jsonc
 {
-  "preset": ["@acme/preset-library", "@acme/preset-react"],
+  "preset": ["@scope/preset-library", "@scope/preset-react"],
   "config": {
     "tsconfig": {
       "compilerOptions": { "paths": { "~/*": ["./src/*"] } }
@@ -201,7 +201,7 @@ Requires **Node 20+** and **pnpm 9+**.
 
 ```bash
 # clone and bootstrap
-git clone https://github.com/acme/compose.git
+git clone https://github.com/example/compose.git
 cd compose
 pnpm install
 
@@ -212,24 +212,24 @@ pnpm build
 pnpm test
 
 # link the CLI locally for smoke-testing on another repo
-pnpm --filter @acme/compose link --global
+pnpm --filter @scope/compose link --global
 ```
 
 Useful filtered commands:
 
 ```bash
-pnpm --filter @acme/preset-node test
+pnpm --filter @scope/preset-node test
 pnpm --filter "./packages/plugins/*" build
-pnpm --filter @acme/docs dev
+pnpm --filter @scope/docs dev
 ```
 
 ---
 
 ## 📖 Documentation
 
-- **Docs site:** <https://compose.acme.dev>
-- **Getting started guide:** <https://compose.acme.dev/guide>
-- **API reference:** <https://compose.acme.dev/api>
+- **Docs site:** <https://compose.example.dev>
+- **Getting started guide:** <https://compose.example.dev/guide>
+- **API reference:** <https://compose.example.dev/api>
 - **Examples gallery:** [`examples/`](./examples) — 12 runnable sample repos covering Node services, React apps, Electron, libraries, and more.
 - **RFCs:** [`docs/rfcs/`](./docs/rfcs) — accepted and in-flight design proposals.
 
@@ -239,18 +239,18 @@ pnpm --filter @acme/docs dev
 
 We welcome contributors of every experience level. Start with [CONTRIBUTING.md](./CONTRIBUTING.md), then:
 
-1. Pick an issue labelled [`good first issue`](https://github.com/acme/compose/labels/good%20first%20issue).
+1. Pick an issue labelled [`good first issue`](https://github.com/example/compose/labels/good%20first%20issue).
 2. Fork, branch, and run `pnpm changeset` to describe your change.
 3. Open a draft PR early — we review design before code.
 4. Ensure `pnpm verify` (lint + typecheck + test + build) passes.
 
-Join the [Discord](https://discord.gg/acme-compose) to chat with maintainers and other contributors.
+Join the [Discord](https://discord.gg/example-compose) to chat with maintainers and other contributors.
 
 ---
 
 ## ❓ FAQ
 
-**Does `@acme/compose` replace Turborepo / Nx / Lerna?**
+**Does `@scope/compose` replace Turborepo / Nx / Lerna?**
 No. It focuses on _configuration composition_. Pair it with Turbo or Nx for task orchestration — we ship a first-party Turbo integration.
 
 **How is this different from `tsconfig/bases` or shareable ESLint configs?**
@@ -263,10 +263,10 @@ Yes. A single-package repo works identically — just install the engine and a p
 `compose eject <plugin>` copies the generated file into your repo and removes it from the managed set. You own it from then on.
 
 **Is it production-ready?**
-We use it across 40+ internal repos at Acme, and it powers several mid-sized OSS projects. Semver discipline is enforced via Changesets.
+We use it across 40+ internal repos at Example, and it powers several mid-sized OSS projects. Semver discipline is enforced via Changesets.
 
 **How do I write my own preset?**
-See [guide/authoring-presets](https://compose.acme.dev/guide/authoring-presets). A preset is a package that exports a `PresetDefinition` — roughly 30 lines of TypeScript.
+See [guide/authoring-presets](https://compose.example.dev/guide/authoring-presets). A preset is a package that exports a `PresetDefinition` — roughly 30 lines of TypeScript.
 
 ---
 
@@ -282,4 +282,4 @@ See [guide/authoring-presets](https://compose.acme.dev/guide/authoring-presets).
 
 ## 📄 License
 
-[MIT](./LICENSE) © Acme Contributors
+[MIT](./LICENSE) © Example Contributors

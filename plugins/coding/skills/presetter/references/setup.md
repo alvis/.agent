@@ -141,7 +141,7 @@ import web from '@presetter/preset-web';
 import root from '../../presetter.config';
 import { preset } from 'presetter';
 
-export default preset('@acme/ui', {
+export default preset('@scope/ui', {
   extends: [root, web, react],
 });
 ```
@@ -160,7 +160,7 @@ pnpm exec presetter bootstrap \
   --projects "!packages/deploy-skipped"
 
 pnpm exec presetter bootstrap \
-  --packages "@acme/*" "!@acme/deploy-skipped"
+  --packages "@scope/*" "!@scope/deploy-skipped"
 ```
 
 `--projects` matches directories containing `package.json`; `--packages` matches

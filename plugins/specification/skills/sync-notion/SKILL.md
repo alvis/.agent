@@ -1,15 +1,15 @@
 ---
 name: sync-notion
-description: Synchronize paired local files and Notion pages in a declared direction, including recursive pulls, guarded pushes, and explicit base-aware conflict resolution. Own Notion transport and pairing; keep specification orchestration in sync-spec and authored MDC edits in mdc.
+description: Synchronize paired local files and Notion pages in a declared direction, validate opaque transport identity metadata, and coordinate guarded conflict resolution. Own transport and pairing; require an explicitly selected external body-author capability before semantic body creation or change.
 model: opus
-argument-hint: "<local-to-notion|notion-to-local|two-way-merge> <file-or-ref> [counterpart...] --transport-profile=<absolute-file> [--transport-root=<dir>] [--out=<dir>]"
+argument-hint: "<validate-metadata|local-to-notion|notion-to-local|two-way-merge> <file-or-ref> [counterpart...] [--transport-profile=<absolute-file>] [--body-author=<plugin:skill>] [--transport-root=<dir>] [--out=<dir>]"
 ---
 
 # Sync Notion
 
 Own transport, pairing, conflict packets, and post-sync integrity for declared
-local–Notion pairs. Public modes are `local-to-notion`, `notion-to-local`, and
-`two-way-merge`; CLI verbs are implementation details.
+local–Notion pairs. Public modes are `validate-metadata`, `local-to-notion`,
+`notion-to-local`, and `two-way-merge`; CLI verbs are implementation details.
 
 ## Boundaries
 
@@ -21,8 +21,13 @@ local–Notion pairs. Public modes are `local-to-notion`, `notion-to-local`, and
   handover contributes only a logical profile and optional relative suggestion,
   never a selected root. Never invent a mirror location or filename from a
   workspace, title, or id.
-- `.mdc` is Notion-backed content. `notion-sync` may update transport metadata;
-  authored MDC body changes route through `specification:mdc`.
+- Notion transport bodies are opaque here. This marketplace neither defines
+  their grammar nor ships a body-authoring skill. `notion-sync` may update
+  transport metadata; any semantic body creation or change requires the exact
+  external capability supplied as `--body-author=<plugin:skill>`.
+- `validate-metadata` is read-only, interprets only frontmatter identity keys,
+  and never loads a transport profile, reads `NOTION_TOKEN`, or inspects body
+  syntax.
 - A cached mirror is not proof of current Notion state. Every outbound decision
   compares against a fresh staging pull.
 
@@ -31,6 +36,14 @@ local–Notion pairs. Public modes are `local-to-notion`, `notion-to-local`, and
 - **Required**: one public mode and at least one local path or Notion ref.
 - **Optional**: exact counterpart/output root/database id, immutable base
   receipt, expected remote revision/hash, and caller-confirmed final hash.
+- **Required before semantic body mutation**: one explicit canonical
+  `--body-author=<plugin:skill>` matching
+  `^[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$`. Require it for new-page creation,
+  outbound authored changes, and an applied two-way resolution. Resolve it
+  once, record `selection_source: explicit_argument|delegated_caller`, and pass
+  that identical value through the operation chain. Never infer a default from
+  the transport name, file extension, installed marketplaces, or repository.
+  Byte-preserving pull/materialize/read and `validate-metadata` may omit it.
 - **Required for mutation**: one exact destination-local shared
   transport/mirror root, supplied explicitly or resolved from a validated
   destination-local pairing receipt. A staging or evidence directory is not a
@@ -49,12 +62,19 @@ local–Notion pairs. Public modes are `local-to-notion`, `notion-to-local`, and
   [references/transport-profile.md](references/transport-profile.md). There is
   no default profile location or logical-name-to-path guess.
 - **Prerequisites**: `NOTION_TOKEN` and the injected Essential contract for
-  project artifact writes. This plugin does not claim or install a bundled,
+  remote operations and project artifact writes. Neither is required by
+  `validate-metadata`. This plugin does not claim or install a bundled,
   supported `notion-sync` distribution.
 
 ## Workflow
 
-1. Read the injected absolute `state.md` before project artifact
+1. For `validate-metadata`, require one or more regular, non-symlink `.mdc`
+   paths and invoke `scripts/validate-transport-metadata.sh` once for the exact
+   set. Return its identity values or a refusal without changing bytes. Do not
+   interpret indentation, annotations, markers, or any other body syntax; skip
+   the remaining remote workflow.
+
+   For all other modes, read the injected absolute `state.md` before project artifact
    writes. If unavailable, stop artifact writes and report the missing
    contract. Resolve work/transport paths only from explicit arguments, active
    state, or an immutable receipt. Require actual write targets to be ignored
@@ -90,6 +110,17 @@ local–Notion pairs. Public modes are `local-to-notion`, `notion-to-local`, and
    remote command after a mismatch. Every missing, mismatched, or unprovable
    profile returns the same deterministic `transport_unverified` refusal with
    no Notion or canonical local write.
+
+   Resolve any supplied `--body-author` once before classification. Validate
+   only the canonical capability identifier, never execute it as shell/path
+   text, and retain its exact value plus selection source separately from the
+   transport profile. Before any operation that may create or semantically
+   change body bytes, require it to match the value in the caller's receipt or
+   delegated input. A missing or changed value returns `status: refused` and
+   `next_action: select_body_author`; do not report `transport_unverified`,
+   which remains reserved for executable/profile trust failures. Invoke the
+   selected capability only with the already approved staged body and exact
+   path; it cannot select paths, refs, transport, or authority.
 
    Immediately before **every** executable invocation—including version/help
    probes, search/pull/create, pre-push rechecks, push, and verification
@@ -176,7 +207,8 @@ local–Notion pairs. Public modes are `local-to-notion`, `notion-to-local`, and
    - `notion-to-local` verifies staging before atomic local promotion;
    - `two-way-merge` loads
      [references/two-way-merge.md](references/two-way-merge.md) and produces an
-     explicit base/local/remote proposal before any canonical write.
+     explicit base/local/remote proposal before any canonical write; applying
+     that proposal requires the previously bound `body_author`.
    Workers compute diffs/conflict packets/proposals only. The coordinator asks
    the user and records decisions. `Keep Both` requires explicit approval of
    the synthesized final hash. `Skip` leaves that pair unchanged and forbids
@@ -254,6 +286,10 @@ edit PM-owned state, or mark dependents for revalidation.
   refused before any remote or canonical-local mutation.
 - Every successful pair has exact identity/content verification. A skipped or
   unresolved pair changed neither canonical local bytes nor remote content.
+- Every semantic body creation/change used the one explicitly selected
+  `body_author`; nested callers and receipts matched it exactly. Missing or
+  changed policy refused with `select_body_author`, separately from transport
+  verification.
 - No worker made an interactive choice, no `Keep Both` synthesis bypassed
   approval, and no skipped conflict became a TODO or push.
 - Paths came from explicit input or transport output, and write roots were
@@ -269,11 +305,16 @@ edit PM-owned state, or mark dependents for revalidation.
 
 <report>
 
+`validate-metadata` returns only `status`, `mode`, exact `paths`, reported
+transport identities/revisions, `bytes_changed: false`, and `unresolved`; the
+remote transport report below is not applicable.
+
 ```yaml
 status: success|partial|failure|refused|requires_ignore|concurrent_sync|transport_unverified
 classification: initial|created|updated|pulled|unchanged|metadata_only|local_only|remote_only|structural_change|converged|concurrent|baseline_required|materialization_conflict|invalid_evidence|resolved|skipped|mixed|not_applicable
-next_action: none|revalidate|establish_baseline|resolve_conflict|specification_reconciliation|recover_partial|verify_owner|provide_conditional_transport
-mode: local-to-notion|notion-to-local|two-way-merge
+next_action: none|revalidate|establish_baseline|resolve_conflict|specification_reconciliation|recover_partial|verify_owner|provide_conditional_transport|select_body_author
+mode: validate-metadata|local-to-notion|notion-to-local|two-way-merge
+body_author: {capability_id: '<plugin>:<skill>|null', selection_source: explicit_argument|delegated_caller|null, verification: matched|not_required|refused}
 ignore_file: '<absolute owning-workspace path or null>'
 transport:
   profile: '<destination/team logical profile>'
@@ -299,7 +340,7 @@ pairs:
   - local_path: ''
     notion_ref: ''
     classification: initial|created|updated|pulled|unchanged|metadata_only|local_only|remote_only|structural_change|converged|concurrent|baseline_required|materialization_conflict|invalid_evidence|resolved|skipped|not_applicable
-    next_action: none|revalidate|establish_baseline|resolve_conflict|specification_reconciliation|recover_partial|provide_conditional_transport
+    next_action: none|revalidate|establish_baseline|resolve_conflict|specification_reconciliation|recover_partial|provide_conditional_transport|select_body_author
     lease:
       path: '<transport-root>/.sync-locks/<sha256>.lease/'
       normalized_ref: ''

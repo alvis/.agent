@@ -3,8 +3,11 @@
 | Tasks | Route to |
 | --- | --- |
 | Break a project into milestones, decide the approach, and delegate them | `tech-lead` |
+| Lead an ML/RL/AI research initiative and reconcile its evidence | `ai-research-lead` |
 | Bootstrap and scaffold a new project | `project-initializer` |
 | Author tests via TDD | `testing-evangelist` |
+| Design a schema, data model, analytics system, or pipeline | `data-architect` |
+| Analyze data, build an ML/AI feature, or productionize a model | `ml-engineer` |
 | Implement a general library, data pipeline, CLI, or glue code | `generalist-engineer` |
 | Automate CI/CD and infrastructure | `devops` |
 | Validate an exploit with an adversarial PoC | `adversarial-red-team` |

@@ -45,8 +45,8 @@ most valuable ones in the review:
 
 - **Is this the best solution?** Walk the lean ladder in
   [WORKFLOW.md](../../../references/WORKFLOW.md). Search the repository before
-  accepting a new helper, type, or constant: a hand-rolled thing that
-  `@theriety/core` or the codebase already provides is a finding, and so is an
+  accepting a new helper, type, or constant: a hand-rolled thing that a
+  foundational module or nearby code already provides is a finding, and so is an
   abstraction with one caller.
 - **Is this the right place?** A correct change in the wrong location is still a
   finding. Watch for a guard repeated at every call site that belongs in the callee,

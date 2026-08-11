@@ -7,7 +7,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MARKETPLACE = ROOT / ".claude-plugin" / "marketplace.json"
 DOMAIN_PLUGINS = {
-    "backend",
     "client",
     "coding",
     "governance",

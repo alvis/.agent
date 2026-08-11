@@ -1,23 +1,23 @@
-# @acme/retry
+# @scope/retry
 
 > Tiny, type-safe exponential backoff retry for Node.js and the browser — zero dependencies, fully tree-shakeable.
 
-[![npm version](https://img.shields.io/npm/v/@acme/retry.svg?style=flat-square)](https://www.npmjs.com/package/@acme/retry)
-[![CI](https://img.shields.io/github/actions/workflow/status/acme/retry/ci.yml?branch=main&style=flat-square)](https://github.com/acme/retry/actions)
-[![Coverage](https://img.shields.io/codecov/c/github/acme/retry?style=flat-square)](https://codecov.io/gh/acme/retry)
+[![npm version](https://img.shields.io/npm/v/@scope/retry.svg?style=flat-square)](https://www.npmjs.com/package/@scope/retry)
+[![CI](https://img.shields.io/github/actions/workflow/status/example/retry/ci.yml?branch=main&style=flat-square)](https://github.com/example/retry/actions)
+[![Coverage](https://img.shields.io/codecov/c/github/example/retry?style=flat-square)](https://codecov.io/gh/example/retry)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](./LICENSE)
-[![Bundle Size](https://img.shields.io/bundlephobia/minzip/@acme/retry?style=flat-square)](https://bundlephobia.com/package/@acme/retry)
+[![Bundle Size](https://img.shields.io/bundlephobia/minzip/@scope/retry?style=flat-square)](https://bundlephobia.com/package/@scope/retry)
 
 ---
 
 ## ⚡ Quick Start
 
 ```bash
-npm install @acme/retry
+npm install @scope/retry
 ```
 
 ```ts
-import { retry } from '@acme/retry';
+import { retry } from '@scope/retry';
 
 const user = await retry(() => fetch('/api/user').then((r) => r.json()), {
   attempts: 5,
@@ -29,7 +29,7 @@ That's it. Five attempts, exponential backoff (100ms → 200ms → 400ms → 800
 
 ---
 
-## ✨ Why @acme/retry?
+## ✨ Why @scope/retry?
 
 ### The Problem
 
@@ -42,7 +42,7 @@ Neither is right. Retry is a _primitive_, not a framework — but the primitive 
 
 ### The Solution
 
-`@acme/retry` is a **~1 KB, zero-dependency, transport-agnostic** retry primitive:
+`@scope/retry` is a **~1 KB, zero-dependency, transport-agnostic** retry primitive:
 
 - Works with any `Promise`-returning function — `fetch`, `pg`, `redis`, SDK calls, your own code.
 - Exponential, linear, constant, or custom backoff with full-jitter by default.
@@ -70,7 +70,7 @@ Neither is right. Retry is a _primitive_, not a framework — but the primitive 
 ### Basic — retry any async function
 
 ```ts
-import { retry } from '@acme/retry';
+import { retry } from '@scope/retry';
 
 const data = await retry(() => fetch('/api/flaky').then((r) => r.json()));
 ```
@@ -80,7 +80,7 @@ Defaults: 3 attempts, exponential backoff starting at 100 ms, full jitter.
 ### Factory — pre-configure a retryer for a whole client
 
 ```ts
-import { createRetryer } from '@acme/retry';
+import { createRetryer } from '@scope/retry';
 
 const retryGithub = createRetryer({
   attempts: 6,
@@ -90,14 +90,14 @@ const retryGithub = createRetryer({
   retryIf: (err) => err instanceof Response && err.status >= 500,
 });
 
-const repo = await retryGithub(() => fetch('https://api.github.com/repos/acme/retry'));
+const repo = await retryGithub(() => fetch('https://api.github.com/repos/example/retry'));
 const user = await retryGithub(() => fetch('https://api.github.com/users/octocat'));
 ```
 
 ### Advanced — cancellation, observability, and custom backoff
 
 ```ts
-import { retry } from '@acme/retry';
+import { retry } from '@scope/retry';
 
 const controller = new AbortController();
 setTimeout(() => controller.abort(), 5_000); // hard deadline
@@ -188,7 +188,7 @@ Use `instanceof RetryError` to distinguish exhaustion from an aborted or non-ret
 | Runtime             | Supported | Notes                                 |
 | ------------------- | --------- | ------------------------------------- |
 | Node.js ≥ 18        | ✓         | Native `AbortController`, ESM + CJS.  |
-| Deno ≥ 1.30         | ✓         | Import via `npm:@acme/retry`.         |
+| Deno ≥ 1.30         | ✓         | Import via `npm:@scope/retry`.         |
 | Bun ≥ 1.0           | ✓         | First-class.                          |
 | Cloudflare Workers  | ✓         | No timers-beyond-request caveats.     |
 | Chrome / Firefox / Safari (last 2) | ✓ | ESM build, ~1 KB minzipped. |
@@ -200,7 +200,7 @@ Use `instanceof RetryError` to distinguish exhaustion from an aborted or non-ret
 
 ## ⚔️ Alternatives
 
-| Feature                   | `@acme/retry` | `p-retry` | `axios-retry` | `cockatiel` |
+| Feature                   | `@scope/retry` | `p-retry` | `axios-retry` | `cockatiel` |
 | ------------------------- | :-----------: | :-------: | :-----------: | :---------: |
 | Zero dependencies         |       ✓       |     ~     |       ✗       |      ✗      |
 | Works with any Promise    |       ✓       |     ✓     |       ✗       |      ✓      |
@@ -211,7 +211,7 @@ Use `instanceof RetryError` to distinguish exhaustion from an aborted or non-ret
 | Circuit breaker / bulkhead |      ✗        |     ✗     |       ✗       |      ✓      |
 | Axios-coupled             |       ✗       |     ✗     |       ✓       |      ✗      |
 
-**TL;DR** — pick `cockatiel` if you need circuit breakers and bulkheads; pick `axios-retry` if you're already committed to axios; otherwise `@acme/retry` is the smallest correct primitive.
+**TL;DR** — pick `cockatiel` if you need circuit breakers and bulkheads; pick `axios-retry` if you're already committed to axios; otherwise `@scope/retry` is the smallest correct primitive.
 
 ---
 
@@ -220,7 +220,7 @@ Use `instanceof RetryError` to distinguish exhaustion from an aborted or non-ret
 ### Deterministic retries in tests
 
 ```ts
-import { retry, __setClock, __setRandom } from '@acme/retry/testing';
+import { retry, __setClock, __setRandom } from '@scope/retry/testing';
 
 __setClock({ now: () => 0, sleep: async () => {} }); // no real delays
 __setRandom(() => 0.5); // predictable jitter
@@ -285,7 +285,7 @@ Check `retryIf`. If it returns `false` for your error shape, retry aborts immedi
 Full jitter means the actual delay is uniformly distributed in `[minDelay, base * 2 ** attempt]`. Bump `minDelay` for a floor, or switch to `jitter: 'equal'` for tighter distribution.
 
 **TypeScript complains about `ctx.signal` being `AbortSignal | undefined`.**
-Upgrade to `@acme/retry` ≥ 2.0 — we made it non-optional. On older versions, non-null-assert after narrowing.
+Upgrade to `@scope/retry` ≥ 2.0 — we made it non-optional. On older versions, non-null-assert after narrowing.
 
 ---
 
@@ -303,4 +303,4 @@ See [CHANGELOG.md](./CHANGELOG.md) for release notes. We follow [Semantic Versio
 
 ## 📄 License
 
-[MIT](./LICENSE) © ACME Contributors
+[MIT](./LICENSE) © Example Contributors

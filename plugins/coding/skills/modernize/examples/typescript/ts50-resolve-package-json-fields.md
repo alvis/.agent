@@ -17,17 +17,17 @@ Manual `"paths"` mappings in tsconfig.json to work around package.json `exports`
     "moduleResolution": "node",
     // manual path mappings because "node" resolution ignores package.json exports
     "paths": {
-      "@acme/ui/button": ["./node_modules/@acme/ui/dist/components/button"],
-      "@acme/ui/theme": ["./node_modules/@acme/ui/dist/theme/index"]
+      "@scope/ui/button": ["./node_modules/@scope/ui/dist/components/button"],
+      "@scope/ui/theme": ["./node_modules/@scope/ui/dist/theme/index"]
     }
   }
 }
 ```
 
 ```jsonc
-// node_modules/@acme/ui/package.json
+// node_modules/@scope/ui/package.json
 {
-  "name": "@acme/ui",
+  "name": "@scope/ui",
   "exports": {
     "./button": "./dist/components/button.js",
     "./theme": "./dist/theme/index.js"
@@ -51,8 +51,8 @@ Manual `"paths"` mappings in tsconfig.json to work around package.json `exports`
 
 ```typescript
 // subpath exports resolve correctly
-import { Button } from "@acme/ui/button";
-import { theme } from "@acme/ui/theme";
+import { Button } from "@scope/ui/button";
+import { theme } from "@scope/ui/theme";
 ```
 
 ## Conditions

@@ -36,7 +36,7 @@ Preload before automating:
 
 Standards resolve against the `Root Path` announced under "Plugin Constitution" in your start context; if a plugin's constitution isn't announced there, skip its standards gracefully.
 
-Resolve lazily, per task, never preload: the repo's actual deployment/infra layout and its CI/CD and environment config. Use `theriety:audit-service` when the task calls for auditing a backend service's deployment posture against its spec; if that skill isn't available, run the audit manually against the backend plugin's standards.
+Resolve lazily, per task, never preload: the repo's actual deployment/infra layout and its CI/CD and environment config.
 
 ## Memory
 

@@ -63,7 +63,7 @@ For comment quality and AAA spacing in tests, see `TST-STRU-03`.
 | `ty:` | Type/Interface | `describe('ty:Config', ...)` |
 | `rc:` | React Component | `describe('rc:Button', ...)` |
 | `hk:` | Hook | `describe('hk:useAuth', ...)` |
-| `cmd:` | CLI command | `describe('cmd:build-service', ...)` |
+| `cmd:` | CLI command | `describe('cmd:build-project', ...)` |
 
 DO NOT change an existing valid prefix to a different one. Match the prefix to the symbol's category.
 

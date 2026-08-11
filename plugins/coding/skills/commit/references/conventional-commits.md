@@ -40,7 +40,7 @@ Reject any type not in this allowlist. No aliases (`feature`, `bugfix`, etc).
 Scope is optional but recommended for monorepo / multi-package projects.
 
 - **Short package name** — e.g. `user-profile`, `auth`, `web`, `service`, `data`.
-- **Drop catalog prefixes** — write `auth`, NOT `@theriety/auth`; write `web`, NOT `@amino/web`.
+- **Drop catalog prefixes** — write `auth`, NOT `@scope/auth`; write `web`, NOT `@example/web`.
 - **Cross-package concerns** — name the concern, not the package list. e.g. `feat(theming): unify dark mode` across `web` + `react` packages.
 - **Global changes** — OMIT the scope entirely. e.g. `chore: bump node to 22`.
 - **Kebab-case only**. No spaces, no underscores, no caps.
@@ -79,7 +79,7 @@ Examples — bad (and why):
 feat: Added new feature.            (past tense; trailing period)
 fix: 🐛 fix token bug                (emoji; "fix" tautology)
 update auth                          (no type; "update" too vague)
-feat(@theriety/auth): add reset      (catalog prefix in scope)
+feat(@scope/auth): add reset          (catalog prefix in scope)
 ```
 
 ## Breaking change marker

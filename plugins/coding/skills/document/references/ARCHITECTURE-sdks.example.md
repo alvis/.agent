@@ -1,10 +1,10 @@
-# @theriety/platform — ARCHITECTURE: sdks
+# @scope/platform — ARCHITECTURE: sdks
 
 <br/>
 
 ARCHITECTURE = how it works. For usage/install, see the subsystem READMEs.
 
-📌 **First paragraph:** The `sdks` subsystem packages the client-side access to `@theriety/platform` for three runtimes: `sdk-browser` (fetch-based, tree-shakeable), `sdk-node` (pooled HTTPS agent, retries), and `sdk-python` (codegen'd from `core-contracts`). All three SDKs speak the same contracts defined in `core`; only the transport differs.
+📌 **First paragraph:** The `sdks` subsystem packages the client-side access to `@scope/platform` for three runtimes: `sdk-browser` (fetch-based, tree-shakeable), `sdk-node` (pooled HTTPS agent, retries), and `sdk-python` (codegen'd from `core-contracts`). All three SDKs speak the same contracts defined in `core`; only the transport differs.
 
 **Second paragraph:** See the [index](../platform.md) for the monorepo-wide context and the sibling `core` and `services` architecture files. This document covers the transport abstraction, codegen pipeline, and per-runtime invariants.
 
@@ -45,7 +45,7 @@ packages/sdks
 │       ├── builder.ts       # ClientBuilder
 │       └── index.ts
 └── python
-    ├── theriety             # codegen'd python package
+    ├── example             # codegen'd python package
     │   ├── __init__.py
     │   ├── client.py        # generated client
     │   └── transport.py     # requests wrapper
@@ -59,7 +59,7 @@ packages/sdks
 - **`Transport` (browser)** (`packages/sdks/browser/src/transport.ts`): thin wrapper over `fetch` that validates payloads against `core-contracts` on send and receive.
 - **`Transport` (node)** (`packages/sdks/node/src/transport.ts`): pooled `undici` client with automatic retry on `DomainError` instances flagged `retryable`.
 - **`ClientBuilder`** (`packages/sdks/node/src/builder.ts`): fluent API that produces a typed client bound to a transport.
-- **Python codegen** (`tools/codegen/src/python.ts`): reads `CodegenSpec`, renders a Jinja template, and writes `packages/sdks/python/theriety/client.py`; run as a CI step on every contract change.
+- **Python codegen** (`tools/codegen/src/python.ts`): reads `CodegenSpec`, renders a Jinja template, and writes `packages/sdks/python/example/client.py`; run as a CI step on every contract change.
 
 ---
 
@@ -118,8 +118,8 @@ flowchart TD
 
 ## 📦 Related Packages
 
-- [`@theriety/sdk-browser`](./packages/sdks/browser): the browser client
-- [`@theriety/sdk-node`](./packages/sdks/node): the node client
-- [`@theriety/sdk-python`](./packages/sdks/python): the codegen'd python client
+- [`@scope/sdk-browser`](./packages/sdks/browser): the browser client
+- [`@scope/sdk-node`](./packages/sdks/node): the node client
+- [`@scope/sdk-python`](./packages/sdks/python): the codegen'd python client
 
 ---

@@ -36,7 +36,6 @@ standard name or path; it cites entries from here verbatim.
 | `file-structure` | `coding:standards/file-structure/` |
 | `python` | `coding:standards/python/` |
 | `rust` | `coding:standards/rust/` |
-| `data-entity`, `data-operation` | `backend:standards/{data-entity,data-operation}/` |
 | the design standards — `css`, `design`, `theming`, `components`, `accessibility`, `hooks`, `project-structure`, `storybook` | `web:standards/{css,design,theming}/` + `react:standards/{components,accessibility,hooks,project-structure,storybook}/` |
 
 Paths use canonical `plugin:path` syntax (e.g. `universal` resolves to
@@ -78,8 +77,7 @@ producer/critic posture.
 | `code-quality-critic` | `code-review`, `universal`, `function`, `typescript` |
 | `testing-evangelist` | `testing`, `function`, `typescript`, `code-review` |
 | `security-champion` | `code-review`, `universal` |
-| `service-implementation-engineer` | `universal`, `function`, `typescript`, `data-entity`, `data-operation`, `testing` |
-| `data-architect` | `data-entity`, `data-operation`, `universal`, `typescript`, `naming` |
+| `data-architect` | `universal`, `typescript`, `naming` |
 | `devops` | `universal`, `observability`, `git` |
 | `ml-engineer` | `universal`, `python`, `function`, `testing`, `observability` |
 | `ai-research-lead` | `universal`, `observability`, `code-review` |
@@ -97,7 +95,7 @@ producer/critic posture.
 | `harness-eval-engineer` | `testing`, `universal`, `function`, `observability`, `code-review` |
 | `test-runner` | `testing` |
 
-23 agents total. Each row is exhaustive for that agent's standards subset — do not add standards beyond what is
+22 agents total. Each row is exhaustive for that agent's standards subset — do not add standards beyond what is
 listed here without updating this catalog first; the catalog, not the agent file, is authoritative.
 
 ## How an agent cites this catalog

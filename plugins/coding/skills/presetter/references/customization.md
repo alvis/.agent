@@ -31,7 +31,7 @@ differences in the consumer config or local package script.
 import { preset } from 'presetter';
 import esm from '@presetter/preset-esm';
 
-export default preset('@acme/service', {
+export default preset('@scope/service', {
   extends: [esm],
   variables: {
     source: 'source',
@@ -60,7 +60,7 @@ capability. Use `override` when the change must see and amend the final inherite
 Plain object overrides deep-merge into inherited content:
 
 ```typescript
-export default preset('@acme/service', {
+export default preset('@scope/service', {
   extends: [esm, strict],
   override: {
     variables: {
@@ -103,7 +103,7 @@ content must be retained:
 ```typescript
 import { asset, merge, preset } from 'presetter';
 
-export default preset('@acme/service', {
+export default preset('@scope/service', {
   extends: [base],
   override: {
     assets: {
@@ -144,7 +144,7 @@ CLI/presets, and expose compiled source plus templates:
 
 ```json
 {
-  "name": "@acme/preset-service",
+  "name": "@scope/preset-service",
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -173,7 +173,7 @@ import { preset } from '@presetter/types';
 
 const templates = resolve(import.meta.dirname, '..', 'templates');
 
-export default preset('@acme/preset-service', {
+export default preset('@scope/preset-service', {
   root: resolve(import.meta.dirname, '..'),
   extends: [essentials],
   variables: {

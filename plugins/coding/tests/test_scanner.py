@@ -202,6 +202,53 @@ def test_tiered_standard_without_rule_guides_contributes_prefix(tmp_path: Path) 
     assert derived == ("NEW",)
 
 
+def test_profile_standards_extend_live_prefixes_and_ignore_missing_meta(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    plugins_root = tmp_path / "plugins"
+    live_standard = plugins_root / "alpha/standards/example"
+    live_standard.mkdir(parents=True)
+    (live_standard / "meta.md").write_text(
+        "## Rule Groups\n\n- `LIVE-CORE-*`: built-in rules.\n",
+        encoding="utf-8",
+    )
+    first_profile_standard = tmp_path / "external/standards/first"
+    first_profile_standard.mkdir(parents=True)
+    (first_profile_standard / "meta.md").write_text(
+        "## Rule Groups\n\n- `EXT-CORE-*`: example rules.\n",
+        encoding="utf-8",
+    )
+    second_profile_standard = tmp_path / "external/standards/second"
+    second_profile_standard.mkdir(parents=True)
+    (second_profile_standard / "meta.md").write_text(
+        "## Rule Groups\n\n- `MORE-DATA-*`: more rules.\n",
+        encoding="utf-8",
+    )
+    missing_meta_standard = tmp_path / "external/standards/no-meta"
+    missing_meta_standard.mkdir(parents=True)
+
+    from scanlib import prefixes
+
+    original = prefixes._plugins_root
+    prefixes._plugins_root = lambda: plugins_root
+    monkeypatch.setenv(
+        "CODING_LINT_STANDARD_ROOTS",
+        os.pathsep.join(
+            (
+                str(first_profile_standard),
+                str(missing_meta_standard),
+                str(second_profile_standard),
+            )
+        ),
+    )
+    try:
+        derived = prefixes.derive_rule_id_prefixes()
+    finally:
+        prefixes._plugins_root = original
+    assert derived == ("EXT", "LIVE", "MORE")
+
+
 def test_fallback_matches_live_standards() -> None:
     # the hardcoded fallback must agree with the live standards so an
     # off-repo run produces the same answer as an in-repo run.

@@ -1,8 +1,8 @@
-# @theriety/retry
+# @scope/retry
 
 <br/>
 
-📌 **Architectural shape:** `@theriety/retry` is a **pipeline library** — a tiny orchestrator (`RetryEngine`) drives a fixed 4-phase loop (`Attempt → Classify → Delay → Decide`), with each phase exposed as a replaceable interface. The codebase has zero runtime dependencies and splits into five narrowly-scoped modules that fan out from a barrel entry.
+📌 **Architectural shape:** `@scope/retry` is a **pipeline library** — a tiny orchestrator (`RetryEngine`) drives a fixed 4-phase loop (`Attempt → Classify → Delay → Decide`), with each phase exposed as a replaceable interface. The codebase has zero runtime dependencies and splits into five narrowly-scoped modules that fan out from a barrel entry.
 
 **Why this shape:** retries are deceptively hard because the decision is contextual — an error that is retryable for a background job may be fatal for a user request. By isolating the decision (`Classifier`), the wait (`DelayStrategy`), and the limits (`Policy`) behind thin interfaces, the engine can stay under 150 lines and the test matrix stays tractable. The public API (documented in [`readme.md`](../../readme.md)) is the `retry()` function plus a `createRetryPolicy()` builder; everything else is an internal collaboration.
 
@@ -211,7 +211,7 @@ The most common extension is a new `DelayStrategy`. The interface is one method,
 
 ## 📦 Related Packages
 
-- [`@theriety/circuit-breaker`](../circuit-breaker): complements retry by short-circuiting calls to a known-bad downstream; the breaker's `OpenError` is the canonical fatal verdict in the default classifier
-- [`@theriety/rate-limiter`](../rate-limiter): sits in front of retry to bound request volume; its `RateLimitError` is the canonical retryable verdict
+- [`@scope/circuit-breaker`](../circuit-breaker): complements retry by short-circuiting calls to a known-bad downstream; the breaker's `OpenError` is the canonical fatal verdict in the default classifier
+- [`@scope/rate-limiter`](../rate-limiter): sits in front of retry to bound request volume; its `RateLimitError` is the canonical retryable verdict
 
 ---

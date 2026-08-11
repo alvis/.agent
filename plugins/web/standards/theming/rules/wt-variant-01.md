@@ -2,11 +2,11 @@
 
 ## Intent
 
-Names — both component variant unions AND CSS variable tokens — describe what something MEANS, not what it LOOKS LIKE. Semantic names (`primary`, `secondary`, `ghost`, `danger`, `--color-ink-heading`, `--color-surface-base`, `--radius-card`) survive re-skins and brand switches; visual, positional, or color-leaf names (`blue`, `rounded`, `acme`, `--ink-0`, `--c-violet`, `--line-soft`, `--glass-bg`, `--radius-md`) hardcode design decisions into the contract and force a rename every time a value changes. Brand switching is the job of `[data-brand]` (color mode is the job of `[data-theme]` per `CSS-MODE-*`), not a prop; size scaling is the job of Tailwind utilities, not a custom token whose name IS the size.
+Names — both component variant unions AND CSS variable tokens — describe what something MEANS, not what it LOOKS LIKE. Semantic names (`primary`, `secondary`, `ghost`, `danger`, `--color-ink-heading`, `--color-surface-base`, `--radius-card`) survive re-skins and brand switches; visual, positional, or color-leaf names (`blue`, `rounded`, `example`, `--ink-0`, `--c-violet`, `--line-soft`, `--glass-bg`, `--radius-md`) hardcode design decisions into the contract and force a rename every time a value changes. Brand switching is the job of `[data-brand]` (color mode is the job of `[data-theme]` per `CSS-MODE-*`), not a prop; size scaling is the job of Tailwind utilities, not a custom token whose name IS the size.
 
 The rule has three pillars:
 
-1. **Variants are roles** — `primary | secondary | ghost | danger`, never `blue | rounded | acme`.
+1. **Variants are roles** — `primary | secondary | ghost | danger`, never `blue | rounded | example`.
 2. **Token names are roles** — `--color-ink-heading`, never `--ink-0`. Color words MUST NOT appear in the name (`--color-accent`, never `--color-accent-violet`). If multiple accents are needed, differentiate by role (`--color-accent-primary`, `--color-link`, `--color-callout`), never by color.
 3. **Sizes use Tailwind utilities or role-named custom tokens** — reach for `rounded-md` / `shadow-sm` / `text-lg` for the default scale; mint a custom token only when the value carries a role (`--radius-card`, `--radius-button`, `--shadow-elevated`, `--text-body`). NEVER mint `--radius-md`, `--shadow-sm`, `--text-body-lg` — those re-implement Tailwind's scale behind a redundant indirection.
 
@@ -35,8 +35,8 @@ export type ButtonProps = {
 
 // ❌ BAD: brand leaked into the component API
 export type ButtonProps = {
-  brand?: 'acme' | 'globex';
-  client?: 'acme' | 'globex';
+  brand?: 'example' | 'globex';
+  client?: 'example' | 'globex';
 };
 
 // ✅ GOOD: semantic intent, brand handled by [data-brand] (color mode by [data-theme])
@@ -119,7 +119,7 @@ export type ButtonProps = ComponentPropsWithoutRef<'button'> & {
 
 ## Common Mistakes
 
-1. Adding `variant="acme"` so a client app gets its specific styling — should be `[data-brand="acme"]` with variable overrides
+1. Adding `variant="example"` so a client app gets its specific styling — should be `[data-brand="example"]` with variable overrides
 2. Letting designers' Figma layer names (`Button / Blue / Large`) leak into prop unions or token names verbatim
 3. Mixing semantic and visual variants in the same union (`'primary' | 'blue' | 'ghost'`)
 4. Splitting one semantic intent across two variants (`'primary'` and `'primary-rounded'`) instead of using a separate `shape` axis or scope override

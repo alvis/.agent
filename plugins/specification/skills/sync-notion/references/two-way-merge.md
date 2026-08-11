@@ -101,9 +101,11 @@ plan/code/review before implementation can resume. Never push proposal M from
 this implementation-stage merge.
 
 For a fully resolved `.mdc` pair, the coordinator applies the staged body only
-through `Skill(mdc)` after all decisions and approval gates pass. Plain Markdown may
-be atomically promoted only when the caller permits it. Do not push here; the
-mode execution branch owns the immediate remote recheck, guarded push, and
+through the exact capability bound as `body_author`, after its selector matches
+the caller/receipt and every decision and approval gate passes. The capability
+receives only the approved body and exact staged path. Plain Markdown may be
+atomically promoted only when the caller permits it. Do not push here; the mode
+execution branch owns the immediate remote recheck, guarded push, and
 verification pull.
 
 ```yaml

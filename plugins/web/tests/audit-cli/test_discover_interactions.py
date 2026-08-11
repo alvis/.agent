@@ -29,7 +29,7 @@ def test_ten_identical_buttons_dedup_to_single_candidate() -> None:
 def test_social_link_is_dropped_silently() -> None:
     snapshot = _load("ax_snapshot_with_social.json")
     plan = discover_interactions(snapshot)
-    assert "https://x.com/acme" in plan.dropped_social
+    assert "https://x.com/example" in plan.dropped_social
     assert all(candidate.role != "link" for candidate in plan.candidates)
 
 

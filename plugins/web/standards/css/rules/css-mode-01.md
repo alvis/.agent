@@ -23,7 +23,7 @@ Use `:root[data-theme="light"]` and `:root[data-theme="dark"]` as the **only** e
 
 1. Migrating from Tailwind's default `.dark` class without updating CSS selectors authored alongside utilities
 2. Inventing `data-color-scheme` because it "matches the CSS property name" — the contract is `data-theme`
-3. Stacking `data-theme="acme-dark"` to mean "brand acme + dark mode" — split into `data-brand="acme"` and `data-theme="dark"`
+3. Stacking `data-theme="example-dark"` to mean "brand example + dark mode" — split into `data-brand="example"` and `data-theme="dark"`
 4. Applying `[data-theme="dark"]` on `<body>` instead of `<html>` — breaks `color-scheme` inheritance for native UA chrome
 
 ## Compliant Example
@@ -37,7 +37,7 @@ Use `:root[data-theme="light"]` and `:root[data-theme="dark"]` as the **only** e
 ```
 
 ```html
-<html data-brand="acme" data-theme="dark">
+<html data-brand="example" data-theme="dark">
   …
 </html>
 ```
@@ -56,7 +56,7 @@ html.dark {
 }
 
 /* ❌ brand and mode collapsed onto one attribute */
-:root[data-theme="acme-dark"] {
+:root[data-theme="example-dark"] {
   --ui-bg: #000;
 }
 ```

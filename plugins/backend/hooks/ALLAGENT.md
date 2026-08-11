@@ -1,1 +1,0 @@
-<IMPORTANT>Before backend, schema, data-model, pipeline, service, API, or ML/AI work, you MUST read `{{PLUGIN_DIR}}/references/WORKFLOW.md` for action ownership and standards selection.</IMPORTANT> Before work delegation, read `{{PLUGIN_DIR}}/references/ROUTING.md`.

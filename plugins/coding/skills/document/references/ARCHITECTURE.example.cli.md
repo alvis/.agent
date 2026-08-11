@@ -1,10 +1,10 @@
-# @theriety/tsx-lint
+# @scope/tsx-lint
 
 <!-- ARCHITECTURE = how it works. For usage/install, see readme.md. -->
 
 <br/>
 
-📌 **Architectural shape:** `@theriety/tsx-lint` is a **staged pipeline CLI** — `argv` is routed to one of three subcommand handlers, each of which drives a three-stage core loop (`Parse → RuleRun → Report`) around a content-addressed cache. The codebase splits into eight narrowly-scoped modules that fan out from a single `bin/tsx-lint.ts` entry.
+📌 **Architectural shape:** `@scope/tsx-lint` is a **staged pipeline CLI** — `argv` is routed to one of three subcommand handlers, each of which drives a three-stage core loop (`Parse → RuleRun → Report`) around a content-addressed cache. The codebase splits into eight narrowly-scoped modules that fan out from a single `bin/tsx-lint.ts` entry.
 
 **Why this shape:** linters are dominated by parse cost and rule-visit cost, so the pipeline is the only shape that lets us share a single AST across N rules without re-parsing. Isolating the rule registry, the reporter, and the cache store behind interfaces keeps the hot path under 400 LOC and makes the rule-author story (documented in `readme.md`) independent of transport (CLI today, LSP later).
 
@@ -100,7 +100,7 @@ src
 
 `RuleEngine` is the only stateful component on the hot path; `PluginResolver` is stateful but runs exactly once per process at startup. Everything downstream of `RuleEngine.run` is a pure transformation over `Finding[]`.
 
-- **`Parser`** (`src/cli/parser-adapter.ts`): wraps `@theriety/tsx-parser` so the engine depends on an interface, not a concrete module; this is where error recovery for malformed input lives
+- **`Parser`** (`src/cli/parser-adapter.ts`): wraps `@scope/tsx-parser` so the engine depends on an interface, not a concrete module; this is where error recovery for malformed input lives
 - **`RuleEngine`** (`src/engine/rule-engine.ts`): iterates the frozen `RuleRegistry` over one AST, feeds each rule a shared `VisitorContext`, and concatenates their `Finding[]` outputs
 - **`RuleLoader`** (`src/loader/plugin-resolver.ts`): resolves preset names and file paths to modules, validates each export against the `Rule` schema, and returns a frozen `RuleRegistry`
 - **`Reporter`** (`src/report/reporter.ts`): formatter interface with three built-ins; `pretty` respects `NO_COLOR`, `json` streams one finding per line, `sarif` buffers to a single payload
@@ -200,7 +200,7 @@ Most external work happens as a custom `Rule` or a custom `Reporter`. Both surfa
 
 ## 📦 Related Packages
 
-- [`@theriety/tsx-parser`](../tsx-parser): the parser behind the `Parser` adapter; its AST node shapes are the contract for every `Rule.visit`
-- [`@theriety/rules-recommended`](../rules-recommended): the default ruleset loaded by `--rules recommended`; a reference implementation of the plugin contract
+- [`@scope/tsx-parser`](../tsx-parser): the parser behind the `Parser` adapter; its AST node shapes are the contract for every `Rule.visit`
+- [`@scope/rules-recommended`](../rules-recommended): the default ruleset loaded by `--rules recommended`; a reference implementation of the plugin contract
 
 ---

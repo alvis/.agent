@@ -34,16 +34,11 @@ const appLogger = loggerFactory.create("app");
 - Use `xFactory` when returning a higher-order factory that captures configuration or maintains state for reuse.
 - Avoid naming factory helpers `create*` if they immediately return a configured reusable function; prefer the `xFactory` suffix instead.
 
-<IMPORTANT>
-**Persistence reminder**: `create*` and `xFactory` apply to in-memory helpers. When interacting with persisted entities, use `Set<Entity>` instead of `create*` to express upsert behavior. See `NAM-FUNC-04`.
-</IMPORTANT>
-
 ## Edge Cases
 
 - When existing code matches prior violation patterns such as ❌ `const createFactory = build()`, refactor before adding new behavior.
 - Do not mix `createX` and `xFactory` for the same concept; pick one pattern per concept.
-- For persisted entities, use `Set<Entity>` instead of `create*` (see `NAM-FUNC-04`).
 
 ## Related
 
-NAM-FUNC-01, NAM-FUNC-02, NAM-FUNC-04
+NAM-FUNC-01, NAM-FUNC-02

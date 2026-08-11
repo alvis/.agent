@@ -50,7 +50,7 @@ sed "s|{{PLUGIN_DIR}}|${CLAUDE_PLUGIN_ROOT}|g" "${CLAUDE_PLUGIN_ROOT}/hooks/ALLA
 - `ALLAGENT.md` — injected at `SessionStart` **and** `SubagentStart`; carries that plugin's
   own routing only. Do not rebuild a central roster table in it.
 - `MAINAGENT.md` — `SessionStart` only; binds the main agent to a domain lead
-  (`coding`→`tech-lead`, `web`→`design-lead`, `backend`→`ai-research-lead`).
+  (`coding`→`tech-lead`, `web`→`design-lead`).
 - `SUBAGENT.md` — `essential` only, `SubagentStart`.
 
 Use `{{PLUGIN_DIR}}` for in-payload paths; the hook substitutes it. Because these files

@@ -77,18 +77,6 @@
       "category": "frontend"
     },
     {
-      "name": "backend",
-      "source": {
-        "source": "local",
-        "path": "./plugins/backend"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "development"
-    },
-    {
       "name": "client",
       "source": {
         "source": "local",

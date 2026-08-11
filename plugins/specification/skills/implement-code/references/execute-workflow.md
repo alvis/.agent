@@ -9,10 +9,10 @@ history.
 Each child receives absolute repository/work paths, exact specification refs
 and headings, one full executable `task_id`, canonical `plan_source`, acceptance
 criteria, deviation policy, and the Essential output-manifest rule. Coding
-agents treat work-spec MDC as read-only.
+agents treat work-spec transport bodies as read-only.
 Architectural uncertainty returns `pending_decision`; only the orchestrator may
-ask and route the answer through the selected source owner. Use
-`specification:mdc` only for the selected Notion-backed path.
+ask and route the answer through the selected source owner. For a Notion-backed
+path, use only the exact `body_author` explicitly bound by the parent.
 Every code-producing child receives `--defer-publication`. It may create a
 slice-local commit through `coding:commit`, but must not pass `--create-pr`, run
 `coding:pr create`, restack, or otherwise publish before the parent review/sync
@@ -53,7 +53,7 @@ unresolved: []
 ```
 
 On a pending decision, record the answer through the selected source owner
-(`mdc` only for a Notion-backed path), update the work receipt hash, and resume
+(the bound `body_author` for a Notion-backed path), update the work receipt hash, and resume
 the same run so completed tasks remain cached when both the specification and
 task definitions are unchanged.
 

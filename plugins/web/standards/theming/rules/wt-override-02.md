@@ -9,14 +9,14 @@ CSS variable overrides handle visual variation. They do NOT handle structural va
 - For "different content / icon" → expose a slot via `children`, a render prop, or a `Slot`-style primitive (e.g. Radix's `Slot`)
 - For "different DOM structure" → ship a headless primitive (behavior + accessibility, no styled DOM) that clients compose into their own structure
 - For "different behavior" → leave the shared component generic and let the client wrap it with the new behavior (`CheckoutButton` composes `Button`)
-- NEVER edit the shared component to add a `if (client === 'acme') …` branch or to render an extra `<Icon>` for one consumer
+- NEVER edit the shared component to add a `if (client === 'example') …` branch or to render an extra `<Icon>` for one consumer
 
 ```tsx
 // ❌ BAD: shared component mutated to add client-specific DOM
 // packages/ui/src/components/Button.tsx
 export const Button: FC<ButtonProps> = ({ variant, client, children, ...props }) => (
   <button {...props}>
-    {client === 'acme' && <ChevronIcon />}
+    {client === 'example' && <ChevronIcon />}
     {children}
   </button>
 );
@@ -36,7 +36,7 @@ export const Button: FC<ButtonProps> = ({ leadingIcon, children, ...props }) => 
 );
 
 // ✅ GOOD: client composes a wrapper with new behavior
-// apps/acme/src/components/CheckoutButton.tsx
+// apps/example/src/components/CheckoutButton.tsx
 import { Button, type ButtonProps } from '@company/ui';
 import { LockIcon } from './LockIcon';
 
@@ -64,7 +64,7 @@ export const useToggleBehavior = (initial = false) => {
 1. Adding a `client` or `brand` prop to control which icon renders — should be a `leadingIcon` slot or a client wrapper
 2. Re-implementing the shared component in the client app because the original "didn't support" the structural change — should expose a slot or primitive instead
 3. Conflating slots with variants: a slot accepts arbitrary `ReactNode`, a variant is a closed semantic union
-4. Putting client-specific DOM into the shared component's CSS via `::before { content: "Acme" }` instead of a slot
+4. Putting client-specific DOM into the shared component's CSS via `::before { content: "Example" }` instead of a slot
 
 ## Edge Cases
 

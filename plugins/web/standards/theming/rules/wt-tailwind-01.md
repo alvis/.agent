@@ -48,8 +48,8 @@ In Tailwind v4.3, the `@theme { … }` block is the authoritative declaration of
 }
 
 /* ✅ GOOD: client override */
-/* apps/acme/src/theme.css */
-[data-brand="acme"] {
+/* apps/example/src/theme.css */
+[data-brand="example"] {
   --color-brand: #ff6600;
   --radius-card: 999px;
 }

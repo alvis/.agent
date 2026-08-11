@@ -154,6 +154,7 @@ def _installed_plugin_roots(
     essential_root: Path,
     records: list[dict[str, Any]],
     harness: str,
+    include_marketplaces: Iterable[str] = (),
 ) -> list[tuple[str, Path]]:
     resolved_essential = essential_root.resolve()
     if harness == "codex":
@@ -202,6 +203,16 @@ def _installed_plugin_roots(
     marketplace = essential_id.rsplit("@", 1)[1]
     if not marketplace:
         raise AgentTemplateError(f"installed plugin id has no marketplace: {essential_id}")
+    marketplaces = {marketplace}
+    for included in include_marketplaces:
+        if (
+            included in {".", ".."}
+            or not CACHE_COMPONENT.fullmatch(included)
+        ):
+            raise AgentTemplateError(
+                f"invalid included marketplace name: {included!r}"
+            )
+        marketplaces.add(included)
     best_by_id: dict[str, dict[str, Any]] = {}
     for record in records:
         plugin_id = record.get("id")
@@ -214,7 +225,7 @@ def _installed_plugin_roots(
         ):
             continue
         record_marketplace = plugin_id.rsplit("@", 1)[1]
-        if record_marketplace != marketplace:
+        if record_marketplace not in marketplaces:
             continue
         current = best_by_id.get(plugin_id)
         if current is None or _last_updated(record) > _last_updated(current):
@@ -241,8 +252,9 @@ def discover_agent_templates(
     essential_root: Path,
     plugin_records: list[dict[str, Any]] | None = None,
     harness: str = "claude",
+    include_marketplaces: Iterable[str] = (),
 ) -> list[AgentTemplate]:
-    """Discover source-checkout siblings or enabled same-marketplace installs."""
+    """Discover source siblings or explicitly trusted enabled installs."""
     essential_root = Path(essential_root)
     if essential_root.parent.name == "plugins":
         roots = [
@@ -259,6 +271,7 @@ def discover_agent_templates(
                 else _read_plugin_records(harness)
             ),
             harness,
+            include_marketplaces,
         )
     return [
         template
@@ -328,10 +341,16 @@ def install_agents(
     destination: Path,
     plugin_records: list[dict[str, Any]] | None = None,
     harness: str = "claude",
+    include_marketplaces: Iterable[str] = (),
 ) -> int:
     """Install every discovered template after a complete roster preflight."""
     essential_root = Path(essential_root).resolve()
-    templates = discover_agent_templates(essential_root, plugin_records, harness)
+    templates = discover_agent_templates(
+        essential_root,
+        plugin_records,
+        harness,
+        include_marketplaces,
+    )
     installs_lead_direction = any(
         LEAD_AGENT_DIRECTION_ALIAS
         in (template.path / "base.md").read_text(encoding="utf-8")
@@ -387,6 +406,12 @@ def main() -> int:
         "--destination",
         type=Path,
     )
+    parser.add_argument(
+        "--include-marketplace",
+        action="append",
+        default=[],
+        help="also discover enabled agent templates from this trusted marketplace",
+    )
     args = parser.parse_args()
     if args.destination is not None:
         destination = args.destination
@@ -397,7 +422,12 @@ def main() -> int:
     else:
         destination = Path.home() / ".claude/agents"
     try:
-        install_agents(args.plugin_root, destination, harness=args.harness)
+        install_agents(
+            args.plugin_root,
+            destination,
+            harness=args.harness,
+            include_marketplaces=args.include_marketplace,
+        )
     except AgentTemplateError as error:
         parser.error(str(error))
     return 0

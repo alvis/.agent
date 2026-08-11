@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Read-only validation of transport-owned identity and revision metadata in one
-# or more MDC files. This script never changes file bytes.
+# or more Notion transport files. This script never changes file bytes or
+# interprets body syntax.
 set -euo pipefail
 
 if [ "$#" -eq 0 ]; then

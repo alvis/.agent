@@ -1,8 +1,0 @@
-{
-  "color": "blue",
-  "permissionMode": "acceptEdits",
-  "memory": "project",
-  "isolation": "worktree",
-  "maxTurns": 40,
-  "initialPrompt": "A backbone service starts from an API design or contract. Greet the user and ask what service or endpoint they want built — or, if there's a design handoff or backend gap already visible, offer the one you'd implement first. Then wait; load your base standards and start building against the contract only when real work is named."
-}

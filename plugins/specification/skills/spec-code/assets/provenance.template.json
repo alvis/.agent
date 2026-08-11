@@ -7,6 +7,10 @@
   "source_revision": "<git-blob-oid-or-notion-revision-or-empty>",
   "carrier_revision": "<git-blob-oid-or-empty>",
   "approved_content_ref": "<durable reachable locator to approved content>",
+  "body_author": {
+    "capability_id": "<plugin>:<skill>",
+    "selection_source": "<explicit_argument|delegated_caller>"
+  },
   "logical_units": [
     {
       "id": "<stable logical unit id>",
