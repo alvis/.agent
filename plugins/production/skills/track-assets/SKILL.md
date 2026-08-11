@@ -22,15 +22,15 @@ outside Git; their identity and lineage do not.
 - Never invent a hash, duration, or rights fact — record only observed values
   and mark the rest as pending verification.
 
-## Engineering-work gate
+## State gate
 
 Before creating or materially rewriting a project artifact, read the absolute
-`engineering-work.md` path injected by Essential; if unavailable, stop
+`state.md` path injected by Essential; if unavailable, stop
 artifact writes and report the missing contract. Then read Essential's
 `${ESSENTIAL_ROOT}/templates/docs/docs-root-readme.template.md`,
 `${ESSENTIAL_ROOT}/templates/docs/domain-readme.template.md`, and
 `${ESSENTIAL_ROOT}/templates/docs/domain-item-readme.template.md`, using the
-root derived from the injected engineering-work contract. Read Production's
+root derived from the injected state contract. Read Production's
 [asset manifest template](../../templates/asset-manifest.template.md) for the
 semantic shape, and
 Essential's `anchors.md` reference (anchor declarations). The manifest is a

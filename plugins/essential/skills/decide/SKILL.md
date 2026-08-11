@@ -27,7 +27,7 @@ when the evidence or option surface is not ready to converge.
   artifact; an implementing skill for the approved handoff.
 
 Before creating or materially rewriting a project artifact, read the absolute
-`engineering-work.md` path injected by Essential. If unavailable, stop artifact
+`state.md` path injected by Essential. If unavailable, stop artifact
 writes and report the missing contract. No artifact is written before approval.
 
 <IMPORTANT>

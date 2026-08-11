@@ -1,13 +1,13 @@
 ---
 name: takeover
-description: Resume paused engineering work from the on-disk state under the default source tree's centralized .state/works/. With no argument, offer every incomplete work stream there, switching the working directory to the checkout a chosen stream is worked in. Settle every stream awaiting merge before offering the next task, then resolve pending decisions, always surface the unblocked streams as the recommended next work, delegate each stream's planning to the relevant lead role for a proposed team or workflow, and drive each selected stream toward its charter's success criteria. On completion, promote confirmed implementation and decisions to the repo's docs/ for every work type, and for coding streams delegate pull-request creation and monitoring to an executor agent running the relevant change-publication capability.
+description: Resume paused work from the on-disk state under the default source tree's centralized .state/works/. With no argument, offer every incomplete work stream there, switching the working directory to the checkout a chosen stream is worked in. Settle every stream awaiting merge before offering the next task, then resolve pending decisions, always surface the unblocked streams as the recommended next work, delegate each stream's planning to the relevant lead role for a proposed team or workflow, and drive each selected stream toward its charter's success criteria. On completion, promote confirmed implementation and decisions to the repo's docs/ for every work type, and for coding streams delegate pull-request creation and monitoring to an executor agent running the relevant change-publication capability.
 model: opus
 argument-hint: "[--revalidate]"
 ---
 
 # Takeover
 
-Resume paused engineering work streams. Resumption always reads the work state
+Resume paused work streams. Resumption always reads the work state
 already on disk under `.state/works/`: it enumerates the current source
 tree's streams, reads the default source tree's global
 `.state/overview.md` to also offer other trees' streams, and continues one
@@ -21,11 +21,11 @@ completion it promotes confirmed implementation and decisions to the repo's
 `docs/` for every work type, and for a coding stream delegates pull-request
 creation and monitoring to an executor agent running the relevant
 change-publication capability. State stays in `.state/`, persisted
-continuously by the engineering-work contract.
+continuously by the state contract.
 
 ## Boundaries
 
-- Use for continuing paused engineering work streams.
+- Use for continuing paused work streams.
 - Only one work stream is worked at a time. Finish the current stream — to
   `reviewing` or `completed` — or leave it explicitly `blocked` before starting
   another.
@@ -44,7 +44,7 @@ continuously by the engineering-work contract.
   never reimplements publication or monitoring mechanics. A non-coding stream
   produces no pull request.
 - Promotion of durable knowledge to the repo's versioned `docs/` happens at
-  completion for every work type, following the engineering-work promotion
+  completion for every work type, following the state lifecycle's promotion
   contract; `.state/` stays ignored work memory in the default source
   tree, persisted continuously by that same contract.
 ## Inputs
@@ -61,10 +61,10 @@ continuously by the engineering-work contract.
   source (such as a Notion-backed spec) is refreshed through the relevant
   specification-sync skill.
 
-## Engineering-work gate
+## State gate
 
 Before creating or materially rewriting a target-project artifact, read the
-absolute `engineering-work.md` path injected by Essential. If unavailable, stop
+absolute `state.md` path injected by Essential. If unavailable, stop
 artifact writes and report the missing contract. Reading `overview.md` and
 offering streams are the explicit takeover exception to global bootstrap
 ordering: they may run first because they do not touch a target project's
@@ -215,12 +215,12 @@ resolver failure, an unparseable `state.md`), stop that stream and recommend
 
 12. When a selected stream finishes executing — every required executable leaf
     `done` — meet the completion obligations before moving on. State is already
-    durable, the engineering-work contract persists it continuously, so this
+    durable, the state contract persists it continuously, so this
     step only promotes, publishes, and parks the stream for review:
     - **Durable docs (every work type).** Promote confirmed implementation and
-      decisions to the repo's versioned `docs/` per the engineering-work
+      decisions to the repo's versioned `docs/` per the state lifecycle's
       promotion contract — its provenance front matter and closure promotion
-      receipt — respecting the engineering-work gate before any `docs/` write.
+      receipt — respecting the state gate before any `docs/` write.
       This applies to coding and non-coding streams alike; only stable knowledge
       is promoted, never transient task state.
     - **Pull requests (coding streams only).** When the completed stream's

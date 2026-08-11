@@ -6,7 +6,7 @@ work-local `proposals.md`, `changes.md`, `decisions.md`, or `design.md`.
 ## Global overview (`.state/overview.md`)
 
 ```markdown
-# Engineering overview
+# State overview
 
 - Updated: `<timestamp>`
 
@@ -32,7 +32,7 @@ work-local `proposals.md`, `changes.md`, `decisions.md`, or `design.md`.
   question only the user can answer is not buried one file deep in a stream
   nobody is reading.
 - `Phase` is the stream's own field, unchanged
-  ([engineering-work-state.md](engineering-work-state.md)). `Blocked on` is
+  ([state-format.md](state-format.md)). `Blocked on` is
   that stream's nullable `- Blocked on:` line rendered into a cell, which
   cannot be absent: write the named blocker, `unknown` when the stream is
   stopped and nobody recorded why, or `-` when it is not blocked. `-` and

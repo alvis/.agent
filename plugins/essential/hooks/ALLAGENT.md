@@ -16,8 +16,8 @@ and model/effort selection in its per-moment references.
 
 ## Work Artifacts
 
-Before creating or materially rewriting a lifecycle-managed engineering
-artifact, read `{{PLUGIN_DIR}}/references/engineering-work.md`; if
+Before creating or materially rewriting a lifecycle-managed project
+artifact, read `{{PLUGIN_DIR}}/references/state.md`; if
 unavailable, do not write it. Run its resolver without inventing a work ID.
 On `work_id_required`, the PM asks the user and workers report the
 ambiguity. On `requires_ignore`, workers stop; the PM alone adds

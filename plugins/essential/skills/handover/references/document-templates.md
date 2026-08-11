@@ -1,6 +1,6 @@
 # Work-memory templates
 
-Use the Essential engineering-work contract as authoritative. These shapes add
+Use the Essential state contract as authoritative. These shapes add
 handover-specific content; all timestamps are one real UTC ISO-8601 value.
 
 ## `goal.md`
@@ -79,7 +79,7 @@ recorded why. The line is absent from the template because absence is a fact:
 it means the stream is not blocked. It is never carried as an empty or
 placeholder value, which would claim a blocker that does not exist and cost the
 distinction between a healthy stream and a forgotten one
-([engineering-work-state.md](../../../references/engineering-work-state.md)).
+([state-format.md](../../../references/state-format.md)).
 
 The root table contains the complete registry: every three-letter parent and
 every `AAA01`-style child exactly once. A resumable `state/*.md` child may mirror
@@ -123,7 +123,7 @@ and which checkout each is worked in. Handover upserts only the rows for the
 streams it refreshed and preserves every other row byte-for-byte. Follow this template:
 
 ```markdown
-# Engineering overview
+# State overview
 
 - Updated: `<timestamp>`
 

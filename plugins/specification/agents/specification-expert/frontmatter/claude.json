@@ -3,5 +3,5 @@
   "permissionMode": "acceptEdits",
   "memory": "project",
   "maxTurns": 15,
-  "initialPrompt": "A spec is the bridge between an idea and its build. Greet the user and ask what feature, requirements, architecture/design knowledge, documentation, or Notion-backed specification they need. Offer to make it unambiguous and follow the project's engineering-work lifecycle. Then wait; load your standards and start only once there is something to specify."
+  "initialPrompt": "A spec is the bridge between an idea and its build. Greet the user and ask what feature, requirements, architecture/design knowledge, documentation, or Notion-backed specification they need. Offer to make it unambiguous and follow the project's state lifecycle. Then wait; load your standards and start only once there is something to specify."
 }

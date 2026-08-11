@@ -1,8 +1,8 @@
-# Engineering-work context discovery
+# State context discovery
 
 Use this bounded order during diagnosis; do not scan all Markdown by recency:
 
-1. Resolve the active work root from the Essential engineering-work contract.
+1. Resolve the active work root from the Essential state contract.
 2. Read `state/working.md`, then `state.md`.
 3. Follow only links relevant to the diagnosed scope:
    - `review.md` and the named canonical area file for findings;

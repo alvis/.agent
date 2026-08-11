@@ -15,9 +15,9 @@ import sys
 from typing import Any
 
 
-SCHEMA = "engineering-work-scoped-save/v1"
-REQUEST_SCHEMA = "engineering-work-scoped-save-request/v1"
-PRODUCER_SCHEMA = "engineering-work-generated-files/v1"
+SCHEMA = "state-scoped-save/v1"
+REQUEST_SCHEMA = "state-scoped-save-request/v1"
+PRODUCER_SCHEMA = "state-generated-files/v1"
 WORK_ID_RE = re.compile(r"^[a-z0-9]+(?:[a-z0-9-]*[a-z0-9])?$")
 PREFLIGHT_FIELDS = {
     "schema",
@@ -847,7 +847,7 @@ def normalize_publication_request(
         if path in seen or path.casefold() in folded:
             raise ContractError(f"duplicate/case-colliding publication path: {path}")
         if path == ".state/working.md" or path.startswith(".state/works/"):
-            raise ContractError(f"ignored engineering work state cannot be published: {path}")
+            raise ContractError(f"ignored local state cannot be published: {path}")
         if check_ignored(repo, path):
             raise ContractError(f"publishable lifecycle path is ignored: {path}")
         seen.add(path)
@@ -1255,7 +1255,7 @@ def validate_manifest_state(
             path = validate_relative_path(repo, value.get("path"))
             if label == "publication":
                 if path == ".state/working.md" or path.startswith(".state/works/"):
-                    raise ContractError(f"ignored engineering work state cannot be published: {path}")
+                    raise ContractError(f"ignored local state cannot be published: {path}")
                 if check_ignored(repo, path):
                     raise ContractError(f"publishable lifecycle path is ignored: {path}")
             if path in result or path.casefold() in folded:
@@ -1401,7 +1401,7 @@ def cmd_preflight(args: argparse.Namespace) -> dict[str, Any]:
     write_or_verify_immutable(index_backup_path, index_bytes, 0o400)
 
     snapshot = {
-        "schema": "engineering-work-scoped-save-preflight/v1",
+        "schema": "state-scoped-save-preflight/v1",
         "manifest_path": os.fspath(manifest_path),
         "manifest_sha256": digest,
         "old_head": old_head,
@@ -1472,7 +1472,7 @@ def load_bound_snapshot(
     if snapshot_path.name != f"{manifest_sha256}.preflight.{actual_sha}.json":
         raise ContractError("preflight snapshot filename is not checksum-bound")
     require_exact_keys(snapshot, PREFLIGHT_FIELDS, "preflight snapshot")
-    if snapshot.get("schema") != "engineering-work-scoped-save-preflight/v1":
+    if snapshot.get("schema") != "state-scoped-save-preflight/v1":
         raise ContractError("unknown preflight snapshot schema")
     if (
         snapshot.get("manifest_sha256") != manifest_sha256
@@ -1660,7 +1660,7 @@ def cmd_verify(args: argparse.Namespace) -> dict[str, Any]:
     if excluded_digest != snapshot.get("excluded_inventory_sha256"):
         raise ContractError("non-selected dirty inventory changed after save")
     receipt = {
-        "schema": "engineering-work-scoped-save-result/v1",
+        "schema": "state-scoped-save-result/v1",
         "status": "pass",
         "manifest_path": os.fspath(manifest_path),
         "manifest_sha256": digest,
@@ -1796,7 +1796,7 @@ def cmd_recover(args: argparse.Namespace) -> dict[str, Any]:
     validate_manifest_state(repo, manifest, after_save=False)
 
     receipt = {
-        "schema": "engineering-work-scoped-save-recovery/v1",
+        "schema": "state-scoped-save-recovery/v1",
         "status": "recovered",
         "manifest_sha256": digest,
         "preflight_snapshot_sha256": snapshot_sha,

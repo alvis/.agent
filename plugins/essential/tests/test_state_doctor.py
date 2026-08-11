@@ -72,7 +72,7 @@ class Workspace:
         self, task_rows: str, metadata: str = "", lifecycle: str = "working"
     ) -> None:
         (self.work_dir / "state.md").write_text(
-            "# Engineering work\n\n"
+            "# Work state\n\n"
             "- State role: `root`\n"
             "- Work ID: `demo`\n"
             f"- Lifecycle status: `{lifecycle}`\n"
@@ -107,9 +107,9 @@ def workspace(tmp_path: Path) -> Workspace:
     return Workspace(tmp_path)
 
 
-def run_engineering_root(root: Path) -> tuple[int, list[dict]]:
+def run_state_dir(root: Path) -> tuple[int, list[dict]]:
     completed = subprocess.run(
-        [str(DOCTOR), "--engineering-root", str(root / ".state"), "--json"],
+        [str(DOCTOR), "--state-dir", str(root / ".state"), "--json"],
         capture_output=True,
         text=True,
     )
@@ -3084,7 +3084,7 @@ def test_adr_scan_uses_explicit_active_repository_root(workspace: Workspace) -> 
     assert not any(finding["check"].startswith("adr-") for finding in findings)
 
 
-def test_adr_scan_runs_when_engineering_root_is_absent(tmp_path: Path) -> None:
+def test_adr_scan_runs_when_state_dir_is_absent(tmp_path: Path) -> None:
     repository = tmp_path / "repo"
     decisions = repository / "docs" / "architecture" / "decisions"
     decisions.mkdir(parents=True)
@@ -3101,7 +3101,7 @@ def test_adr_scan_runs_when_engineering_root_is_absent(tmp_path: Path) -> None:
     completed = subprocess.run(
         [
             str(DOCTOR),
-            "--engineering-root",
+            "--state-dir",
             ".state",
             "--json",
         ],
@@ -3113,12 +3113,12 @@ def test_adr_scan_runs_when_engineering_root_is_absent(tmp_path: Path) -> None:
     assert json.loads(completed.stdout)["findings"] == []
 
 
-def test_missing_non_state_engineering_root_is_an_error(tmp_path: Path) -> None:
+def test_missing_non_state_dir_is_an_error(tmp_path: Path) -> None:
     repository = tmp_path / "repo"
     repository.mkdir()
 
     completed = subprocess.run(
-        [str(DOCTOR), "--engineering-root", ".staet", "--json"],
+        [str(DOCTOR), "--state-dir", ".staet", "--json"],
         cwd=repository,
         capture_output=True,
         text=True,
@@ -3427,15 +3427,15 @@ def test_strict_exit_code(workspace: Workspace) -> None:
 
 def test_overview_drift(workspace: Workspace) -> None:
     workspace.write_state(row("AAA"))
-    engineering_root = workspace.root / ".state"
-    (engineering_root / "overview.md").write_text(
+    state_dir = workspace.root / ".state"
+    (state_dir / "overview.md").write_text(
         "# Overview\n\n"
         "| Work ID | Lifecycle | Headline |\n| --- | --- | --- |\n"
         "| demo | completed | Demo. |\n",
         encoding="utf-8",
     )
     completed = subprocess.run(
-        [str(DOCTOR), "--engineering-root", str(engineering_root), "--json"],
+        [str(DOCTOR), "--state-dir", str(state_dir), "--json"],
         capture_output=True,
         text=True,
     )
@@ -3454,8 +3454,8 @@ def test_overview_drift_ignores_tables_outside_the_streams_section(
     reports — so this asserts the real one survives and the noise is gone.
     """
     workspace.write_state(row("AAA"))
-    engineering_root = workspace.root / ".state"
-    (engineering_root / "overview.md").write_text(
+    state_dir = workspace.root / ".state"
+    (state_dir / "overview.md").write_text(
         "# Overview\n\n"
         "## Awaiting you\n\n"
         "| Question | Stream | Waiting since |\n| --- | --- | --- |\n"
@@ -3469,7 +3469,7 @@ def test_overview_drift_ignores_tables_outside_the_streams_section(
         encoding="utf-8",
     )
     completed = subprocess.run(
-        [str(DOCTOR), "--engineering-root", str(engineering_root), "--json"],
+        [str(DOCTOR), "--state-dir", str(state_dir), "--json"],
         capture_output=True,
         text=True,
     )
@@ -3519,9 +3519,9 @@ def test_written_under_drift_is_informational(workspace: Workspace) -> None:
     assert "written under contract 00000000" in drift[0]["message"]
 
 
-def test_missing_state_root_still_checks_repository_adrs(tmp_path: Path) -> None:
+def test_missing_state_dir_still_checks_repository_adrs(tmp_path: Path) -> None:
     write_effective_adr(tmp_path)
-    code, findings = run_engineering_root(tmp_path)
+    code, findings = run_state_dir(tmp_path)
     assert code == 0
     assert findings == []
 
@@ -3540,7 +3540,7 @@ def test_adr_filename_and_numeric_prefix_are_validated(tmp_path: Path) -> None:
         "> **What changed:** Replaced.\n",
         encoding="utf-8",
     )
-    _, findings = run_engineering_root(tmp_path)
+    _, findings = run_state_dir(tmp_path)
     assert any(
         finding["check"] == "adr-layout"
         and "filename must use" in finding["message"]
@@ -3557,7 +3557,7 @@ def test_html_comments_do_not_trigger_adr_integrity_checks(tmp_path: Path) -> No
         tmp_path,
         body="<!-- - Status: Superseded; TODO <fill this> -->\n",
     )
-    _, findings = run_engineering_root(tmp_path)
+    _, findings = run_state_dir(tmp_path)
     assert not any(finding["check"] == "adr-integrity" for finding in findings)
 
 
@@ -3568,7 +3568,7 @@ def test_nested_adr_files_are_reported_as_layout_errors(tmp_path: Path) -> None:
     (nested / "0002-nested.md").write_text(
         "# Nested\n\n- Status: `Accepted`\n", encoding="utf-8"
     )
-    _, findings = run_engineering_root(tmp_path)
+    _, findings = run_state_dir(tmp_path)
     assert any(finding["check"] == "adr-layout" for finding in findings)
 
 
@@ -3580,7 +3580,7 @@ def test_narrative_adr_link_does_not_satisfy_index_table(tmp_path: Path) -> None
         "| Document | Status |\n| --- | --- |\n",
         encoding="utf-8",
     )
-    _, findings = run_engineering_root(tmp_path)
+    _, findings = run_state_dir(tmp_path)
     assert any(finding["check"] == "adr-index" for finding in findings)
 
 
@@ -3594,7 +3594,7 @@ def test_absolute_successor_link_is_rejected(tmp_path: Path) -> None:
         "> **What changed:** Replaced.\n",
         encoding="utf-8",
     )
-    _, findings = run_engineering_root(tmp_path)
+    _, findings = run_state_dir(tmp_path)
     assert any(
         finding["check"] == "adr-superseded"
         and "portable relative path" in finding["message"]
@@ -3612,7 +3612,7 @@ def test_archive_placeholder_summary_is_rejected(tmp_path: Path) -> None:
         "> **What changed:** <State whether the decision changed>.\n",
         encoding="utf-8",
     )
-    _, findings = run_engineering_root(tmp_path)
+    _, findings = run_state_dir(tmp_path)
     assert any(
         finding["check"] == "adr-superseded"
         and "What changed" in finding["message"]
@@ -3668,13 +3668,13 @@ def test_overview_monolith_reports_missing_siblings_and_stray_sections(
     workspace.write_state(row("AAA"))
     write_overview(
         workspace.root,
-        "# Engineering overview\n\n"
+        "# State overview\n\n"
         "The tree carries three jj workspaces and one orphaned checkout.\n\n"
         "## Environment\n\nBranch protection is absent on main.\n\n"
         "## Streams\n\n" + overview_row(),
         siblings=False,
     )
-    _, findings = run_engineering_root(workspace.root)
+    _, findings = run_state_dir(workspace.root)
     monolith = [f for f in findings if f["check"] == "overview-monolith"]
     messages = " ".join(finding["message"] for finding in monolith)
     assert "environment.md is missing" in messages
@@ -3689,14 +3689,14 @@ def test_canonical_overview_sections_are_not_reported(workspace: Workspace) -> N
     workspace.write_state(row("AAA"))
     write_overview(
         workspace.root,
-        "# Engineering overview\n\n- Updated: `2026-08-06`\n\n"
+        "# State overview\n\n- Updated: `2026-08-06`\n\n"
         "## Goal\n\nShip.\n\n## Requirements\n\nNone.\n\n"
         "## Awaiting you\n\n## Streams\n\n"
         + overview_row(progress="2026-07-30 (7d)")
         + "\n## Recently landed\n",
     )
     write_journal(workspace, status_line("2026-07-30", "working"))
-    _, findings = run_engineering_root(workspace.root)
+    _, findings = run_state_dir(workspace.root)
     assert "overview-monolith" not in Workspace.checks(findings)
 
 
@@ -3861,7 +3861,7 @@ def test_both_migration_paths_into_blocked_on_are_detected(
     # keyed on the raw line, not the parsed value: a packed line parses as no
     # field, and a value-keyed probe would offer it nothing
     (workspace.work_dir / "state.md").write_text(
-        "# Engineering work\n\n- Work ID: `demo`\n"
+        "# Work state\n\n- Work ID: `demo`\n"
         "- Phase: `working` · Motion: `idle 14d`\n"
         "\n## Tasks\n\n" + HEADER + row("AAA"),
         encoding="utf-8",
@@ -3877,21 +3877,21 @@ def test_last_progress_column_and_journal_backing_are_required(
     write_journal(workspace, status_line("2026-07-30", "working"))
     write_overview(
         workspace.root,
-        "# Engineering overview\n\n## Streams\n\n"
+        "# State overview\n\n## Streams\n\n"
         "| Work ID | Phase | Headline |\n| --- | --- | --- |\n"
         "| demo | working | Demo. |\n",
     )
-    _, findings = run_engineering_root(workspace.root)
+    _, findings = run_state_dir(workspace.root)
     missing = [f for f in findings if f["check"] == "last-progress"]
     assert len(missing) == 1
     assert "no `Last progress` column" in missing[0]["message"]
 
     write_overview(
         workspace.root,
-        "# Engineering overview\n\n## Streams\n\n"
+        "# State overview\n\n## Streams\n\n"
         + overview_row(progress="2026-08-06 (0d)"),
     )
-    _, findings = run_engineering_root(workspace.root)
+    _, findings = run_state_dir(workspace.root)
     drift = [f for f in findings if f["check"] == "last-progress"]
     assert len(drift) == 1
     assert "does not match the journal evidence dated 2026-07-30" in drift[0]["message"]
@@ -3904,9 +3904,9 @@ def test_last_progress_rejects_a_value_that_is_not_a_date(
     write_journal(workspace, status_line("2026-07-30", "working"))
     write_overview(
         workspace.root,
-        "# Engineering overview\n\n## Streams\n\n" + overview_row(progress="recent"),
+        "# State overview\n\n## Streams\n\n" + overview_row(progress="recent"),
     )
-    _, findings = run_engineering_root(workspace.root)
+    _, findings = run_state_dir(workspace.root)
     assert any(
         finding["check"] == "last-progress" and "carries no date" in finding["message"]
         for finding in findings
@@ -3949,20 +3949,20 @@ def test_an_unmarked_state_fallback_is_a_finding(workspace: Workspace) -> None:
     write_journal(workspace, status_line("2026-07-27", "reviewing"))
     write_overview(
         workspace.root,
-        "# Engineering overview\n\n## Streams\n\n"
+        "# State overview\n\n## Streams\n\n"
         + overview_row(phase="completed", progress="2026-07-28 (9d)"),
     )
-    _, findings = run_engineering_root(workspace.root)
+    _, findings = run_state_dir(workspace.root)
     unmarked = [f for f in findings if f["check"] == "last-progress"]
     assert len(unmarked) == 1
     assert "does not say so" in unmarked[0]["message"]
 
     write_overview(
         workspace.root,
-        "# Engineering overview\n\n## Streams\n\n"
+        "# State overview\n\n## Streams\n\n"
         + overview_row(phase="completed", progress="2026-07-28 (from state.md)"),
     )
-    _, findings = run_engineering_root(workspace.root)
+    _, findings = run_state_dir(workspace.root)
     assert "last-progress" not in Workspace.checks(findings)
 
 
@@ -3982,10 +3982,10 @@ def test_a_segmented_journal_is_followed_to_its_newest_segment(
 
     write_overview(
         workspace.root,
-        "# Engineering overview\n\n## Streams\n\n"
+        "# State overview\n\n## Streams\n\n"
         + overview_row(progress="2026-08-06 (0d)"),
     )
-    _, findings = run_engineering_root(workspace.root)
+    _, findings = run_state_dir(workspace.root)
     assert any(
         finding["check"] == "last-progress" and "2026-08-04" in finding["message"]
         for finding in findings
@@ -3997,10 +3997,10 @@ def test_location_must_be_absolute_or_a_dash(workspace: Workspace) -> None:
     write_journal(workspace, status_line("2026-07-30", "working"))
     write_overview(
         workspace.root,
-        "# Engineering overview\n\n## Streams\n\n"
+        "# State overview\n\n## Streams\n\n"
         + overview_row(progress="2026-07-30 (7d)", location="../trees/demo"),
     )
-    _, findings = run_engineering_root(workspace.root)
+    _, findings = run_state_dir(workspace.root)
     location = [f for f in findings if f["check"] == "location"]
     assert len(location) == 1
     assert location[0]["severity"] == "warning"
@@ -4012,12 +4012,12 @@ def test_an_inferred_location_is_an_error(workspace: Workspace) -> None:
     write_journal(workspace, status_line("2026-07-30", "working"))
     write_overview(
         workspace.root,
-        "# Engineering overview\n\n## Streams\n\n"
+        "# State overview\n\n## Streams\n\n"
         + overview_row(
             progress="2026-07-30 (7d)", location="/Users/dev/tree ⚠ inferred"
         ),
     )
-    code, findings = run_engineering_root(workspace.root)
+    code, findings = run_state_dir(workspace.root)
     inferred = [f for f in findings if f["check"] == "location"]
     assert len(inferred) == 1
     assert inferred[0]["severity"] == "error"
@@ -4029,10 +4029,10 @@ def test_a_recorded_dash_location_is_honest(workspace: Workspace) -> None:
     write_journal(workspace, status_line("2026-07-30", "working"))
     write_overview(
         workspace.root,
-        "# Engineering overview\n\n## Streams\n\n"
+        "# State overview\n\n## Streams\n\n"
         + overview_row(progress="2026-07-30 (7d)", location="-"),
     )
-    _, findings = run_engineering_root(workspace.root)
+    _, findings = run_state_dir(workspace.root)
     assert "location" not in Workspace.checks(findings)
 
 
@@ -4041,10 +4041,10 @@ def test_next_action_budget_reports_the_offender_size(workspace: Workspace) -> N
     write_journal(workspace, status_line("2026-07-30", "working"))
     write_overview(
         workspace.root,
-        "# Engineering overview\n\n## Streams\n\n"
+        "# State overview\n\n## Streams\n\n"
         + overview_row(progress="2026-07-30 (7d)", next_action="x" * 260),
     )
-    _, findings = run_engineering_root(workspace.root)
+    _, findings = run_state_dir(workspace.root)
     budget = [f for f in findings if f["check"] == "overview-budget"]
     assert len(budget) == 1
     assert "260 chars, over the 200-char budget by 60" in budget[0]["message"]
@@ -4103,11 +4103,11 @@ def test_non_conforming_work_ids_are_reported_never_renamed(
         "# Charter\n\n- Charter: `approved`\n", encoding="utf-8"
     )
     (work_dir / "state.md").write_text(
-        f"# Engineering work\n\n- Work ID: `{work_id}`\n"
+        f"# Work state\n\n- Work ID: `{work_id}`\n"
         "- Lifecycle status: `working`\n",
         encoding="utf-8",
     )
-    code, findings = run_engineering_root(tmp_path)
+    code, findings = run_state_dir(tmp_path)
     naming = [f for f in findings if f["check"] == "work-id-naming"]
     assert len(naming) == 1
     assert naming[0]["severity"] == "info"
@@ -4328,7 +4328,7 @@ def test_an_unparseable_phase_is_reported_not_silently_skipped(
     # Two fields packed onto one line satisfy every eye and no parser: every
     # phase-gated check then skips the stream and reports a clean zero.
     (workspace.work_dir / "state.md").write_text(
-        "# Engineering work\n\n"
+        "# Work state\n\n"
         "- Work ID: `demo`\n"
         "- Phase: `completed` · Blocked on: `an operator ruling`\n"
         "\n## Tasks\n\n" + HEADER + row("AAA"),
@@ -4353,7 +4353,7 @@ def test_an_absent_phase_field_reads_differently_from_an_unparseable_one(
     workspace: Workspace,
 ) -> None:
     (workspace.work_dir / "state.md").write_text(
-        "# Engineering work\n\n- Work ID: `demo`\n\n## Tasks\n\n"
+        "# Work state\n\n- Work ID: `demo`\n\n## Tasks\n\n"
         + HEADER
         + row("AAA"),
         encoding="utf-8",
@@ -4371,7 +4371,7 @@ def test_a_readable_phase_reports_nothing(workspace: Workspace) -> None:
     assert "state-metadata" not in Workspace.checks(findings)
 
     (workspace.work_dir / "state.md").write_text(
-        "# Engineering work\n\n- Work ID: `demo`\n- Phase: `working`\n"
+        "# Work state\n\n- Work ID: `demo`\n- Phase: `working`\n"
         "- Blocked on: `an operator`\n\n## Tasks\n\n" + HEADER + row("AAA"),
         encoding="utf-8",
     )

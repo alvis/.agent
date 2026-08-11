@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Lease-verified coordinator write for one engineering work file.
+# Lease-verified coordinator write for one state file.
 #
 # Folds the heartbeat into the write path: verifies the presented plaintext
 # token against the lease digest, refuses when the lease is free, expired, or

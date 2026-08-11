@@ -46,7 +46,7 @@ Default is yes. On no, return to default save flow ([workflow-save-local.md](./w
 
 ### 3. Create the workspace
 
-Reuse the engineering work-id — the same kebab id at `.state/works/<work-id>`; no new slug. The workspace lives **outside** the current repo dir under `~/.workspaces/<project-root-folder-name>/`, where `<project-root-folder-name>` is the basename of the git/jj root. If two distinct repos share a root basename (e.g. two checkouts both named `app`), their `~/.workspaces/<basename>/` parents collide — disambiguate by choosing a distinct workspace parent (append a short suffix) for one of them.
+Reuse the work ID — the same kebab id at `.state/works/<work-id>`; no new slug. The workspace lives **outside** the current repo dir under `~/.workspaces/<project-root-folder-name>/`, where `<project-root-folder-name>` is the basename of the git/jj root. If two distinct repos share a root basename (e.g. two checkouts both named `app`), their `~/.workspaces/<basename>/` parents collide — disambiguate by choosing a distinct workspace parent (append a short suffix) for one of them.
 
 ```bash
 # From inside the default workspace:

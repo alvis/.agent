@@ -2,7 +2,7 @@
 
 This reference supplies per-batch context to `coding:draft-code`,
 `coding:complete-code`, and `coding:complete-test`. Every dispatch includes the
-absolute Essential `engineering-work.md` path, exact work ID/root and relevant
+absolute Essential `state.md` path, exact work ID/root and relevant
 materialized spec/plan pointers, the PM-owned-file prohibition, and the
 `generated_files` return contract. The capsule is sufficient by default:
 children read `state/working.md` only when navigation is missing and `state.md` only

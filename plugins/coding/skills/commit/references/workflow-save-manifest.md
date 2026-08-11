@@ -17,7 +17,7 @@ symlink.
 
 To avoid hand-computed hashes or status records, the parent first writes an
 ignored scope request with schema
-`engineering-work-scoped-save-request/v1`, `work_id`, `scope_complete: true`,
+`state-scoped-save-request/v1`, `work_id`, `scope_complete: true`,
 the full `publication_paths` as `{path, origin}` entries, the exact dirty
 `selected_paths`, and the child `generated_file_manifests` used to derive them.
 Invoke `coding:commit --prepare-paths-from=<scope-request>`; this no-history
@@ -42,7 +42,7 @@ with this exact producer schema:
 
 ```json
 {
-  "schema": "engineering-work-generated-files/v1",
+  "schema": "state-generated-files/v1",
   "producer": "<child skill identity>",
   "base_rev": "<same immutable revision id>",
   "generated_files": [
@@ -67,7 +67,7 @@ The manifest contains:
 
 ```json
 {
-  "schema": "engineering-work-scoped-save/v1",
+  "schema": "state-scoped-save/v1",
   "work_id": "<resolved-work-id>",
   "repository": {
     "canonical_root": "<realpath>",

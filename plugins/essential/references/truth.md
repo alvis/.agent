@@ -1,6 +1,6 @@
 # Truth model
 
-Read this once per work stream, alongside the engineering work lifecycle. It
+Read this once per work stream, alongside the state lifecycle. It
 defines what kind of truth each artifact carries and the rules that keep a
 moving project from drifting.
 

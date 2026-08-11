@@ -710,12 +710,33 @@ def test_requires_project_memory_path_section_and_maintenance_contract(
 # declares its own in plugins/essential/tests/test_contract_footprint.py.
 
 
-def test_role_hooks_expand_the_engineering_work_reference() -> None:
+def test_mainagent_requires_canonical_state_without_duplicating_state_policy() -> None:
+    prompt = (ROOT / "plugins/essential/hooks/MAINAGENT.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert (
+        "Before working on any project, MUST read\n"
+        "`{{PLUGIN_DIR}}/references/state.md`."
+    ) in prompt
+    assert (
+        "Local state is the working memory and\n"
+        "project-management record throughout the work lifecycle."
+    ) in prompt
+    for duplicated_policy in (
+        "resolve-state-workspace",
+        "coordinator lease",
+        "16,384 bytes",
+    ):
+        assert duplicated_policy not in prompt
+
+
+def test_role_hooks_expand_the_state_reference() -> None:
     essential = ROOT / "plugins/essential"
     hooks_document = json.loads(
         (essential / "hooks/hooks.json").read_text(encoding="utf-8")
     )
-    expected = str(essential / "references/engineering-work.md")
+    expected = str(essential / "references/state.md")
 
     for event in ("SessionStart", "SubagentStart"):
         commands = [

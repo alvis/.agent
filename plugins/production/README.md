@@ -2,7 +2,7 @@
 
 Media and creative production lifecycle: giving footage, renders, and
 campaign deliverables the same truth discipline code enjoys. Depends on
-`essential`. A production work stream is an ordinary engineering work stream
+`essential`. A production work stream is an ordinary work stream
 that declares a `media-project` or `asset-store` anchor
 (`essential/references/anchors.md`); this plugin adds the two things media
 work needs beyond that: **asset identity** and **revision-bound review**.

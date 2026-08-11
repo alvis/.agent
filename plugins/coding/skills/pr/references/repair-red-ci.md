@@ -6,10 +6,10 @@ green/pending classification, or the core poll report.
 
 ## Gather evidence and repair
 
-Before any decision or repair writes, read the absolute `engineering-work.md`
+Before any decision or repair writes, read the absolute `state.md`
 path injected by Essential. If unavailable, stop artifact writes and report the
 missing contract. Use the resolved target-repository work root; never write
-engineering state into the plugin repository.
+local state into the plugin repository.
 
 1. Preserve the earliest red check's provider and `link`. Only for a GitHub
    Actions run/job URL, derive its run ID and collect failed logs:

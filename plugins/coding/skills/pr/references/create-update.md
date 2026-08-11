@@ -79,10 +79,10 @@ owns deterministic zone calculation and the authoring gates below.
   needs neither, so the text-only path is never blocked by the publication
   prerequisites.
 
-## Engineering-work gate
+## State gate
 
 Before creating or materially rewriting a project artifact, read the absolute
-`engineering-work.md` path injected by Essential. If unavailable, stop artifact
+`state.md` path injected by Essential. If unavailable, stop artifact
 writes and report the missing contract. Publication-only runs may proceed
 without creating work artifacts; before any red-CI repair, run the resolver,
 ask only on `work_id_required`, and use the resolved work root. Give each fixer

@@ -1,4 +1,4 @@
-# Engineering work-state contract
+# State-file format
 
 Use this convention for every new or coordinator-migrated `state.md` and every
 resumable `state/*.md` child. A work item is free-form, LLM-readable Markdown:
@@ -51,7 +51,7 @@ so nothing can show it is done. Write the charter and get it approved.
 `1`. `State revision` is a monotonic counter bumped on every coordinator write
 of `state.md` (progress and definition alike), starting at `1`; it orders
 journal lines and lets the lease and doctor detect a stale writer.
-`Written under` records the short hash of the engineering-work contract this
+`Written under` records the short hash of the state contract this
 file was bootstrapped or last coordinator-rewritten against — provenance
 only, stamped by the resolver and rewrites; it confers no authority (the
 current contracts always judge) but lets the doctor report drift as "written

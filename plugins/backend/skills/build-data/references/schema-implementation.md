@@ -22,7 +22,7 @@ standard A references standard B, read B too):
 entities `{entity list}`.
 
 Before creating or materially rewriting a project artifact, read the absolute
-`engineering-work.md` path passed by the orchestrator. If unavailable, stop
+`state.md` path passed by the orchestrator. If unavailable, stop
 artifact writes and report the missing contract. Use the mission capsule's
 explicit work id/root, assigned materialized spec sections, acceptance slice,
 and target paths. Read `state/working.md` only when the capsule lacks navigation

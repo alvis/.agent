@@ -33,7 +33,7 @@ Canonical template/parent/collection ids remain `4555730e74b44592b77dd8a97620d3f
 ## Workflow
 
 1. Before creating or materially rewriting a project artifact, read the
-   absolute `engineering-work.md` path injected by Essential. If unavailable,
+   absolute `state.md` path injected by Essential. If unavailable,
    stop artifact writes and report the missing contract. Use the workspace
    resolver result as the active work root. Read only the work pointers and
    spec/design sources required for the selected screens.
@@ -62,7 +62,7 @@ Canonical template/parent/collection ids remain `4555730e74b44592b77dd8a97620d3f
    and link rather than duplicate them. Read
    `${ESSENTIAL_ROOT}/templates/docs/docs-root-readme.template.md` and
    `${ESSENTIAL_ROOT}/templates/docs/design-readme.template.md`, using the root
-   derived from the injected engineering-work contract, then maintain
+   derived from the injected state contract, then maintain
    `docs/README.md` and `docs/design/README.md` links.
 7. Reverify requested change, preservation map, relations, responsive states,
    accessibility, remote identity, and durable derivation. Confirm no

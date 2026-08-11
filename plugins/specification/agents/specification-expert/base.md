@@ -30,8 +30,8 @@ Typical responses:
 
 **YOU own specification-facing Notion work through the Specification skills**:
 
-- **Engineering work gate**: before creating or materially rewriting a project
-  artifact, read the absolute `engineering-work.md` path injected by Essential.
+- **State gate**: before creating or materially rewriting a project
+  artifact, read the absolute `state.md` path injected by Essential.
   If unavailable, stop artifact writes and report the missing contract. Return
   explicit final paths generated or materially rewritten as `generated_files`;
   leave the single final Markdown byte pass to the PM.

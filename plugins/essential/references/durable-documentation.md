@@ -1,7 +1,7 @@
 # Durable documentation
 
 Read this before creating or materially rewriting versioned project
-documentation. `engineering-work.md` owns the cross-plugin lifecycle and
+documentation. `state.md` owns the cross-plugin lifecycle and
 canonical tree; this reference owns the authority, content, ownership, and
 migration rules for that tree.
 

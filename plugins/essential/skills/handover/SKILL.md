@@ -1,6 +1,6 @@
 ---
 name: handover
-description: Persist engineering work stream state and update the global overview, both in the default source tree's centralized .state/, so the session can pause and any later session resume from the files on disk. Use when pausing coding work; this skill records continuity and does not execute the work.
+description: Persist work stream state and update the global overview, both in the default source tree's centralized .state/, so the session can pause and any later session resume from the files on disk. Use when pausing coding work; this skill records continuity and does not execute the work.
 model: opus
 argument-hint: "[work-id-filter]"
 ---
@@ -16,7 +16,7 @@ always resumes from the state files on disk.
 
 ## Boundaries
 
-- Use for pausing engineering work streams.
+- Use for pausing work streams.
 - Handover is scoped to the streams it is pausing. All state already lives in
   one place — `state_root/.state/works/` — so there is no other tree's
   state to reach into and no cross-tree merge to perform. Refresh the selected
@@ -44,10 +44,10 @@ always resumes from the state files on disk.
 - Persistence requires only a repository checkout and a resolvable workspace.
   A pause needs nothing external.
 
-## Engineering-work gate
+## State gate
 
 Before creating or materially rewriting a project artifact, read the absolute
-`engineering-work.md` path injected by Essential. If unavailable, stop artifact
+`state.md` path injected by Essential. If unavailable, stop artifact
 writes and report the missing contract. Run the resolver: its `state_root` is
 the default source tree that carries every work stream and the global
 `.state/overview.md`, whichever tree this session is working in. Resolve the work root,

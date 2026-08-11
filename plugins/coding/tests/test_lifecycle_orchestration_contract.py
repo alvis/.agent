@@ -56,7 +56,7 @@ def test_canonical_correctness_and_quality_artifacts_are_allowed(
         "src/payment.ts",
     ),
 )
-def test_other_engineering_paths_remain_denied(command: str, path: str) -> None:
+def test_other_state_paths_remain_denied(command: str, path: str) -> None:
     output = json.loads(run_hook(command, path))
     assert output["hookSpecificOutput"]["permissionDecision"] == "deny"
 

@@ -41,7 +41,7 @@ research belong to `essential:deep-research`.
   both optional; the workflow states the fallback for each.
 
 Before creating or materially rewriting a project artifact, read the absolute
-`engineering-work.md` path injected by Essential. If unavailable, stop artifact
+`state.md` path injected by Essential. If unavailable, stop artifact
 writes and report the missing contract. Resolve the active work directory from
 that contract; a run lives under `artifacts/autoresearch/<semantic-slug>/`.
 
