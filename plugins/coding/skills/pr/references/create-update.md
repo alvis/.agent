@@ -312,22 +312,28 @@ repository default branch only when none exists, then resolve that exact base
 commit as `AUTHOR_BASE_OID`. New-stack bookmarks do not yet exist, so author
 each head against `AUTHOR_BASE_OID`, never `PR_BASE`.
 
-Select exactly one archetype label for each head using the `GIT-PR-TYPE-01`
-selection table. Preflight the repository labels before any push or PR create/edit. If the
-selected label does not exist, stop with an actionable blocker naming it;
-never create or silently substitute a label. Do not call any label creation
-command. Bind the canonical set before either publication branch and resolve
-repository names read-only:
+Select one archetype label for each head using the `GIT-PR-TYPE-01` selection
+table. Before submitting each PR, preflight the repository labels before any
+push or PR create/edit. If the selected label exists, attach it; if it is
+unavailable, continue without it and record that it was skipped. Never create,
+silently substitute, or require an unavailable label. Do not call any label
+creation command. Bind the canonical set before either publication branch and
+resolve repository names read-only:
 
 ```bash
 ARCHETYPE_LABELS='["rfc","code-spec","contract","domain-model","implementation","integration","feature-flag","migration","ui","mechanical-refactor","cleanup","observability"]'
-REPOSITORY_LABELS=$(gh label list --limit 1000 --json name --jq '.[].name')
+REPOSITORY_LABELS=$(gh label list --limit 1000 --json name)
+AVAILABLE_ARCHETYPES=$(jq -c --argjson archetypes "$ARCHETYPE_LABELS" \
+  '[.[].name | select(. as $name | $archetypes | index($name))]' \
+  <<<"$REPOSITORY_LABELS")
 ```
 
-Use `REPOSITORY_LABELS` for the existence check and `ARCHETYPE_LABELS` for
-stale-label cleanup and post-publication verification. Split each exact `title\n\nbody`
-into that head's `TITLE` and `BODY`; malformed output aborts
-the whole selection before any ref or remote mutation.
+Use `AVAILABLE_ARCHETYPES` for the existence check, stale-label cleanup, and
+post-publication verification. Set `ARCHETYPE_AVAILABLE=true` only when the
+selected label is in that array; otherwise set it to `false`, report the
+skipped label, and omit every `--label`/`--add-label` operation for it. Split
+each exact `title\n\nbody` into that head's `TITLE` and `BODY`; malformed output
+aborts the whole selection before any ref or remote mutation.
 
 After every per-head `PR_BASE` is resolved, bind the batch root to the first
 selected affected head's exact base:
@@ -384,27 +390,37 @@ publication. Do not follow a jj batch with gh-stack rebase, sync, push, or
 submit. Preserve stderr and the helper's `restacked` and `errors` arrays so a
 failure reports verified partial state rather than implying an all-or-nothing
 result.
-When the head has no open PR, create a draft with the selected label:
+When the head has no open PR, create a draft with the selected label only when
+`ARCHETYPE_AVAILABLE=true`; otherwise create the draft without an archetype
+label:
 
 ```bash
-PR=$(gh pr create --draft --title "$TITLE" --body-file - \
-  --base "$PR_BASE" --head "$BOOKMARK" --label "$ARCHETYPE" <<<"$BODY")
+if [ "$ARCHETYPE_AVAILABLE" = true ]; then
+  PR=$(gh pr create --draft --title "$TITLE" --body-file - \
+    --base "$PR_BASE" --head "$BOOKMARK" --label "$ARCHETYPE" <<<"$BODY")
+else
+  PR=$(gh pr create --draft --title "$TITLE" --body-file - \
+    --base "$PR_BASE" --head "$BOOKMARK" <<<"$BODY")
+fi
 ```
 
 When the head has one open PR, edit it and retain draft state. Discover its
-current labels, remove every stale archetype label, add the selected one, and
-verify exactly one archetype label remains:
+current labels, remove every stale available archetype label, add the selected
+one only when it is available, and verify one archetype label remains when
+available and none remains when the selected label is unavailable:
 
 ```bash
 gh pr edit "$PR" --title "$TITLE" --body-file - --base "$PR_BASE" <<<"$BODY"
 CURRENT_LABELS=$(gh pr view "$PR" --json labels --jq '.labels[].name')
 while IFS= read -r label; do
-  if jq -e --arg label "$label" 'index($label) != null' <<<"$ARCHETYPE_LABELS" >/dev/null &&
+  if jq -e --arg label "$label" 'index($label) != null' <<<"$AVAILABLE_ARCHETYPES" >/dev/null &&
      [ "$label" != "$ARCHETYPE" ]; then
     gh pr edit "$PR" --remove-label "$label"
   fi
 done <<<"$CURRENT_LABELS"
-gh pr edit "$PR" --add-label "$ARCHETYPE"
+if [ "$ARCHETYPE_AVAILABLE" = true ]; then
+  gh pr edit "$PR" --add-label "$ARCHETYPE"
+fi
 gh pr ready "$PR" --undo # skip only when already draft
 ```
 
@@ -412,9 +428,13 @@ After either create or update, verify the post-publication label invariant:
 
 ```bash
 ACTUAL_ARCHETYPES=$(gh pr view "$PR" --json labels | jq -c --argjson archetypes \
-  "$ARCHETYPE_LABELS" \
-  '[.labels[].name as $label | select($archetypes | index($label))] | sort')
-EXPECTED_ARCHETYPES=$(jq -cn --arg label "$ARCHETYPE" '[$label]')
+  "$AVAILABLE_ARCHETYPES" \
+  '[.labels[].name | select(. as $label | $archetypes | index($label))] | sort')
+if [ "$ARCHETYPE_AVAILABLE" = true ]; then
+  EXPECTED_ARCHETYPES=$(jq -cn --arg label "$ARCHETYPE" '[$label]')
+else
+  EXPECTED_ARCHETYPES='[]'
+fi
 test "$ACTUAL_ARCHETYPES" = "$EXPECTED_ARCHETYPES"
 ```
 
