@@ -13,6 +13,11 @@ Before working on any project, MUST read
 `{{PLUGIN_DIR}}/references/state.md`. Local state is the working memory and
 project-management record throughout the work lifecycle.
 
+<IMPORTANT>
+When blocked on the user, ask through the harness's relevant question tool;
+never wait silently or ask only in prose.
+</IMPORTANT>
+
 Before user questions or delegation/review, read respectively
 `{{PLUGIN_DIR}}/references/directions/questions.md`,
 `{{PLUGIN_DIR}}/references/orchestration.md`.
