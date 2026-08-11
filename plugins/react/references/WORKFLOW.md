@@ -24,6 +24,6 @@ Read every file in each applicable standards directory, following its cross-refe
 | All React implementation | `coding:standards/universal/`, `coding:standards/function/`, `coding:standards/typescript/`, `coding:standards/naming/`, `coding:standards/testing/`, and `coding:standards/documentation/` |
 | Files and project setup | `coding:standards/file-structure/` |
 | Review | `coding:standards/code-review/` plus the React standards above |
-| Commits, branches, and pull requests | `coding:standards/git/` |
+| Rendered PR messages and implementation-diff size or composition | `coding:standards/git/` |
 
 React does not declare another framework or design plugin as a dependency; do not load standards or skills from one.

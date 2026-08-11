@@ -526,5 +526,5 @@ def test_authoring_stacking_and_review_share_the_canonical_classifier() -> None:
     )
     normalized_policy = " ".join(policy.split()).lower()
     assert "authored net loc" in normalized_policy
-    assert "generated-file additions and deletions" in normalized_policy
-    assert "generated paths remain in the file count" in normalized_policy
+    assert "exclude additions and deletions" in normalized_policy
+    assert "remain in the file count" in normalized_policy

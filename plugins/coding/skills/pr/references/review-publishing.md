@@ -7,6 +7,9 @@ add-comments / submit sequence leaves a half-populated pending review on the PR 
 any step fails, and a pending review is invisible to the author but blocks the next
 run.
 
+Render every `comments[].body` through
+[inline-review.md](../templates/inline-review.md).
+
 ```bash
 gh api --hostname "$HOST" --method POST \
   "repos/$OWNER/$REPO/pulls/$PR_NUMBER/reviews" --input "$REVIEW_PAYLOAD"
@@ -20,16 +23,15 @@ gh api --hostname "$HOST" --method POST \
   "body": "<overall review, from ../templates/overall-review.md>",
   "event": "REQUEST_CHANGES | APPROVE | COMMENT",
   "comments": [
-    { "path": "src/auth/session.ts", "line": 42, "side": "RIGHT", "body": "**{{marker}} Guard the empty case** — …" },
-    { "path": "src/auth/session.ts", "start_line": 51, "line": 58, "side": "RIGHT", "body": "**{{marker}} Batch these lookups** — …" }
+    { "path": "src/auth/session.ts", "line": 42, "side": "RIGHT", "body": "<rendered inline-review.md>" },
+    { "path": "src/auth/session.ts", "start_line": 51, "line": 58, "side": "RIGHT", "body": "<rendered inline-review.md>" }
   ]
 }
 ```
 
-- `{{marker}}` is the badge, tag, or emoji that opens every comment. [review-tone.md](review-tone.md) owns
-  that markup and is the only place it is written out; render from there rather than
-  copying a literal badge URL into this file, which would drift the moment a colour
-  or a wrapper changes.
+- [review-tone.md](review-tone.md) selects each marker's meaning;
+  [inline-review.md](../templates/inline-review.md) is the only owner of its
+  markup and comment shape.
 - `commit_id` is mandatory here even though the API treats it as optional. Without
   it GitHub anchors against the current head, so a push mid-review silently
   relocates every comment.
@@ -62,10 +64,11 @@ fence.
 | 422 naming a comment path or line | The line is not in the diff | Drop that comment, null its anchoring fields, set `subject` to its path, and re-render it from the finding into the overall body. Resubmit once. |
 | 422 on `APPROVE`/`REQUEST_CHANGES` | Self-review | Resubmit with `COMMENT`; state the downgrade in the body. |
 
-Recovery moves the *finding*, never the rendered comment. The inline body already
-opens with its marker, and the body's bullet prepends one of its own, so relocating
-the posted text verbatim would ship two markers on one finding and break the
-exactly-one rule in [review-tone.md](review-tone.md).
+Recovery moves the raw finding's `title` and `body`, never the rendered comment.
+The inline body already opens with its marker, and the overall body's bullet
+prepends one of its own, so relocating the posted text verbatim would ship two
+markers on one finding and break the exactly-one rule in
+[review-tone.md](review-tone.md).
 
 Never answer a 422 by re-anchoring the comment to a nearby line that happens to be
 in the diff. A comment on the wrong line costs more author time than no comment.

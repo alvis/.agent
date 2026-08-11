@@ -408,10 +408,12 @@ def test_black_zone_draft_publication_does_not_require_prior_authorization() -> 
     assert "every blocked PR surface" in normalized_review_loop
     assert "`pr_url`, `head_oid`, and `base_oid`" in normalized_review_loop
 
-    standard_meta = (PLUGIN / "standards" / "git" / "meta.md").read_text()
-    normalized_meta = " ".join(standard_meta.split())
-    assert "is a separate approval gate" in normalized_meta
-    assert "general exception-note fields do not apply" in normalized_meta
+    size_rule = (
+        PLUGIN / "standards" / "git" / "rules" / "GIT-PR-SIZE-04.md"
+    ).read_text()
+    normalized_rule = " ".join(size_rule.split())
+    assert "Review approval blocks until" in normalized_rule
+    assert "caps that event at `COMMENT`" in normalized_rule
 
 
 def test_black_authorization_is_verified_fail_closed_at_review_approval() -> None:
@@ -458,20 +460,12 @@ def test_affected_contract_uses_canonical_cross_plugin_references() -> None:
                 "stacked-prs.md",
             )
         ),
-        PLUGIN / "skills" / "pr" / "templates" / "pr.md",
         PLUGIN / "standards" / "git" / "meta.md",
         PLUGIN / "standards" / "git" / "scan.md",
         PLUGIN / "standards" / "git" / "write.md",
-        *(
-            PLUGIN / "standards" / "git" / "rules" / name
-            for name in (
-                "GIT-PR-SIZE-01.md",
-                "GIT-PR-SIZE-02.md",
-                "GIT-PR-SIZE-03.md",
-                "GIT-PR-SIZE-04.md",
-                "GIT-PR-TYPE-05.md",
-            )
-        ),
+        *(PLUGIN / "standards" / "git" / "rules").glob("*.md"),
+        PLUGIN / "skills" / "pr" / "templates" / "message.md",
+        PLUGIN / "skills" / "pr" / "templates" / "inline-review.md",
         repository / "plugins" / "governance" / "references" / "context-catalog.md",
         repository
         / "plugins"
@@ -494,7 +488,7 @@ def test_affected_contract_uses_canonical_cross_plugin_references() -> None:
     repo_rooted = re.compile(rf"plugins/(?P<plugin>{'|'.join(sorted(plugin_names))})/")
     bare_plugin_path = re.compile(
         rf"(?<![:/])\b(?P<plugin>{'|'.join(sorted(plugin_names))})/"
-        r"(?:agents|hooks|references|scripts|skills|standards|templates)/"
+        r"(?:agents|directions|hooks|references|scripts|skills|standards|templates)/"
     )
     relative_link = re.compile(r"\]\((?P<target>\.\.?/[^)#\s]+)\)")
     failures = []
@@ -516,11 +510,24 @@ def test_affected_contract_uses_canonical_cross_plugin_references() -> None:
                 failures.append(f"{path}: {match.group('target')}")
 
     assert failures == []
-    context_catalog = affected_contracts[-2].read_text()
-    agent_template = affected_contracts[-1].read_text()
+    context_catalog_path = (
+        repository / "plugins" / "governance" / "references" / "context-catalog.md"
+    )
+    agent_template_path = (
+        repository
+        / "plugins"
+        / "governance"
+        / "skills"
+        / "create-agent"
+        / "templates"
+        / "agent.md"
+    )
+    context_catalog = context_catalog_path.read_text()
+    agent_template = agent_template_path.read_text()
     create_update = affected_contracts[0].read_text()
     review_loop = affected_contracts[2].read_text()
     assert "coding:standards/git/" in context_catalog
+    assert "## Pull-request directions" in create_update
     assert "essential:templates/memory.md" in context_catalog
     assert "essential:templates/memory.md" in agent_template
     assert "governance:standards/delegation/" in create_update
@@ -528,19 +535,19 @@ def test_affected_contract_uses_canonical_cross_plugin_references() -> None:
 
 
 def test_repository_files_cannot_reclassify_fixed_pr_size_zones() -> None:
-    git_standard = PLUGIN / "standards" / "git"
     pr_skill = PLUGIN / "skills" / "pr"
     policy_paths = [
-        git_standard / "meta.md",
-        git_standard / "scan.md",
-        git_standard / "write.md",
-        *(git_standard / "rules").glob("GIT-PR-*.md"),
+        PLUGIN / "standards" / "git" / "meta.md",
+        PLUGIN / "standards" / "git" / "scan.md",
+        PLUGIN / "standards" / "git" / "write.md",
+        *(PLUGIN / "standards" / "git" / "rules").glob("GIT-PR-SIZE-*.md"),
         pr_skill / "references" / "create-update.md",
         pr_skill / "references" / "review-workflow.md",
         pr_skill / "references" / "review-loop.md",
         pr_skill / "references" / "stacked-prs.md",
     ]
     policy = "\n".join(path.read_text() for path in policy_paths)
+    normalized_policy = " ".join(policy.split())
     retired_override_name = "standard-" + "overrides"
 
     assert retired_override_name not in policy
@@ -548,4 +555,7 @@ def test_repository_files_cannot_reclassify_fixed_pr_size_zones() -> None:
     assert "≤ 2000 authored net LOC" in policy
     assert "> 60 files" in policy
     assert "> 2000 authored net LOC" in policy
-    assert "repository configuration cannot change these thresholds" in policy
+    assert (
+        "repository configuration cannot change these thresholds"
+        in normalized_policy
+    )

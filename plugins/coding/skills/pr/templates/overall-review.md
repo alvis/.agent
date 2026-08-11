@@ -4,6 +4,7 @@ Fill this and submit it as the review `body`, in the voice from
 [review-tone.md](../references/review-tone.md). Drop any section that would be empty rather than writing "None" under a
 heading. Detail lives in the inline comments; this is the map, and it should be
 actionable in under a minute.
+Render those comments through [inline-review.md](inline-review.md).
 
 ```markdown
 Reviewed `{{head_sha_short}}` — {{files_changed}} files, +{{additions}}/-{{deletions}}, {{zone}} zone.

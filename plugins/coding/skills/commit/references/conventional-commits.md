@@ -42,6 +42,9 @@ Scope is optional but recommended for monorepo / multi-package projects.
 - **Short package name** — e.g. `user-profile`, `auth`, `web`, `service`, `data`.
 - **Drop catalog prefixes** — write `auth`, NOT `@scope/auth`; write `web`, NOT `@example/web`.
 - **Cross-package concerns** — name the concern, not the package list. e.g. `feat(theming): unify dark mode` across `web` + `react` packages.
+- **Repository-specific multi-scope syntax** — use it only when the active
+  repository's commit policy explicitly permits it. This repository's
+  canonical regex permits one scope, so name a shared concern instead.
 - **Global changes** — OMIT the scope entirely. e.g. `chore: bump node to 22`.
 - **Kebab-case only**. No spaces, no underscores, no caps.
 
@@ -95,9 +98,11 @@ A breaking change MUST be documented in the body under a `BREAKING CHANGE:` foot
 ## Body rules
 
 - Separate from subject by ONE blank line.
-- Wrap at 72 chars (target; soft).
+- Wrap every body line at 72 characters; this is a hard limit.
 - Explain **WHY**, not WHAT. The diff shows what; the body explains the reasoning, trade-offs, alternatives considered.
-- Reference issues / PRs by URL or `#NNN` at the bottom.
+- Close issues only with `Closes #<number>, #<number>...` at the bottom. Use
+  commas for multiple issues; never substitute `Fixes` or `Resolves`.
+- Reference non-closing issues or PRs by URL or `#NNN` at the bottom.
 - For `revert`, include `Reverts <sha>` line.
 - For `BREAKING CHANGE`, include a `BREAKING CHANGE:` paragraph describing migration.
 

@@ -1,4 +1,4 @@
-# GIT-PR-TYPE-03: Migrations Isolated from Logic
+# GIT-PR-TYPE-03: Isolate Migrations from Logic
 
 ## Severity
 
@@ -6,30 +6,32 @@ error
 
 ## Intent
 
-Database schema migrations, data backfills, and config-format upgrades land in dedicated `migration` PRs, never mixed with logic changes. The canonical PR template owns migration rollback evidence. Behaviour that depends on the migrated shape lands in a follow-up `implementation` PR, ideally behind a `feature-flag`.
+A database schema migration, data backfill, or configuration-format upgrade is
+not mixed with business logic that consumes the migrated shape. The rendered
+PR message also supplies rollback steps or an explicit forward-only mitigation.
+
+## Scan
+
+Inspect the implementation diff for migration artifacts and consumer logic.
+Report the rule when both concerns appear in one PR, or when the selected
+message lacks specific rollback evidence. Generated migration output remains
+part of the migration concern.
 
 ## Fix
 
-```text
-order-archive/01-migration   feat(orders-db): add archived_at column
-order-archive/02-flag        feat(orders): add orders.archive (default off)
-order-archive/03-impl        feat(orders): use archived_at in archiveOrder
-```
-
-Author rollback and forward-only mitigation through the canonical PR template.
-
-### Why this matters
-
-- A migration that ships with logic changes cannot be rolled back independently.
-- Reviewers of a migration look at lock duration, online-safety, and rollback; reviewers of logic look at correctness. Mixing forces both reviews onto every reviewer.
-- Splitting migration first, flag second, impl third makes every step independently revertible.
+Separate migration artifacts from dependent behavior, and render the rollback
+or forward-only mitigation through the selected PR message template. Each
+resulting diff must remain independently valid. Use
+[stacked-prs.md](../../../skills/pr/references/stacked-prs.md) for ordering.
 
 ## Edge Cases
 
-- Trivial column-only migrations with literally no consumer change can ship as one PR if the change stays in green zone, with the template's rollback evidence.
-- For migrations that cannot be rolled back, use the template's rollback section to state that explicitly and document the forward-only mitigation.
-- ORM-driven migrations (Prisma, Drizzle) follow the same rule: the generated SQL plus the schema model are the migration; using the new fields is the implementation.
+- A column-only migration with no consumer change is one migration surface.
+- An irreversible migration states that fact and provides a concrete
+  forward-only mitigation.
+- ORM schema changes and their generated SQL are one migration concern; code
+  that reads or writes the new field is implementation.
 
 ## Related
 
-GIT-PR-TYPE-01, GIT-PR-TYPE-02, GIT-PR-STACK-04, GIT-PR-SIZE-02
+GIT-PR-02, GIT-PR-SIZE-02, GIT-PR-TYPE-02, GIT-PR-STACK-04

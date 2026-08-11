@@ -110,8 +110,8 @@ remote value that no longer exists, and the same stale flat ref blocks
 fetching the numbered child that has taken its name. Only once both renames
 and that prune have landed do the later slices push.
 
-The segment after the ordinal is free-form: name the slice, not its
-`GIT-PR-TYPE-01` category.
+The segment after the ordinal is free-form: name the slice, not the PR
+archetype selected from `coding:skills/pr/references/create-update.md`.
 
 Naming the branch this way is what lets the workspace resolution step select
 the stream from whichever branch is checked out. Only these two shapes

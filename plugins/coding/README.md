@@ -39,7 +39,11 @@ Two mechanisms make saves and publication safe around AI-driven edits:
 | `coding:find-unused` | Read-only dead-code discovery. |
 | `coding:sync-tool` | Installing/updating registered CLI tools (brew, jj, gh, …). |
 
-`standards/` carries the language and workflow standards
-(TypeScript, Python, Rust, git, naming, testing, documentation) that `lint`
-and reviewers enforce; other plugins (react, web) route their own standards
-through the same executors.
+`skills/commit/SKILL.md` carries commit, branch, and local-history directions;
+the action references under `skills/pr/references/` carry pull-request
+directions. `standards/git/` scans rendered PR messages and implementation-diff
+size and composition; `skills/pr/templates/message.md` and
+`skills/pr/templates/inline-review.md` own their rendered shapes. Other
+`standards/` directories carry implementation-scannable policy that `lint`
+and reviewers enforce; React and Web route their standards through the same
+executors.

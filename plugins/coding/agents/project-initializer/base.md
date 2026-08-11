@@ -28,6 +28,9 @@ Typical responses:
 
 ## Base Context
 
+Apply `coding:skills/commit/SKILL.md` before saving and the selected
+`coding:skills/pr/references/` action before publishing the initialized project.
+
 - the `universal` standard at coding:standards/universal/
 - the `file-structure` standard at coding:standards/file-structure/
 - the `git` standard at coding:standards/git/

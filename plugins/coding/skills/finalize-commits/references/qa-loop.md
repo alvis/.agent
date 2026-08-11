@@ -1,6 +1,6 @@
 # Per-Commit Atomic Finalize — procedure (jj + git)
 
-Referenced from SKILL.md Step 3. Run by one `model:'haiku'` agent per commit. Finalizes EXACTLY ONE commit through seven sub-steps — replay, isolate, marker-check, gate, fold, reword, mark — that execute inside ONE dispatch. The operation is atomic: no sub-step may be deferred to a later phase or batched across commits, a commit is never left QA'd-but-unfolded, and the walk never advances past an unfolded commit. Patch-id marker mechanics: `markers.md`. Conventional Commits contract: `../../commit/references/conventional-commits.md`. Inline `GIT-MSG-*` rules: `../../../standards/git/write.md`.
+Referenced from SKILL.md Step 3. Run by one `model:'haiku'` agent per commit. Finalizes EXACTLY ONE commit through seven sub-steps — replay, isolate, marker-check, gate, fold, reword, mark — that execute inside ONE dispatch. The operation is atomic: no sub-step may be deferred to a later phase or batched across commits, a commit is never left QA'd-but-unfolded, and the walk never advances past an unfolded commit. Patch-id marker mechanics: `markers.md`. Conventional Commits contract: `../../commit/references/conventional-commits.md`; commit and branch directions: `../../commit/SKILL.md`.
 
 Ownership: this reference observes, gates, and **validates** corrections inside disposable worktrees. Every history mutation that lands on an owning commit — fold, amend, reword, snapshot bracket, checkpoint, head move — is **applied by `coding:commit`** on request, with the exact operation and target named. The commands shown below for those steps are the operations to request, not commands this skill's workers run against the user's stack.
 
@@ -76,7 +76,7 @@ The lockfile this commit's OWN install regenerated is a MANDATORY part of the fo
 
 ## Step 6 — Message conformance
 
-1. Read the current subject. Validate against the regex and rules in `../../commit/references/conventional-commits.md` and the `GIT-MSG-*` rules in `../../../standards/git/write.md`. Sample repo style: `git log --format=%s -n 50`.
+1. Read the current subject. Validate against the contract in `../../commit/references/conventional-commits.md`, following the directions in `../../commit/SKILL.md`. Sample repo style: `git log --format=%s -n 50`.
 2. **Mechanical fixes — no user prompt needed**: type prefix casing, trailing-period removal, length trim (≤50 target / ≤72 hard), imperative-mood correction, scope kebab-casing, dropping catalog prefixes. Request the reword from `coding:commit`; the operations it applies:
    - **jj**: `jj describe -r <rev> -m "<subject>"`
    - **git**: `git commit --amend --no-verify -m "<subject>"` (against the replayed commit, before the checkpoint)

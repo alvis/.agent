@@ -93,7 +93,8 @@ findings:
     concern: alignment | correctness | security | quality | testing | docs | style | process
     priority: P0 | P1 | P2 | P3 | P4 | null
     kind: question | thought | note | chore | praise | null
-    body: <the comment text, written per [review-tone.md](review-tone.md)>
+    title: <concise raw title without marker or template markup>
+    body: <raw explanatory body without marker or title wrapper>
     evidence: <the rule, failure path, or repository precedent it rests on>
     alternative: <exact path this change belongs in instead, or null>
 goal_spec_alignment: matches | diverges | skipped_unknown
@@ -103,6 +104,11 @@ not_reviewed:
 ```
 
 </report>
+
+`title` and `body` are the authoritative raw finding. Render them through the
+selected review template only while assembling a GitHub payload. Retaining raw
+fields lets failure recovery move an unanchored finding and render it into the
+overall body without copying inline-only markers or markup.
 
 - `path` and `line` must come from the changed-line map. A finding rooted in
   unchanged code anchors to the changed line that causes it.
@@ -134,9 +140,10 @@ not_reviewed:
   `thought` for a non-blocking idea that is explicitly not a request, `note` for a
   fact the author should know, `praise` where the work is genuinely good.
 - Exactly one of `priority` and `kind` is non-null. A comment that claims a
-  consequence carries a priority; one that does not carries a kind. [review-tone.md](review-tone.md) renders
-  a priority as a badge, `chore` as a tag, and every other kind as an emoji, so this
-  field decides the marker and no judgement is left at render time.
+  consequence carries a priority; one that does not carries a kind.
+  [review-tone.md](review-tone.md) selects the marker semantics and
+  [inline-review.md](../templates/inline-review.md) renders them,
+  so this field decides the marker and no judgement is left at render time.
 - `chore` is the one kind that blocks merge, because it demands an action even though
   it grades nothing. An outstanding `chore` drives the verdict exactly as a P0 or P1
   does; every other kind leaves the verdict untouched.

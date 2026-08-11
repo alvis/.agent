@@ -12,6 +12,28 @@ PLUGIN = Path(__file__).resolve().parents[1]
 WRITE_PR = PLUGIN / "skills" / "pr"
 SIZE_THRESHOLDS = WRITE_PR / "assets" / "size-thresholds.json"
 CLASSIFIER = WRITE_PR / "scripts" / "classify-pr-size.py"
+MESSAGE_SCANNER = WRITE_PR / "scripts" / "scan-pr-message.py"
+COMMIT_SKILL = PLUGIN / "skills" / "commit" / "SKILL.md"
+COMMIT_DIRECTIONS = PLUGIN / "skills" / "commit" / "references" / "conventional-commits.md"
+CREATE_UPDATE = WRITE_PR / "references" / "create-update.md"
+STACKED_PRS = WRITE_PR / "references" / "stacked-prs.md"
+REVIEW_WORKFLOW = WRITE_PR / "references" / "review-workflow.md"
+MERGE_WORKFLOW = WRITE_PR / "references" / "merge.md"
+GIT_STANDARD = PLUGIN / "standards" / "git"
+MESSAGE_TEMPLATE = WRITE_PR / "templates" / "message.md"
+INLINE_REVIEW_TEMPLATE = WRITE_PR / "templates" / "inline-review.md"
+GIT_RULE_FILES = {
+    "GIT-PR-02.md",
+    "GIT-PR-SIZE-01.md",
+    "GIT-PR-SIZE-02.md",
+    "GIT-PR-SIZE-03.md",
+    "GIT-PR-SIZE-04.md",
+    "GIT-PR-STACK-04.md",
+    "GIT-PR-TYPE-02.md",
+    "GIT-PR-TYPE-03.md",
+    "GIT-PR-TYPE-04.md",
+    "GIT-PR-TYPE-05.md",
+}
 
 
 def test_authoring_binds_all_deterministic_inputs_and_publication_output() -> None:
@@ -24,13 +46,70 @@ def test_authoring_binds_all_deterministic_inputs_and_publication_output() -> No
     assert "`BREAKING CHANGE:` footers" in skill
 
 
-def test_canonical_template_carries_section_authoring_guidance() -> None:
-    template = (WRITE_PR / "templates" / "pr.md").read_text()
+def test_canonical_message_template_carries_section_authoring_guidance() -> None:
+    template = MESSAGE_TEMPLATE.read_text()
 
     assert "what problem it solves and why" in template
     assert "design patterns" in template
     assert "anything a reader would reasonably expect here" in template
     assert "RFCs, specs, and discussions" in template
+
+
+def test_version_control_policy_separates_standard_direction_and_templates() -> None:
+    commit_direction = COMMIT_SKILL.read_text()
+    author_direction = CREATE_UPDATE.read_text()
+    stack_direction = STACKED_PRS.read_text()
+    review_direction = REVIEW_WORKFLOW.read_text()
+    merge_direction = MERGE_WORKFLOW.read_text()
+    standard_meta = (GIT_STANDARD / "meta.md").read_text()
+    standard_scan = (GIT_STANDARD / "scan.md").read_text()
+    inline_review = INLINE_REVIEW_TEMPLATE.read_text()
+
+    assert (GIT_STANDARD / "write.md").is_file()
+    assert (GIT_STANDARD / "rules" / "GIT-PR-02.md").is_file()
+    assert (GIT_STANDARD / "rules" / "GIT-PR-SIZE-04.md").is_file()
+    assert MESSAGE_SCANNER.is_file()
+    assert not (WRITE_PR / "templates" / "pr.md").exists()
+    assert not (PLUGIN / "directions" / "version-control.md").exists()
+    assert {path.name for path in (GIT_STANDARD / "rules").glob("*.md")} == (
+        GIT_RULE_FILES
+    )
+    assert "## Commit and branch directions" in commit_direction
+    assert "## Pull-request directions" in author_direction
+    assert "## Stack directions" in stack_direction
+    assert "## Review directions" in review_direction
+    assert "## Merge directions" in merge_direction
+    direction_documents = (
+        commit_direction,
+        author_direction,
+        stack_direction,
+        review_direction,
+        merge_direction,
+    )
+    assert all("size-thresholds.json" not in content for content in direction_documents)
+    for phrase in (
+        "at most 15 files",
+        "500 authored net LOC",
+        "≤ 15 files",
+        "≤ 30 files",
+        "≤ 60 files",
+        "> 60 files",
+        "≤ 500 authored",
+        "≤ 1200 authored",
+        "≤ 2000 authored",
+        "> 2000 authored",
+    ):
+        assert all(phrase not in content for content in direction_documents)
+    assert "Run the classifier only after binding" in author_direction
+    assert "After rendering and before emission or publication" in author_direction
+    assert "Each violation is an issue that" in standard_meta
+    assert "scan-pr-message.py" in standard_scan
+    assert "classify-pr-size.py" in author_direction
+    assert "scan-pr-message.py" in author_direction
+    assert "message.md" in author_direction
+    assert "inline-review.md" in review_direction
+    assert "**{{marker}} {{title}}** — {{body}}" in inline_review
+    assert "This file alone owns the posted markup" in inline_review
 
 
 def test_new_stack_authors_against_existing_commit_oids() -> None:
@@ -63,7 +142,7 @@ def test_batch_root_base_is_bound_after_base_resolution_before_both_pushes() -> 
 
 def test_reviewer_evidence_binds_to_the_complete_review_surface() -> None:
     skill = (WRITE_PR / "references" / "create-update.md").read_text()
-    template = (WRITE_PR / "templates" / "pr.md").read_text()
+    template = MESSAGE_TEMPLATE.read_text()
 
     assert "capture an existing PR's `headRefOid` and" in skill
     assert "`baseRefOid`" in skill
@@ -73,6 +152,42 @@ def test_reviewer_evidence_binds_to_the_complete_review_surface() -> None:
     assert "unchanged pair" in template
     assert "standard-owned" in template
     assert "<base-oid>" in template
+    for workflow in (skill, REVIEW_WORKFLOW.read_text()):
+        assert '--head-oid "$HEAD_OID"' in workflow
+        assert '--base-oid "$BASE_OID"' in workflow
+    assert "--allow-pending-reviewers" in skill
+    review = REVIEW_WORKFLOW.read_text()
+    assert "deliberately omits" in review
+    assert "authoring-only `--allow-pending-reviewers`" in review
+
+
+def test_pr_title_regex_and_ready_transition_preserve_directions() -> None:
+    workflow = CREATE_UPDATE.read_text()
+
+    assert r"(\([\w./-]+\))?!?: .+" in workflow
+    assert r"(?:,\s*[\w./-]+)?" not in workflow
+    assert "Leave draft only after CI passes" in workflow
+    assert "author self-reviews the diff" in workflow
+    assert "every lower stack PR has merged or is" in workflow
+
+
+def test_review_ledger_retains_raw_finding_fields_for_recovery() -> None:
+    checklist = (WRITE_PR / "references" / "review-checklist.md").read_text()
+    publishing = (WRITE_PR / "references" / "review-publishing.md").read_text()
+
+    assert "title: <concise raw title" in checklist
+    assert "body: <raw explanatory body" in checklist
+    assert "authoritative raw finding" in checklist
+    assert "raw finding's `title` and `body`" in publishing
+
+
+def test_commit_message_directions_preserve_the_retired_standard_contract() -> None:
+    directions = COMMIT_DIRECTIONS.read_text()
+
+    assert "repository's commit policy explicitly permits it" in directions
+    assert "canonical regex permits one scope" in directions
+    assert "this is a hard limit" in directions
+    assert "never substitute `Fixes` or `Resolves`" in directions
 
 
 def test_merged_skill_resolves_bundled_helpers_for_resource_lifetimes() -> None:
@@ -89,6 +204,7 @@ def test_merged_skill_resolves_bundled_helpers_for_resource_lifetimes() -> None:
         "scripts/preflight-jj-range-push.sh": (merge,),
         "scripts/temp-tree.sh": (create_update, review_extraction, review),
         "scripts/review-scan.sh": (review,),
+        "scripts/scan-pr-message.py": (create_update, review),
     }
     for helper, consumers in helper_consumers.items():
         assert (WRITE_PR / helper).is_file()
@@ -318,19 +434,13 @@ def test_stacked_local_checks_are_batched_and_cleanup_every_lease() -> None:
 
 def test_pr_metadata_stays_internal_and_template_owns_rationale() -> None:
     workflow = (WRITE_PR / "references" / "create-update.md").read_text()
-    template = (WRITE_PR / "templates" / "pr.md").read_text()
-    standard = (
-        PLUGIN
-        / "standards"
-        / "git"
-        / "rules"
-        / "GIT-PR-SIZE-03.md"
-    ).read_text()
+    template = MESSAGE_TEMPLATE.read_text()
+    size_rule = (GIT_STANDARD / "rules" / "GIT-PR-SIZE-03.md").read_text()
 
     assert "specific indivisibility prose" in workflow
     assert "## Why this size" in template
     assert "reviewer-time estimates" in template
-    assert "reviewer-time estimate" not in standard
+    assert "Keep size counts, zone metadata" in size_rule
     assert "size counts, zone metadata" in workflow
     assert "## 🧪 Verification" in template
 
@@ -340,7 +450,7 @@ def test_black_zone_requires_complete_body_and_live_authorization_receipt() -> N
     review = (WRITE_PR / "references" / "review-workflow.md").read_text()
     publishing = (WRITE_PR / "references" / "review-publishing.md").read_text()
     checklist = (WRITE_PR / "references" / "review-checklist.md").read_text()
-    rule = (PLUGIN / "standards" / "git" / "rules" / "GIT-PR-SIZE-04.md").read_text()
+    size_rule = (GIT_STANDARD / "rules" / "GIT-PR-SIZE-04.md").read_text()
 
     assert (
         "requires specific `## Risk`, `## Test plan`, and `## Why this size`"
@@ -354,19 +464,20 @@ def test_black_zone_requires_complete_body_and_live_authorization_receipt() -> N
         assert "`rationale`" in contract
         assert "sole semantic authorization-review input" in contract
     assert "earlier fetched comment or body" in checklist
-    assert "earlier fetched comment or" in rule
+    assert "uses only that receipt's `authorization_body`" in " ".join(
+        size_rule.split()
+    )
 
 
 def test_archetype_is_a_preflighted_label_not_pr_content() -> None:
     workflow = (WRITE_PR / "references" / "create-update.md").read_text()
-    template = (WRITE_PR / "templates" / "pr.md").read_text()
-    standard = (
-        PLUGIN / "standards" / "git" / "rules" / "GIT-PR-TYPE-01.md"
-    ).read_text()
+    template = MESSAGE_TEMPLATE.read_text()
     normalized_workflow = " ".join(workflow.split())
-    normalized_standard = " ".join(standard.split())
 
-    assert "Before submitting each PR, preflight the repository labels" in workflow
+    assert (
+        "Before submitting each PR, preflight the repository labels"
+        in normalized_workflow
+    )
     assert "continue without it and record that it was skipped" in workflow
     assert (
         "Never create, silently substitute, or require an unavailable label"
@@ -384,24 +495,15 @@ def test_archetype_is_a_preflighted_label_not_pr_content() -> None:
     assert workflow.index("ARCHETYPE_LABELS='[") < workflow.index('PR=$(gh pr create')
     assert "If unavailable, omit" in template
     assert "label is never rendered in the title or" in template
-    assert (
-        "carries that GitHub label when the repository provides it"
-        in normalized_standard
-    )
-    assert (
-        "submit without the archetype label and report it as skipped"
-        in normalized_standard
-    )
-    assert (
-        "Publication never creates, silently substitutes, or requires"
-        in normalized_standard
-    )
+    assert "attach the exact archetype label only when it exists" in normalized_workflow
+    assert "If absent, omit it and report the skip" in normalized_workflow
+    assert "never create or substitute a label" in normalized_workflow
     assert "## Category" not in template
 
 
 def test_generated_files_section_is_conditional_and_emoji_named() -> None:
     workflow = (WRITE_PR / "references" / "create-update.md").read_text()
-    template = (WRITE_PR / "templates" / "pr.md").read_text()
+    template = MESSAGE_TEMPLATE.read_text()
 
     assert "## 🏭 Generated Files" in template
     assert "whenever any generated files exist" in template
@@ -412,7 +514,11 @@ def test_pr_size_thresholds_have_one_machine_readable_home_and_matching_docs() -
     thresholds = json.loads(SIZE_THRESHOLDS.read_text())
 
     assert thresholds["schema_version"] == 1
-    assert set(thresholds["metrics"]) == {"files_changed", "authored_net_loc"}
+    assert set(thresholds["metrics"]) == {
+        "files_changed",
+        "authored_net_loc",
+        "required_reviewers",
+    }
     for metric in thresholds["metrics"].values():
         assert isinstance(metric["unit"], str) and metric["unit"]
         assert isinstance(metric["reason"], str) and metric["reason"]
@@ -420,48 +526,44 @@ def test_pr_size_thresholds_have_one_machine_readable_home_and_matching_docs() -
     zones = thresholds["zones"]
     assert [zone["name"] for zone in zones] == ["green", "yellow", "red"]
     assert all(
-        set(zone) == {"name", "max_files_changed", "max_authored_net_loc"}
+        set(zone)
+        == {
+            "name",
+            "max_files_changed",
+            "max_authored_net_loc",
+            "required_reviewers",
+        }
         for zone in zones
     )
     assert all(
         earlier["max_files_changed"] < later["max_files_changed"]
         and earlier["max_authored_net_loc"] < later["max_authored_net_loc"]
+        and earlier["required_reviewers"] <= later["required_reviewers"]
         for earlier, later in pairwise(zones)
     )
+    assert [zone["required_reviewers"] for zone in zones] == [0, 1, 2]
 
-    standard = PLUGIN / "standards" / "git"
     presentations = {
-        standard / "write.md": {"green", "yellow", "red", "black"},
-        standard / "rules" / "GIT-PR-SIZE-01.md": {"green"},
-        standard / "rules" / "GIT-PR-SIZE-02.md": {"yellow"},
-        standard / "rules" / "GIT-PR-SIZE-03.md": {"red"},
-        standard / "rules" / "GIT-PR-SIZE-04.md": {"black"},
-        WRITE_PR / "references" / "stacked-prs.md": {"green"},
-        WRITE_PR / "references" / "review-workflow.md": {
-            "green",
-            "yellow",
-            "red",
-            "black",
-        },
+        GIT_STANDARD / "rules" / "GIT-PR-SIZE-01.md": {"green"},
+        GIT_STANDARD / "rules" / "GIT-PR-SIZE-02.md": {"yellow"},
+        GIT_STANDARD / "rules" / "GIT-PR-SIZE-03.md": {"red"},
+        GIT_STANDARD / "rules" / "GIT-PR-SIZE-04.md": {"black"},
     }
     discovered_presentations = {
         path
-        for root in (standard, WRITE_PR / "references")
-        for path in root.rglob("*.md")
+        for path in (
+            *GIT_STANDARD.rglob("*.md"),
+            *(WRITE_PR / "references").rglob("*.md"),
+        )
         if "files" in path.read_text().lower()
         and "authored" in path.read_text().lower()
-        and (
-            "| Zone" in path.read_text()
-            or (
-                any(
-                    f"{zone['max_files_changed']} files" in path.read_text()
-                    for zone in zones
-                )
-                and any(
-                    f"{zone['max_authored_net_loc']} authored" in path.read_text()
-                    for zone in zones
-                )
-            )
+        and any(
+            f"{zone['max_files_changed']} files" in path.read_text()
+            for zone in zones
+        )
+        and any(
+            f"{zone['max_authored_net_loc']} authored" in path.read_text()
+            for zone in zones
         )
     }
     assert discovered_presentations == set(presentations)
@@ -481,11 +583,6 @@ def test_pr_size_thresholds_have_one_machine_readable_home_and_matching_docs() -
                 )
                 assert f"{operator} {limits['max_files_changed']}" in row
                 assert f"{operator} {limits['max_authored_net_loc']}" in row
-            elif path.name == "stacked-prs.md":
-                assert (
-                    f"at most {limits['max_files_changed']} files and "
-                    f"{limits['max_authored_net_loc']} authored net LOC" in content
-                )
             else:
                 assert f"{operator} {limits['max_files_changed']} files" in content
                 assert (
@@ -573,8 +670,11 @@ def test_classifier_uses_limits_from_a_controlled_asset(tmp_path: Path) -> None:
         (0, "max_authored_net_loc", 0),
         (0, "max_files_changed", -1),
         (0, "max_authored_net_loc", -1),
+        (0, "required_reviewers", True),
+        (0, "required_reviewers", -1),
         (1, "max_files_changed", 15),
         (1, "max_authored_net_loc", 500),
+        (1, "required_reviewers", -1),
     ],
 )
 def test_classifier_rejects_invalid_threshold_limits(
