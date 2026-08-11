@@ -210,9 +210,11 @@ review blocks generic or tautological claims even when their structure passes.
 
 ### PR Categories (the 12 Archetypes)
 
-Every PR carries exactly one existing GitHub label named for an archetype (see
-`GIT-PR-TYPE-01`). The label is absent from the title and body. Publication
-blocks when the selected label does not exist and never creates labels.
+Classify every PR with one archetype from `GIT-PR-TYPE-01` and attach its
+existing GitHub label when the repository provides it. Before submission,
+enumerate repository labels read-only; if the selected label is unavailable,
+submit without it and report the skipped label. The label is absent from the
+title and body. Never create or silently substitute labels.
 
 - **rfc** — A proposal-only PR adding a design document or decision record. No production code. Use when a change needs alignment before implementation. Lands as the top of a stack so reviewers can comment on intent before reviewing scaffolding.
 - **code-spec** — Types, interfaces, schema definitions, and JSDoc-only contracts with no runtime behaviour. Use to lock the shape of an API or domain model before any implementation. Lands first in the stack so downstream PRs reference settled types.

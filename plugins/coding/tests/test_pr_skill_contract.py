@@ -360,10 +360,20 @@ def test_black_zone_requires_complete_body_and_live_authorization_receipt() -> N
 def test_archetype_is_a_preflighted_label_not_pr_content() -> None:
     workflow = (WRITE_PR / "references" / "create-update.md").read_text()
     template = (WRITE_PR / "templates" / "pr.md").read_text()
+    standard = (
+        PLUGIN / "standards" / "git" / "rules" / "GIT-PR-TYPE-01.md"
+    ).read_text()
+    normalized_workflow = " ".join(workflow.split())
+    normalized_standard = " ".join(standard.split())
 
-    assert "Preflight the repository labels before any push" in workflow
-    assert "never create or silently substitute a label" in workflow
-    assert "exactly one archetype label remains" in workflow
+    assert "Before submitting each PR, preflight the repository labels" in workflow
+    assert "continue without it and record that it was skipped" in workflow
+    assert (
+        "Never create, silently substitute, or require an unavailable label"
+        in normalized_workflow
+    )
+    assert "AVAILABLE_ARCHETYPES=" in workflow
+    assert "verify one archetype label remains when" in workflow
     assert '--label "$ARCHETYPE"' in workflow
     assert 'PR=$(gh pr create' in workflow
     assert '--remove-label "$label"' in workflow
@@ -371,7 +381,20 @@ def test_archetype_is_a_preflighted_label_not_pr_content() -> None:
     assert 'EXPECTED_ARCHETYPES=$(jq -cn --arg label "$ARCHETYPE"' in workflow
     assert 'test "$ACTUAL_ARCHETYPES" = "$EXPECTED_ARCHETYPES"' in workflow
     assert workflow.index("ARCHETYPE_LABELS='[") < workflow.index('PR=$(gh pr create')
-    assert "The label is never rendered in the title or" in template
+    assert "If unavailable, omit" in template
+    assert "label is never rendered in the title or" in template
+    assert (
+        "carries that GitHub label when the repository provides it"
+        in normalized_standard
+    )
+    assert (
+        "submit without the archetype label and report it as skipped"
+        in normalized_standard
+    )
+    assert (
+        "Publication never creates, silently substitutes, or requires"
+        in normalized_standard
+    )
     assert "## Category" not in template
 
 

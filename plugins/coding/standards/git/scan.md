@@ -27,7 +27,7 @@ contract verification checks the projections against that asset.
 - DO NOT submit a red-zone PR without a concise indivisibility rationale [`GIT-PR-SIZE-03`]
 - DO NOT include generated-artifact additions or deletions in PR net-LOC thresholds, or exclude generated paths from the file count [`GIT-PR-SIZE-01`]
 - DO NOT publish a black-zone draft without specific Risk, Test plan, and Why this size evidence, or approve it without exact-revision OWNER authorization in the PR discussion; draft publication remains allowed for a genuinely self-contained unit [`GIT-PR-SIZE-04`]
-- DO NOT publish a PR without exactly one existing GitHub archetype label [`GIT-PR-TYPE-01`]
+- DO NOT skip repository-label preflight or omit a relevant archetype label that exists in the repository [`GIT-PR-TYPE-01`]
 - DO NOT mix code spec or scaffolding with implementation in the same PR [`GIT-PR-TYPE-02`]
 - DO NOT mix database or config migrations with logic changes in the same PR [`GIT-PR-TYPE-03`]
 - DO NOT mix mechanical refactors (renames, file moves) with behaviour changes [`GIT-PR-TYPE-04`]
@@ -62,7 +62,7 @@ contract verification checks the projections against that asset.
 | `GIT-PR-SIZE-02` | Yellow-zone PR missing template-required evidence | 22 files / 900 LOC PR lacking the canonical template's risk evidence |
 | `GIT-PR-SIZE-03` | Red-zone PR without indivisibility rationale | 45 files / 1500 LOC PR with no specific reason it cannot be split |
 | `GIT-PR-SIZE-04` | Black-zone evidence or approval gate missing | Publishing an 80-file / 3500-authored-LOC rename without Risk and Test plan evidence; approving it before a qualifying OWNER discussion comment |
-| `GIT-PR-TYPE-01` | Missing or ambiguous archetype label | PR with no archetype label, multiple archetype labels, or a label absent from the repository |
+| `GIT-PR-TYPE-01` | Missing label preflight, missing available archetype label, multiple archetype labels, or label creation/substitution | PR skips the repository-label lookup, omits an available selected label, carries multiple archetype labels, or blocks/creates/substitutes when the selected label is unavailable |
 | `GIT-PR-TYPE-02` | Spec or scaffolding mixed with implementation | One PR adds `domain/order.ts` types and the `processOrder()` impl |
 | `GIT-PR-TYPE-03` | Migration mixed with logic, or missing template evidence | Prisma migration + new business rule in same PR; migration PR lacking rollback evidence |
 | `GIT-PR-TYPE-04` | Mechanical refactor mixed with behaviour change | Rename `User` -> `Account` plus a new `suspend()` method in same PR |

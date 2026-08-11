@@ -6,19 +6,20 @@ error
 
 ## Intent
 
-Every PR has exactly one GitHub label named for one of the 12 PR archetypes.
-The category never appears as a title prefix or PR-body section. Categorisation
-drives review depth; an unclassified PR cannot be reviewed against the right
-checklist.
+Every PR is classified as one of the 12 PR archetypes and carries that GitHub
+label when the repository provides it. The category never appears as a title
+prefix or PR-body section. Categorisation drives review depth; a repository
+that lacks the selected label must not block publication.
 
 The 12 labels are: `rfc`, `code-spec`, `contract`, `domain-model`, `implementation`, `integration`, `feature-flag`, `migration`, `ui`, `mechanical-refactor`, `cleanup`, `observability`. The selection table below owns archetype choice; the canonical PR template owns publication metadata and rendered or conditional body content.
 
 ## Fix
 
-Select the archetype before publication, verify that its label already exists in
-the repository, then attach exactly that label. If the label is absent,
-publication blocks with the missing label named. Publication never creates or
-silently substitutes repository labels.
+Select the archetype before publication. Before submitting each PR, list the
+repository's existing labels read-only and attach the selected archetype only
+when its exact label exists. If that label is unavailable, submit without the
+archetype label and report it as skipped. Publication never creates, silently
+substitutes, or requires an unavailable label.
 
 ### Selecting the category
 

@@ -7,12 +7,11 @@ template of its own checked in (e.g. `.github/PULL_REQUEST_TEMPLATE.md`).
 When a repo template exists, that template takes precedence and is emitted
 verbatim instead of this one.
 
-Publication metadata: every PR receives exactly one existing GitHub archetype
-label (`rfc`, `code-spec`, `contract`, `domain-model`, `implementation`,
-`integration`, `feature-flag`, `migration`, `ui`, `mechanical-refactor`,
-`cleanup`, or `observability`). The label is never rendered in the title or
-body. Publication blocks when it is absent from the repository and never
-creates labels.
+Publication metadata: classify every PR with the archetype selected by
+`GIT-PR-TYPE-01`. Before publication, inspect the repository's existing labels
+and attach the selected archetype when it is available. If unavailable, omit
+it, report it as skipped, and continue; never create or substitute labels. The
+label is never rendered in the title or body.
 
 Always required: Summary + Verification. Yellow, red, and black zones also
 require Risk + Test plan; red and black require Why this size. Context, Implementation,
