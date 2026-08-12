@@ -12,7 +12,7 @@
 - Happy-path defaults inline: `vi.fn(() => value)`, never `.mockResolvedValue()`
 - No `beforeEach` for mock setup — only for non-Vitest mock history resets (`client.resetHistory()`) or registering `ctx.onTestFailed(...)` debug-dump hooks
 - Log-observable behavior: capture logger as typed `vi.fn<LogFn>()` and assert `log.mock.calls` structurally
-- Test behavior, not static content: never restate a value whose source of truth lives elsewhere — assert the property that holds over the set (cap, uniqueness, ordering, integrity), keeping only assertions that fail when the data is *wrong*, not when it legitimately changes
+- Test behavior, not static content: never restate a value whose source of truth lives elsewhere — assert the property that holds over the set (cap, uniqueness, ordering, integrity), derive structural oracles from the authoritative classifier/schema/template rather than exhaustive test-local lists, and keep only assertions that fail when the data is *wrong*, not when it legitimately changes
 - `const` for shared fixtures; file-level instances by default
 - Structural assertions (`toEqual`), not field-by-field
 - No silent skips: missing env/config must hard-fail at file load (`throw`), never `runIf`/`skipIf`/conditional-return
@@ -65,7 +65,7 @@ AAA spacing: blank lines between arrange/act/assert. No `// Arrange` / `// Act` 
 - **TST-CORE-07**: Do not spy on internals when external behavior can be tested.
 - **TST-CORE-08**: Avoid `await import(...)` in tests. Keep imports static and predictable.
 - **TST-CORE-09**: For log-observable behavior, capture the logger as `vi.fn<LogFn>()` or `{ info: vi.fn<Logger['info']>() } satisfies Partial<Logger>` and assert the full call record with `expect(log.mock.calls).toEqual([...])` — the array pins how many lines were logged and each line's content (one call `[[...]]` or many). Do not use `toHaveBeenCalledTimes(...)` + scattered `toHaveBeenCalledWith(...)` pairs, count-only assertions, or `log.mock.calls[N]` indexing. Prefer the SUT's exported `Log` type; a local alias is acceptable only when no real type is exported.
-- **TST-CORE-10**: Do not restate static content — a value whose source of truth lives elsewhere (constant exports, rosters, manifests, config maps, copy text, exact counts). Such a test only fires when source and test are edited in opposite directions. Test the consumer, or encode shape in source via `satisfies`/`as const`. EXCEPTION: a systematic property holding over the set regardless of the values (bound/cap, uniqueness, ordering, referential integrity, schema validity, round-trip preservation, among others) is required, not forbidden. Decide by what the assertion fails on: on a legitimate data change ⇒ change-detector, remove; only when the data is genuinely wrong ⇒ property, keep. The matcher never decides it.
+- **TST-CORE-10**: Do not restate static content — a value whose source of truth lives elsewhere (constant exports, rosters, manifests, config maps, copy text, exact counts). Such a test only fires when source and test are edited in opposite directions. Test the consumer, or encode shape in source via `satisfies`/`as const`. EXCEPTION: a systematic property holding over the set regardless of the values (bound/cap, uniqueness, ordering, referential integrity, schema validity, round-trip preservation, among others) is required, not forbidden. Derive conformance oracles from the authoritative classifier, grammar, schema, or template; an exhaustive test-local list is a mirror even when iterated. Keep the derivation independent of the behavior under test. Decide by what the assertion fails on: on a legitimate data change ⇒ change-detector, remove; only when the data is genuinely wrong ⇒ property, keep. The matcher never decides it.
 - **TST-CORE-11**: Tests must run or hard-fail. Never gate with `describe.runIf`/`it.skipIf`/`if (!env.X) return`. Required env vars are validated at file load with `throw new Error(...)` so missing config breaks the suite loudly.
 
 ### Coverage (TST-COVR)
@@ -161,7 +161,7 @@ Pick the form by *what you assert*, not by call count:
 ## Anti-Patterns
 
 - Repeating nearly identical tests to inflate coverage numbers.
-- Restating a value whose source of truth lives elsewhere (roster counts, ID mirrors, config maps, copy text) — it breaks on every legitimate edit and proves nothing.
+- Restating a value whose source of truth lives elsewhere (roster counts, ID mirrors, config maps, copy text), including exhaustive test-local lists of valid structural instances — it breaks on legitimate source evolution and proves only that the mirror is current.
 - Mocking internal pure functions instead of testing outcomes.
 - Reassigning shared test data with `let` in suites.
 - Building large fake interfaces that diverge from real contracts.
