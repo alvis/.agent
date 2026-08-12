@@ -24,6 +24,7 @@ MERGE_WORKFLOW = WRITE_PR / "references" / "merge.md"
 GIT_STANDARD = PLUGIN / "standards" / "git"
 MESSAGE_TEMPLATE = WRITE_PR / "templates" / "message.md"
 INLINE_REVIEW_TEMPLATE = WRITE_PR / "templates" / "inline-review.md"
+OVERALL_REVIEW_TEMPLATE = WRITE_PR / "templates" / "overall-review.md"
 GIT_RULE_FILES = {
     "GIT-PR-02.md",
     "GIT-PR-SIZE-01.md",
@@ -251,6 +252,21 @@ def test_review_ledger_retains_raw_finding_fields_for_recovery() -> None:
     assert "body: <raw explanatory body" in checklist
     assert "authoritative raw finding" in checklist
     assert "raw finding's `title` and `body`" in publishing
+
+
+def test_rereview_body_reports_only_changed_previous_verdicts() -> None:
+    template = OVERALL_REVIEW_TEMPLATE.read_text()
+    workflow = REVIEW_WORKFLOW.read_text()
+    publishing = (WRITE_PR / "references" / "review-publishing.md").read_text()
+
+    assert "### 🔄 Previous reports" in template
+    assert "### ✅ Previous" not in template
+    assert "immediately preceding review" in template
+    assert "Omit unchanged" in template
+    assert "Compare the latest verdict" in workflow
+    assert "review-to-review" in workflow
+    assert "Omit the section when no prior issue changed verdict" in publishing
+    assert "links the original report" in publishing
 
 
 def test_commit_message_directions_preserve_the_retired_standard_contract() -> None:

@@ -217,6 +217,10 @@ query($owner:String!,$name:String!,$number:Int!,$cursor:String){
 Page `reviewThreads` and each thread's `comments` connection to exhaustion.
 Re-evaluate every existing P0/P1/P2 or mandatory-chore thread, including
 resolved threads whose evidence commit differs from `HEAD_OID`.
+For each previously reported issue, derive its verdict in every prior review where it
+was evaluated. Compare the latest verdict with the immediately preceding review's
+verdict; retain only issues whose verdict changed. The comparison is review-to-review,
+not commit-to-commit, so several pushes between reviews do not create extra entries.
 
 ### Build the reviewable surface
 
