@@ -29,6 +29,10 @@ Render inline comments through [inline-review.md](inline-review.md).
 
 - {{marker}} **{{file}}:{{line}}** — {{suggestion}}
 
+### 🔄 Previous reports
+
+- [{{previous_report_label}}]({{previous_report_url}}) — {{latest_changed_verdict_summary}}
+
 ### 🎯 Goal and Requirements
 
 {{goal_spec_verdict}}
@@ -116,6 +120,11 @@ Notes for the sections where the guidance is not self-evident:
   rendering fault rather than as the deliberate scope it is.
 - **Not reviewed** — excluded paths and any concern that could not run. The author is
   entitled to know the boundary of what was actually looked at.
+- **Previous reports** — include this section only when an issue reported before the
+  immediately preceding review has a latest verdict that changed since that review.
+  Add one bullet per changed issue, link its original report, and summarize the latest
+  verdict and the evidence that changed it. Omit unchanged `still_applies`, `fixed`,
+  and `does_not_apply` verdicts; this is a review-to-review delta, not issue history.
 
 *Verdict* is the one section that is never dropped, and it carries its own heading so
 the closing alert is never read as part of the exclusion list above it. Close it with

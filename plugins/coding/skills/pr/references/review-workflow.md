@@ -217,6 +217,33 @@ query($owner:String!,$name:String!,$number:Int!,$cursor:String){
 Page `reviewThreads` and each thread's `comments` connection to exhaustion.
 Re-evaluate every existing P0/P1/P2 or mandatory-chore thread, including
 resolved threads whose evidence commit differs from `HEAD_OID`.
+For each previously reported issue, derive its verdict in every prior review where it
+was evaluated. Compare the latest verdict with the immediately preceding review's
+verdict; retain only issues whose verdict changed. The comparison is review-to-review,
+not commit-to-commit, so several pushes between reviews do not create extra entries.
+
+For every unresolved inline thread, inspect the pinned head for changes related to
+the concern. When the change addresses the concern, check the thread's complete reply
+history. If no reply records the published work, post one concise confirmation naming
+the checked head and evidence; if such a reply already exists, do not post another.
+Then resolve the thread:
+
+```bash
+gh api --hostname "$HOST" --method POST \
+  "repos/$OWNER/$REPO/pulls/$PR_NUMBER/comments/$COMMENT_ID/replies" \
+  -f body="$CONFIRMATION_REPLY" # only when no existing reply records the work
+
+gh api graphql --hostname "$HOST" -F threadId="$THREAD_ID" -f query='
+mutation($threadId:ID!){
+  resolveReviewThread(input:{threadId:$threadId}){
+    thread{isResolved}
+  }
+}'
+```
+
+Never resolve a thread whose concern still applies. Thread resolution records an
+independent review verdict; it is not available to the agent that implemented or
+published the change.
 
 ### Build the reviewable surface
 
@@ -480,7 +507,8 @@ With `--dry-run`, print the payload and post nothing.
   nothing already on the PR.
 - Every existing P0/P1/P2 or mandatory-chore thread required above was
   re-evaluated against `HEAD_OID` and reported as `still_applies`, `fixed`, or
-  `does_not_apply`; it was not reposted, replied to, or resolved by the reviewer.
+  `does_not_apply`; every fixed or inapplicable unresolved thread was resolved,
+  with exactly one work-confirmation reply when its history previously had none.
 - Every overall-review finding, including a null-anchor finding, has a stable
   key, priority, kind, review ID/URL, summary, evidence OID, and disposition;
   P0/P1/P2 and mandatory chores are explicitly re-evaluated on later heads.

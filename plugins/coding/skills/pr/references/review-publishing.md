@@ -81,7 +81,12 @@ in the diff. A comment on the wrong line costs more author time than no comment.
 - Re-evaluate every existing unresolved P0/P1/P2 thread against the pinned head
   and return `still_applies`, `fixed`, or `does_not_apply` in completion. Do not
   repost it.
-- A previously reported finding that is now fixed gets one line in the overall body,
-  not a new inline comment. Acknowledging the fix is what makes the next round land.
-- Never resolve or reply to another reviewer's threads. This skill adds its own
-  review; it does not moderate the conversation.
+- When a previously reported issue's latest verdict differs from its verdict in the
+  immediately preceding review, add one line under `### 🔄 Previous reports` that
+  links the original report and summarizes the latest verdict and changed evidence.
+  Omit the section when no prior issue changed verdict, and do not repeat unchanged
+  issues. A fixed issue remains an overall-body line rather than a new inline comment.
+- For each unresolved inline thread, inspect the pinned head for related changes.
+  When the concern is addressed, post a concise confirmation reply only if no
+  existing reply records the work, then resolve the thread. Never resolve a concern
+  that still applies, and never duplicate an existing implementation reply.
