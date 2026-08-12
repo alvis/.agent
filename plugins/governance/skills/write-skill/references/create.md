@@ -22,27 +22,35 @@ difference affects the result, follow `references/harnesses.md`.
 ## Workflow
 
 1. Inspect neighboring skills and call sites.
-2. Define the new skill's owned outcome, positive triggers, near-miss prompts,
+2. From concrete representative tasks, define the reusable knowledge target as
+   specified in `references/authoring.md`: raw inputs, outcomes, decisions, and the
+   routine subject knowledge a fresh agent must not have to rediscover.
+3. Inspect applicable evidence in the priority order defined in
+   `references/authoring.md`: real local consumers and callers, official
+   documentation or source, then credible battle-tested public usage only when a gap
+   remains. Separate mechanics from project conventions and current evidence from
+   stale claims.
+4. Define the new skill's owned outcome, positive triggers, near-miss prompts,
    exclusions, inputs, failure behavior, and verification.
-3. Before writing the skill, run the shared thought-experiment and blindspot
+5. Before writing the skill, run the shared thought-experiment and blindspot
    test (see `SKILL.md`) for the intended triggers and behavior.
-4. Create the smallest self-contained `<name>/SKILL.md` that teaches the
-   missing behavior. Keep always-used instructions inline and conditional bulk
-   in root-relative supporting resources.
-5. Add supporting scripts only for deterministic operations that prose should
+6. Create the smallest self-contained `<name>/SKILL.md` and supporting resources that
+   meet the reusable knowledge target. Keep always-used routing and instructions
+   inline and conditional recipes, examples, and diagnostics in root-relative
+   resources.
+7. Add supporting scripts only for deterministic operations that prose should
    not reproduce. Test scripts before documenting them.
-6. Run structural and policy validation (see `SKILL.md`), then re-run the
+8. Run structural and policy validation (see `SKILL.md`), then re-run the
    thought experiment and blindspot test against positive and near-miss
    prompts. Revise until the intended trigger boundary is explicit and
    neighboring work remains excluded. Do not claim runtime trigger behavior was
    exercised unless an executable evaluation actually ran.
-
-Use the `verify` action when functional or trigger evaluation is needed, with
-`fix: true`; loop fix and re-verify at most 3 times, then report partial
-completion with the remaining issues.
+9. Run the `verify` action in full mode. It applies the shared cold-start gate to the
+   representative tasks from step 2. When a task fails, fix the owning instruction and
+   rerun validation plus only the affected task, within the shared retry bound in
+   `references/functional-mode.md`.
 
 ## Completion
 
-Report the created path, ownership boundary, thought-experiment and blindspot
-coverage, validation results, runtime evaluation status (`exercised`, `not
-requested`, or `blocked`), and any intentionally deferred cases.
+Apply the root completion contract. Also report the created path and any intentionally
+deferred cases.

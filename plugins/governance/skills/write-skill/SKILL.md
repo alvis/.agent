@@ -21,7 +21,7 @@ workflow.
   [references/update.md](references/update.md).
 - **`verify`** — Validate structural, repository-policy, and (when behavior or
   discovery changed) trigger and behavior compliance, optionally exercising
-  isolated runtime prompts. See [references/verify.md](references/verify.md).
+  isolated harness prompts. See [references/verify.md](references/verify.md).
 
 If the action is missing or ambiguous, ask which action is intended rather than
 guessing. `create` requires that no suitable owner exists; when one does,
@@ -66,9 +66,18 @@ remaining issues.
 
 ## Completion
 
+<IMPORTANT>
+A `create`, operational `update`, or verification claiming behavioral
+self-sufficiency cannot return `PASS` from paper reasoning or validators. Apply the
+[cold-start release gate](references/functional-mode.md#run-the-cold-start-release-gate)
+to every representative task. A standalone structural verification may report
+structural `PASS`, but must state that self-sufficiency was not evaluated.
+</IMPORTANT>
+
 Report the action taken, affected skill paths, ownership boundaries or changes,
-thought-experiment and blindspot coverage, validation results, runtime
-evaluation status (`exercised`, `not requested`, or `blocked`), and any
-intentionally deferred cases or unresolved ambiguity.
+reusable knowledge target, thought-experiment and blindspot coverage, structural
+validation, behavioral gate status and session IDs when applicable, optional harness
+runtime status, and unresolved ambiguity. The behavioral report schema and evidence
+currency rules live only in `references/functional-mode.md`.
 Confirm any temporary Markdown thought-experiment notes were deleted before
 commit. Never claim a bulk update without listing its targets.

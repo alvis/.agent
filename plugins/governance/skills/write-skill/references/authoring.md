@@ -3,6 +3,14 @@
 Load this reference for every action. It owns the portable structure and
 content rules for skills authored by `write-skill`.
 
+## Contents
+
+- [Directory contract](#directory-contract)
+- [Reusable knowledge target](#reusable-knowledge-target)
+- [`SKILL.md`](#skillmd)
+- [Supporting resources](#supporting-resources)
+- [Validation](#validation)
+
 ## Directory contract
 
 - Author one self-contained skill directory with `SKILL.md` at its root.
@@ -17,6 +25,44 @@ content rules for skills authored by `write-skill`.
   path, `../`, or a harness-specific path substitution to find a resource.
 - Maintain one shared `SKILL.md` for Claude Code and Codex. Do not generate a
   portable projection of a non-portable source.
+
+## Reusable knowledge target
+
+Before writing, derive one to three representative tasks from the skill's promised
+outcome and real usage. Map every task to the exact promise it tests and include a real
+caller or observed failure when available. Collectively exercise the common operation,
+a material decision, and a common failure when those concerns exist. For each task,
+name the raw inputs, expected outcome, decisions, independent acceptance check, and
+reusable knowledge the agent would otherwise have to discover. The target is the
+smallest skill that lets a fresh agent complete those tasks from the skill and raw
+inputs without repeating ordinary subject research.
+
+Inspect evidence in this order, stopping when it is sufficient:
+
+1. Real local consumers, callers, configurations, tests, and failures. Treat their
+   project choices as conventions unless the implementation proves a general rule.
+2. Official documentation and source. Use these for universal mechanics, supported
+   interfaces, and current setup or migration contracts.
+3. Credible, battle-tested public usage when local and official evidence leave an
+   operational gap. Prefer maintained production examples with observable outcomes
+   over tutorial prose.
+
+Distinguish universal mechanics from project conventions and current evidence from
+claims that may have gone stale. Keep claim-to-source notes and cold-start evidence in
+working context or OS temporary files through the verdict, but ship synthesized
+operational guidance rather than an evidence or research diary. Never add those raw
+bytes, receipts, transcripts, or outcomes to the skill or repository. Avoid fixed
+versions unless the capability is version-bound;
+direct the executing agent to inspect current evidence for changing or
+project-specific facts.
+
+For every applicable representative task, capture the non-obvious mechanics, decision
+rules, complete setup recipe, concrete commands and configuration examples,
+generated-versus-source boundaries, common failure symptoms and diagnostics, and
+verification that proves the outcome. Keep routing and the always-used workflow in
+`SKILL.md`; put conditional recipes, examples, and troubleshooting depth in directly
+linked references. Missing routine mechanics are incompleteness, not an invitation for
+the executing agent to research the subject again.
 
 ## `SKILL.md`
 
@@ -83,3 +129,5 @@ machine-readable output contracts. Close every tag.
 4. When behavior or discovery changes, reason through representative positive
    and near-miss prompts. Do not report runtime behavior as exercised unless an
    executable evaluation ran.
+5. Apply the root `SKILL.md` completion guard. When cold-start is applicable, use
+   `references/functional-mode.md` as the sole receipt and evidence-currency contract.
