@@ -29,6 +29,6 @@ Read every file in each applicable standards directory, following its cross-refe
 | Frontend implementation | `coding:standards/universal/`, `coding:standards/function/`, `coding:standards/typescript/`, `coding:standards/naming/`, `coding:standards/testing/`, and `coding:standards/documentation/` |
 | Files and project setup | `coding:standards/file-structure/` |
 | Review | `coding:standards/code-review/` plus the Web standards above |
-| Commits, branches, and pull requests | `coding:standards/git/` |
+| Rendered PR messages and implementation-diff size or composition | `coding:standards/git/` |
 
 Web does not declare another framework plugin as a dependency; do not load its standards or skills.

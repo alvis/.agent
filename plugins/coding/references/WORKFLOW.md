@@ -11,7 +11,7 @@ Settle this first, from where the task came:
 - **From the user** — do it yourself when the change is small (low expected token spend); delegate it otherwise.
 - **From another agent** — do it yourself, unless you are a lead (an orchestrator). A lead advises and delegates rather than implementing; the only work it takes inline is a step it would finish in a handful of tool calls, where dispatching costs more than it isolates.
 
-Before work delegation, read `coding:references/ROUTING.md` and route the work to the specialist whose role fits; read `essential:references/orchestration.md` before you delegate, orchestrate, or review across a team. Hand the delegate the full file paths of every relevant skill and standard file — a subagent starts blind.
+Before work delegation, read `coding:references/ROUTING.md` and route the work to the specialist whose role fits; read `essential:references/orchestration.md` before you delegate, orchestrate, or review across a team. Hand the delegate the full file paths of every relevant skill, direction, template, and standard file — a subagent starts blind.
 
 ### Decide where the work will live
 
@@ -26,7 +26,7 @@ Settle this before editing:
 
 **Understand what you're changing first.** Before writing or fixing any code, build an understanding of the current implementation and its issues — run this once, by whichever is available: the `get_project_overview` MCP tool, the `ide__getDiagnostics` MCP tool, or the project's own build/type-check command — `npm run build` or `npx tsc --noEmit` for TypeScript, `ty` for Python, `cargo check` for Rust.
 
-**Carry out each action with the skill that matches it.** A skill is a tool you invoke with the Skill tool — it is not an agent. You never delegate work "to" a skill and never pass a skill name as a `subagent_type`; you *use* a skill to do the work yourself or inside a subagent. Each skill documents its own applicable standards internally.
+**Carry out each action with the skill that matches it.** A skill is a tool you invoke with the Skill tool — it is not an agent. You never delegate work "to" a skill and never pass a skill name as a `subagent_type`; you *use* a skill to do the work yourself or inside a subagent. Each skill documents its applicable directions, templates, and standards internally.
 
 | Action | Skill to invoke |
 |--------|-----------------|
@@ -47,9 +47,20 @@ Settle this before editing:
 | Finding dead code | `/coding:find-unused` |
 | Modernizing syntax | `/coding:modernize` |
 
-### Standards
+### Version-control directions
 
-Read every file in each applicable standards directory, following its cross-references. The inventory is exhaustive; select by action and language.
+Before committing, branching, or mutating local history, follow
+`coding:skills/commit/SKILL.md`. Before publishing, reviewing, or merging,
+follow the selected action under `coding:skills/pr/references/`. Templates own
+rendering, while standards own observable violations.
+
+### Implementation standards
+
+Read every file in each applicable standards directory, following its
+cross-references. A standard is a mechanically or semantically scannable rule
+over the resulting implementation or change artifact; a violation is an issue
+that requires a fix. The inventory is exhaustive; select by action and
+language.
 
 | Applies to | Standards |
 | --- | --- |
@@ -58,7 +69,7 @@ Read every file in each applicable standards directory, following its cross-refe
 | TypeScript and JavaScript | `coding:standards/typescript/` |
 | Identifiers and operation names | `coding:standards/naming/` |
 | Tests and testable implementation | `coding:standards/testing/` |
-| Commits, branches, and pull requests | `coding:standards/git/` |
+| Rendered PR messages and implementation-diff size or composition | `coding:standards/git/` |
 | Comments, JSDoc, and technical documentation | `coding:standards/documentation/` |
 | Errors, logging, and operational behavior | `coding:standards/observability/` |
 | Python | `coding:standards/python/` |

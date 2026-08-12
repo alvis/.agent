@@ -3,9 +3,9 @@
 Review a remote GitHub pull request and publish the result where the author will
 act on it: one inline comment per finding, anchored to the exact file and line,
 plus one overall review carrying the verdict. This skill owns remote PR review, its
-publication, and PR-size zone enforcement (`GIT-PR-SIZE-01..04`, handed over by
-`coding:pr create` and `coding:pr update`). Local pre-commit review belongs to `coding:review-code`;
-remediation to `coding:fix`.
+publication, and the `GIT-PR-SIZE-*` standard handed over by `coding:pr create`
+and `coding:pr update`. Local
+pre-commit review belongs to `coding:review-code`; remediation to `coding:fix`.
 
 ## Boundaries
 
@@ -18,6 +18,19 @@ remediation to `coding:fix`.
   (`coding:pr create` or `coding:pr update`), or merging (`coding:pr merge`).
 - One reviewer, one pass. Never fan out per area — a PR is sized so one reader can
   hold it whole, and split judgement produces split findings.
+
+## Review directions
+
+Read the implementation and every applicable standard. A standard violation or
+predicted defect is an implementation finding and requires a fix. An unmet
+operation, such as a stale base or pending rebase, is a process chore rather
+than a code-priority claim.
+
+Render anchored findings and chores through
+[inline-review.md](../templates/inline-review.md), and render the review map and
+verdict through [overall-review.md](../templates/overall-review.md). Use the
+size standard to choose reading order and reviewer slots, never to suppress a
+finding.
 
 ## Execution
 
@@ -230,14 +243,31 @@ side) and every removed line (LEFT). A finding that cannot anchor moves into the
 overall body — never dropped, never posted against a guessed line.
 </IMPORTANT>
 
-Classify each size zone with the canonical read-only helper and treat a missing
-required section as a finding citing its rule id:
+Classify each size zone with the canonical read-only helper. A rendered-message
+failure is a standard finding citing the rule ID returned by
+[scan-pr-message.py](../scripts/scan-pr-message.py), not a process chore.
+Resolve `TEMPLATE` with the authoring workflow's precedence, bind `PR_BODY` to
+the live body, select `ARCHETYPE` from the diff and available label, derive
+`ZONE` and `GENERATED_ARGS` from `SIZE_JSON`, then run:
 
 ```bash
 SIZE_JSON=$(uv run --python 3.13 \
   "${CODING_PR_SKILL_DIR}/scripts/classify-pr-size.py" \
   --repo "$REVIEW_DIR" --base "$BASE_OID" --head "$HEAD_OID")
+
+MESSAGE_SCAN=$(uv run --python 3.13 \
+  "${CODING_PR_SKILL_DIR}/scripts/scan-pr-message.py" \
+  --body-file - --template "$TEMPLATE" --zone "$ZONE" \
+  --archetype "$ARCHETYPE" --head-oid "$HEAD_OID" \
+  --base-oid "$BASE_OID" "${GENERATED_ARGS[@]}" <<<"$PR_BODY")
 ```
+
+Convert every scanner violation into one finding after confirming its live PR
+evidence. Passing the scanner establishes structure only; inspect the truth and
+specificity of each claim semantically. This review scan deliberately omits
+the authoring-only `--allow-pending-reviewers` flag: reviewer triplets count
+only when their assigned, reviewed, and approved tasks are checked for the
+active revision.
 
 Use its all-path `files_changed` and generated-excluding authored `net_loc`.
 Generated, vendored, and binary paths remain in the file count. Do not infer
@@ -247,17 +277,15 @@ For a stack, classify each PR surface from its own head/base diff. The holistic
 bottom-base-to-top-head diff supplies review context, not one replacement size
 zone for every PR in the stack.
 
-The numeric table is a human-readable projection of
-`../assets/size-thresholds.json`, the sole threshold authority. The classifier
-loads that asset, and contract verification checks every projected value
-against it.
+Use the classifier's returned zone. The table below explains that result for
+review; do not inspect or reproduce the classifier's internal threshold data.
 
-| Zone | Bound (stricter of the two wins) | PR body must add |
-|---|---|---|
-| green | ≤ 15 files and ≤ 500 authored net LOC | Summary, Verification |
-| yellow | ≤ 30 files and ≤ 1200 authored net LOC | Risk, Test plan |
-| red | ≤ 60 files and ≤ 2000 authored net LOC | Why this size |
-| black | > 60 files or > 2000 authored net LOC | Risk, Test plan, Why this size; full review of the self-contained unit; exact-revision OWNER authorization is required only for `APPROVE` |
+| Zone | PR body must add |
+|---|---|
+| green | Summary, Verification |
+| yellow | Risk, Test plan, and the policy-required reviewer evidence |
+| red | Why this size and the policy-required reviewer evidence |
+| black | Risk, Test plan, Why this size, and the policy-required reviewer evidence; full review of the self-contained unit; exact-revision OWNER authorization is required only for `APPROVE` |
 
 A black-zone review first judges whether the surface is genuinely one
 self-contained unit, then reviews it completely. Missing authorization does
@@ -313,7 +341,8 @@ Cover the concerns in consequence order — correctness and security, then align
 testing, quality, docs, style — in one pass.
 [review-checklist.md](review-checklist.md) carries the per-concern checklist, the
 depth ladder, and the finding schema;
-[review-tone.md](review-tone.md) governs every word that gets posted.
+[review-tone.md](review-tone.md) governs every word that gets posted, and
+[inline-review.md](../templates/inline-review.md) owns the inline rendering.
 
 `testing` answers one question above coverage: **would these tests fail if the
 implementation regressed?** Assertions that restate the implementation, tests with
@@ -366,9 +395,9 @@ comment body fetched before this invocation.
 `REQUEST_CHANGES` remains publishable without authorization because it cannot
 approve the PR. The review workflow never authors the OWNER comment.
 
-Build the body from
-[../templates/overall-review.md](../templates/overall-review.md)
-and submit the whole review in one atomic call, so a rejected comment cannot leave
+Build the body from [overall-review.md](../templates/overall-review.md) and each
+anchored comment from [inline-review.md](../templates/inline-review.md). Submit
+the whole review in one atomic call, so a rejected comment cannot leave
 orphaned fragments:
 
 ```bash

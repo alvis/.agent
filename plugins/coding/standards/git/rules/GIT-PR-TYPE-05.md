@@ -1,4 +1,4 @@
-# GIT-PR-TYPE-05: Generated Files Isolated or Marked
+# GIT-PR-TYPE-05: Isolate or Mark Generated Output
 
 ## Severity
 
@@ -6,35 +6,35 @@ warning
 
 ## Intent
 
-Generated artefacts (lockfiles, SDK output, OpenAPI clients, snapshot fixtures, schema dumps) either land in their own PR or are clearly marked inside a mixed PR so reviewers can skip them. Unmarked generator output mixed with hand-written code defeats review entirely — reviewers cannot tell which lines were authored.
+Generated artifacts are isolated when practical. In a mixed implementation
+diff, every generated path is identifiable as generated and the rendered PR
+message names its source or generator, so reviewers can distinguish authored
+logic from derived output.
+
+## Scan
+
+Compare the classifier's generated paths with the implementation diff, Git
+attributes, and the rendered Generated Files section. Report unmarked paths,
+missing source or generator evidence, or generated output mixed with unrelated
+authored changes when separation is practical.
 
 ## Fix
 
-Preferred: split into a `mechanical-refactor` PR for the generated drop:
-
-```text
-api-sdk-bump/01-regen   chore(api-sdk): regenerate SDK from openapi.yaml
-api-sdk-bump/02-consume feat(api): use new SDK fields
-```
-
-When any generated files are present, the canonical PR template owns the body
-evidence. Prefer platform metadata such as `linguist-generated=true`, while
-still satisfying that template.
-
-If the project supports it, configure `linguist-generated=true` and `merge=ours` attributes for the generated paths so the diff is collapsed in review tooling.
-
-### Why this matters
-
-- A reviewer who reads every line of a 4000-LOC lockfile diff is reviewing nothing; a reviewer who skips it because they cannot tell what is hand-written is missing real bugs.
-- Marking the generated portion explicitly converts the question "was this hand-written?" into a one-line answer.
-- Generator inputs (the OpenAPI spec, the schema file, the codemod script) are themselves the cognitive load — those should be reviewed carefully.
+Move the generated output into a focused diff or mark every generated path and
+its source or generator in the selected PR message. Configure
+`linguist-generated=true` when the repository supports it, without excluding
+the path from the PR file count.
 
 ## Edge Cases
 
-- A generated file the team treats as authored (e.g. a vendored type-stub that humans edit) is not "generated" for this rule. Record that classification and its evidence in the PR discussion.
-- Snapshot-update-only PRs are acceptable as `cleanup` or `mechanical-refactor` and benefit from the same split.
-- Lockfile-only changes belong in their own PR (often a `chore`); they should never gate a feature stack.
+- A path that humans edit and review as source is authored even if a tool
+  originally created it.
+- Lockfiles remain in the file count while their additions and deletions are
+  excluded from authored net LOC.
+- Snapshot-only changes may remain together when they are one reproducible
+  generated surface.
 
 ## Related
 
-GIT-PR-TYPE-01, GIT-PR-TYPE-04, GIT-PR-SIZE-03, GIT-PR-SIZE-04
+GIT-PR-02, GIT-PR-SIZE-01, GIT-PR-SIZE-03, GIT-PR-SIZE-04,
+GIT-PR-TYPE-04

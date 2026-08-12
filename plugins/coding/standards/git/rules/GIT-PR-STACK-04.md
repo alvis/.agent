@@ -1,4 +1,4 @@
-# GIT-PR-STACK-04: Behaviour Changes Behind Feature Flags
+# GIT-PR-STACK-04: Gate Nontrivial Behavior Changes
 
 ## Severity
 
@@ -6,50 +6,38 @@ error
 
 ## Intent
 
-Behaviour changes ship behind a feature flag unless the change is **all three** of: tiny, isolated, and reversible by simple revert. The flag PR (`GIT-PR-TYPE-01` category `feature-flag`) names the flag and states its default state; the implementation PR consumes the flag; a later `cleanup` PR retires the flag once the rollout is complete.
+A behavior change is controlled by a feature flag unless it is simultaneously
+green-zone, isolated to one small surface, and reversible by a simple revert
+without data implications. The rendered PR message names the flag, default
+state, rollout plan, removal target, and cleanup change.
 
-This rule is the safety net that makes stacked merges practical: each PR can land independently because behaviour stays gated until the whole stack is in.
+## Scan
+
+Inspect changed execution paths and configuration semantically. Report
+nontrivial new behavior that lacks a flag check, or a feature-flag message that
+omits its required evidence. A config toggle or kill switch qualifies when it
+provides the same controlled rollout and reversal.
 
 ## Fix
 
-Three-PR pattern:
-
-```text
-order-archive/01-flag    feat(orders): add orders.archive (default off)
-order-archive/02-impl    feat(orders): gate archiveOrder on orders.archive
-order-archive/03-cleanup chore(orders): remove orders.archive flag
-```
-
-The canonical PR template owns the feature-flag body's operational evidence.
-Team ownership stays in CODEOWNERS or forge assignments instead of the body.
-
-Implementation PR consumes the flag:
+Add and consume a default-safe feature flag around the changed behavior, then
+render its operational evidence through the selected PR message template. Keep
+flag ownership in CODEOWNERS or forge assignments rather than the PR body.
 
 ```typescript
-async function archiveOrder(input: ArchiveOrderInput): Promise<void> {
-  if (!flags.isEnabled("orders.archive", input.merchantId)) {
-    throw new FeatureDisabledError("orders.archive");
-  }
-  // ...
+if (!flags.isEnabled("orders.archive", input.merchantId)) {
+  throw new FeatureDisabledError("orders.archive");
 }
 ```
 
-### When the "tiny / isolated / reversible" exemption applies
-
-All three must hold:
-
-- **Tiny**: green-zone PR, single function or a handful of lines.
-- **Isolated**: no cross-module ripple; no migration; no consumer change.
-- **Reversible**: `git revert` cleanly restores prior behaviour with no data implications.
-
-A typo fix in user-facing copy qualifies. A pricing-engine swap does not.
-
 ## Edge Cases
 
-- Migrations always pair with a flag (`GIT-PR-TYPE-03`); the migration is shape-only, the flag governs whether code uses the new shape.
-- Flag retirement is a real PR (`cleanup`), not a passive timeout. The retirement PR also deletes the flag's config, telemetry, and tests for both branches.
-- Internal-only experiments behind a kill switch satisfy this rule even when the "flag" is a config toggle rather than a typed flag system.
+- A copy typo in one green, isolated, revertible surface may satisfy the
+  exemption; a pricing-engine replacement does not.
+- Migrations that expose new behavior require a flag even when the migration
+  itself is isolated under `GIT-PR-TYPE-03`.
+- Flag retirement removes configuration, telemetry, and tests for both paths.
 
 ## Related
 
-GIT-PR-TYPE-01, GIT-PR-TYPE-03, GIT-PR-SIZE-02, GIT-PR-STACK-02, GIT-PR-STACK-05
+GIT-PR-02, GIT-PR-SIZE-01, GIT-PR-SIZE-02, GIT-PR-TYPE-03

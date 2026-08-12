@@ -15,6 +15,14 @@ Route every remote pull-request operation through one explicit subcommand. Local
 history mutation remains owned by `coding:commit`; local pre-commit review remains
 owned by `coding:review-code`.
 
+Each action reference owns its directions. Scan each implementation diff and
+rendered PR body against `coding:standards/git/`. Author PR bodies through
+[templates/message.md](templates/message.md), then validate them with
+[scripts/scan-pr-message.py](scripts/scan-pr-message.py). Render anchored
+review comments through [templates/inline-review.md](templates/inline-review.md)
+and the overall verdict through
+[templates/overall-review.md](templates/overall-review.md).
+
 ## Usage
 
 ```text
@@ -39,7 +47,9 @@ sync, navigate, unstack, or merge a GitHub PR stack, load
 operator. This applies even when the request arrives through `create`, `update`,
 or `merge`, rather than the explicit `stack` route.
 
-- `author` writes deterministic PR title and body text without publication.
+- `author` writes deterministic PR title and body text without publication,
+  using [templates/message.md](templates/message.md) when the repository has no
+  local template.
   Follow only [Author the PR text](references/create-update.md#author-the-pr-text);
   `--base` selects the intended PR base instead of the first-parent default.
 - `create` opens new draft PRs for one saved change or a conventional linear

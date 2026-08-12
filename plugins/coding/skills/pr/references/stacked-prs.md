@@ -4,9 +4,13 @@ Load this reference when a create or update target contains multiple dependent
 changes, when merge receives more than one PR, or when the caller has not chosen
 a PR shape and the review surface may benefit from a stack.
 
+Apply `GIT-PR-SIZE-*`, `GIT-PR-TYPE-02..05`, and `GIT-PR-STACK-04` from
+`coding:standards/git/`; this reference owns stack directions and executable
+operators.
+
 ## Suggest a stack
 
-Calculate the active `GIT-PR-SIZE-*` zone with the canonical classifier:
+Calculate the active size zone with the canonical classifier:
 
 ```bash
 uv run --python 3.13 \
@@ -17,15 +21,14 @@ uv run --python 3.13 \
 Its file count includes every changed path, including generated, vendored, and
 binary files. Its authored net LOC excludes additions and deletions from
 recognized package lockfiles and paths marked `linguist-generated` at the base
-or head. The green-zone values shown here—at most 15 files and 500 authored net LOC—are a human-readable projection of `../assets/size-thresholds.json`, the
-sole numeric threshold authority. The classifier loads that asset; contract
-tests verify this projection because it is the review surface one reader can
+or head. Use the returned zone; do not inspect or reproduce the classifier's
+internal threshold data. A green result is the review surface one reader can
 hold at once.
 
-Require a split regardless of size or a standalone preference when one PR mixes
-categories that the standard requires isolated, including migration with logic
-(`GIT-PR-TYPE-03`) or mechanical refactoring with behaviour
-(`GIT-PR-TYPE-04`). Otherwise respect an explicit standalone-or-stack choice.
+Require a split regardless of size or a standalone preference when one PR
+violates the composition standard, including migration with logic or
+mechanical refactoring with behaviour. Otherwise
+respect an explicit standalone-or-stack choice.
 
 When no shape was chosen, proactively suggest a stack when the proposed PR
 exceeds the active green zone and its files form at least two domain-coherent
@@ -55,12 +58,14 @@ proceeds as one PR with its zone-required sections. A mandatory category split
 blocks publication until accepted and shaped through `coding:commit`; neither
 path silently reshapes history.
 
-## Stack contract
+## Stack directions
 
 - Shape local history through `coding:commit`; `coding:pr` does not split,
   reorder, amend, or absorb changes.
-- Name each head `<feature-slug>/NN-<scope>` per `GIT-PR-STACK-01`; `NN` is a
-  zero-padded bottom-to-top ordinal.
+- Name each non-work-stream head `<feature-slug>/NN-<scope>` with a shared
+  kebab-case slug, a zero-padded bottom-to-top ordinal, and a short kebab-case
+  slice name. A work stream uses the branch prefix from
+  `essential:references/naming.md` and appends only `NN-<scope>`.
 - Require one linear chain from the destination through every selected head.
 - Open every PR as draft. PR 01 targets the destination; each later PR targets
   the previous head.

@@ -80,7 +80,9 @@ jj bookmark set <target> --revision <new-change-id>
 
 - Run exactly one command based on the pre-flight classification.
 - `--allow-backwards` is required only when an existing move is non-fast-forward. The skill MUST check (`jj log -r '<target>..<new-change-id>'` vs `jj log -r '<new-change-id>..<target>'`) and confirm with the user before a backward move.
-- Outside this route, backward bookmark moves require explicit `--allow-rewrite-merged` consent per `GIT-PR-STACK-03`.
+- Outside this route, backward bookmark moves require the explicit
+  `--allow-rewrite-merged` consent required by the
+  [commit and branch directions](../SKILL.md#commit-and-branch-directions).
 
 ### 6. Synchronize the chosen bookmark
 

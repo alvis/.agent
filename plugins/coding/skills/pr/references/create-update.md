@@ -9,8 +9,52 @@ continuous work; rewrite over restructure, restructure over integrate, never
 append. Dissolve new content into the existing structure. Visible seams,
 parallel paths, addenda, vestigial helpers, and tack-ons are forbidden.
 
-Reviewers own size-rule findings and reviewability judgments. This workflow
-owns deterministic zone calculation and the authoring gates below.
+Reviewers own size-standard findings and reviewability judgments. This workflow
+owns pull-request authoring and publication directions, deterministic zone
+calculation, and the gates below. Scan each implementation diff and rendered PR
+body against `coding:standards/git/`; [message.md](../templates/message.md) owns
+the bundled body shape.
+
+## Pull-request directions
+
+- Format the title as a Conventional Commit subject.
+- Open every human-authored PR as a draft. A documented incident may authorize
+  a hotfix exception; automated dependency or generator PRs follow their
+  platform configuration.
+- Use a repository-local PR template when present; otherwise render
+  [message.md](../templates/message.md). Keep labels and size bookkeeping out
+  of the title and body.
+- Bind authoring and review evidence to the exact head and base OIDs. Reset
+  reviewer evidence when either OID changes; preserve it on a no-op retry.
+- Make each PR independently valid and reviewable. Keep its tests and generated
+  outputs with the implementation that needs them.
+- Leave draft only after CI passes, the author self-reviews the diff, the body
+  passes its selected-template scan, and every lower stack PR has merged or is
+  also ready. A materially expanded surface returns to draft; notify reviewers
+  when they need the changed context.
+
+### Select the PR archetype
+
+Select the one archetype that best describes the implementation surface.
+Before publication, list the repository labels and attach the exact archetype
+label only when it exists. If absent, omit it and report the skip; never create
+or substitute a label. Remove other available archetype labels so at most one
+remains.
+
+| Surface | Archetype |
+|---|---|
+| Design proposal without production code | `rfc` |
+| Types, interfaces, schemas, or JSDoc-only API shape | `code-spec` |
+| External API, IPC, or wire format | `contract` |
+| Pure entities, value objects, invariants, and unit tests | `domain-model` |
+| Business behavior fulfilling an existing shape | `implementation` |
+| Module wiring, adapters, dependency injection, or end-to-end tests | `integration` |
+| Add, flip, or remove a feature flag | `feature-flag` |
+| Schema migration, backfill, or config-format upgrade | `migration` |
+| User-facing visual or interaction change | `ui` |
+| Rename, move, codemod, formatting sweep, or pure restructuring | `mechanical-refactor` |
+| Dead-code, deprecation, or lint-debt removal | `cleanup` |
+| Logs, metrics, traces, dashboards, alerts, or instrumentation | `observability` |
 
 ## Boundaries
 
@@ -312,9 +356,9 @@ repository default branch only when none exists, then resolve that exact base
 commit as `AUTHOR_BASE_OID`. New-stack bookmarks do not yet exist, so author
 each head against `AUTHOR_BASE_OID`, never `PR_BASE`.
 
-Select one archetype label for each head using the `GIT-PR-TYPE-01` selection
-table. Before submitting each PR, preflight the repository labels before any
-push or PR create/edit. If the selected label exists, attach it; if it is
+Select one archetype label for each head using the
+[archetype table](#select-the-pr-archetype). Before submitting each PR, preflight
+the repository labels before any push or PR create/edit. If the selected label exists, attach it; if it is
 unavailable, continue without it and record that it was skipped. Never create,
 silently substitute, or require an unavailable label. Do not call any label
 creation command. Bind the canonical set before either publication branch and
@@ -659,8 +703,10 @@ passes its base; text-only callers default to the first parent. Never invoke `gh
    use `jj log --no-graph -T 'commit_id' -r
    "heads(::<head-oid> & ::<base-oid>)"` on the jj path or
    `git merge-base <base-oid> <head-oid>` on the git path. Use the empty tree
-   only for the root-commit fallback. Calculate the active `GIT-PR-SIZE-*`
-   zone from that exact surface with:
+   only for the root-commit fallback. Calculate the active size zone from that
+   exact surface under `GIT-PR-SIZE-*`. Run the classifier only after binding
+   the exact base and head OIDs; it derives the zone for this authoring step and
+   is not a policy authority:
 
    ```bash
    SIZE_JSON=$(uv run --python 3.13 \
@@ -668,7 +714,8 @@ passes its base; text-only callers default to the first parent. Never invoke `gh
      --repo "$REPO_ROOT" --base "$BASE_OID" --head "$HEAD_OID")
    ```
 
-   Read `zone`, `files_changed`, and `net_loc` from `SIZE_JSON`. The classifier's
+   Read `zone`, `files_changed`, `net_loc`, and `required_reviewers` from
+   `SIZE_JSON`. The classifier's
    file count includes every changed path and excludes generated-file
    additions and deletions only from authored net LOC. The canonical thresholds
    are fixed. Record the required sections for that zone. A black-zone change
@@ -707,7 +754,7 @@ passes its base; text-only callers default to the first parent. Never invoke `gh
 
    A heading's presence alone never passes. When no repo-local template exists,
    fall back to the bundled default at
-   [../templates/pr.md](../templates/pr.md) and continue.
+   [message.md](../templates/message.md) and continue.
    When the bundled default is also missing: exit 4, print the path that
    failed to resolve.
 6. Fill the bundled default's placeholders from the commit body, diff, and
@@ -722,8 +769,9 @@ passes its base; text-only callers default to the first parent. Never invoke `gh
      absent.
    - `{{rollback_body}}` — exact rollback steps or explicit forward-only
      mitigation. Required for the `migration` archetype.
-   - `{{feature_flag_body}}` — flag name, default state, removal target, and
-     rollout plan. Required for the `feature-flag` archetype.
+   - `{{feature_flag_body}}` — flag name, default state, removal target,
+     rollout plan, and cleanup change. Required for the `feature-flag`
+     archetype.
    - `{{screenshots_body}}` — before/after screenshots and relevant
      accessibility notes. Required for the `ui` archetype.
    - `{{generated_files_body}}` — every generated path and its source or
@@ -745,7 +793,9 @@ passes its base; text-only callers default to the first parent. Never invoke `gh
      this change and ticked as each one is confirmed. Every item is a check;
      an observation, a result, or evidence of what already happened belongs in
      Implementation. Change-specific checks are mandatory; standard items never
-     replace them; append items per the template's Verification guidance.
+     replace them. Append one assigned/reviewed/approved reviewer triplet per
+     `required_reviewers`, in slot order, using the exact head/base OIDs recorded
+     in step 4 and the template's Verification shape.
    - `{{boundary_body}}` — bullets naming related work the instruction placed
      outside this change, so its edges are not read as gaps. It records the
      scope it was given, not the author's own judgment calls. "None." when
@@ -758,14 +808,40 @@ passes its base; text-only callers default to the first parent. Never invoke `gh
    report the missing evidence when it cannot be derived specifically. Strip
    every author-facing guidance comment from the rendered body — keep Summary
    and Verification always.
-7. Emit the title line, a single blank line, then the Markdown body to stdout.
+7. After rendering and before emission or publication, scan the body against
+   its selected template and active standard conditions. Build repeated
+   `--generated-file` arguments from every generated path in `SIZE_JSON`, then
+   run:
+
+   ```bash
+   if ! MESSAGE_SCAN=$(uv run --python 3.13 \
+     "${CODING_PR_SKILL_DIR}/scripts/scan-pr-message.py" \
+     --body-file - --template "$TEMPLATE" --zone "$ZONE" \
+     --archetype "$ARCHETYPE" --head-oid "$HEAD_OID" \
+     --base-oid "$BASE_OID" --allow-pending-reviewers \
+     "${GENERATED_ARGS[@]}" <<<"$BODY"); then
+     printf '%s\n' "$MESSAGE_SCAN" >&2
+     exit 5
+   fi
+   ```
+
+   Exit 5 with the scanner's JSON when it reports a violation. Do not publish
+   or reinterpret the failure as advice; fix the owning standard rule and
+   rerender. The scanner establishes structural conformance while semantic
+   review establishes whether the evidence is specific and true. The
+   authoring-only pending flag permits unchecked reviewer tasks before anyone
+   can review; the review workflow omits it and requires confirmed triplets.
+8. Emit the title line, a single blank line, then the Markdown body to stdout.
    Exit codes: `0` success, `2` unknown ref or non-conventional subject, `3` no
-   commit source available, `4` bundled default template missing.
+   commit source available, `4` bundled default template missing, `5` rendered
+   message violates `coding:standards/git/`.
 
 ## Verification and Completion
 
-- The title matches the Conventional Commits regex; a repo template is verbatim,
-  or the bundled default has no placeholder or dropped-section stub. The same
+- The title matches the Conventional Commits regex and the rendered body passes
+  [scan-pr-message.py](../scripts/scan-pr-message.py); a repo template is
+  verbatim, or the bundled
+  default has no placeholder or dropped-section stub. The same
   head OID, base/empty-tree OID, template, thresholds, and placeholder map yield
   byte-identical `title\n\nbody` without timestamps or random IDs.
 - Local checks passed with every command/result recorded, or command execution

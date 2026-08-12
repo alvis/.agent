@@ -1,6 +1,6 @@
 # Auto-detected: target of edit/absorb is already merged on origin
 
-Triggered any time the skill would rewrite a change whose bookmark is associated with a `MERGED` PR. Default = corrective PR on top per `GIT-PR-STACK-03`. Rewrite-with-consent is opt-in. See [SKILL.md](../SKILL.md).
+Triggered any time the skill would rewrite a change whose bookmark is associated with a `MERGED` PR. Default = the corrective PR on top required by the [commit and branch directions](../SKILL.md#commit-and-branch-directions). Rewrite-with-consent is opt-in. See [SKILL.md](../SKILL.md).
 
 ## When triggered
 
@@ -28,7 +28,8 @@ If the user did NOT pass `--allow-rewrite-merged`, run `AskUserQuestion`:
 ```text
 Target change <change_id> is already on origin and its PR is MERGED.
 
-Rewriting merged history breaks consumers and violates GIT-PR-STACK-03.
+Rewriting merged history breaks consumers and conflicts with the public-history
+direction.
 How would you like to proceed?
 
 [1] Corrective PR on top (recommended, default)
@@ -44,7 +45,8 @@ If `--allow-rewrite-merged` is set, skip the prompt and proceed directly to Opti
 
 ### 2. Option 1 — corrective PR (default, recommended)
 
-This is the `GIT-PR-STACK-03` path: never rewrite merged history; layer a fix on top.
+Follow the direction's corrective-PR route: preserve merged history and layer a
+fix on top.
 
 ```bash
 # Start a fresh change on top of main@origin

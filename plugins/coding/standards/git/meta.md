@@ -1,23 +1,31 @@
-# Git Workflow Standards
+# Pull-Request Change Standards
 
-_Standards for commit messages, branch naming, and pull requests using Conventional Commits._
+_Scannable requirements for implementation diffs and rendered PR messages._
 
-## Dependent Standards
+## Authority Boundary
 
-You MUST also read the following standards together with this file:
+This standard owns only violations detectable mechanically or semantically in
+an implementation diff or rendered PR message. Each violation is an issue that
+requires a fix.
 
-- Naming Standards (standard:naming) - scope naming aligns with package naming conventions
+[coding:commit](../../skills/commit/SKILL.md) owns commit, branch, and local
+history directions. [create-update.md](../../skills/pr/references/create-update.md),
+[stacked-prs.md](../../skills/pr/references/stacked-prs.md),
+[review-workflow.md](../../skills/pr/references/review-workflow.md), and
+[merge.md](../../skills/pr/references/merge.md) own PR directions. The PR skill's
+[message.md](../../skills/pr/templates/message.md) and
+[inline-review.md](../../skills/pr/templates/inline-review.md) own rendered
+message shapes. Those directions and templates are not standards.
 
-## What's Stricter Here
+## Canonical Inputs
 
-This standard enforces requirements beyond typical Conventional Commits practices:
-
-| Standard Practice                          | Our Stricter Requirement                                              |
-|--------------------------------------------|-----------------------------------------------------------------------|
-| Freeform scope naming                      | **Scope must be short package name — drop catalog prefix**            |
-| Mixed footer keywords (`Fixes`, `Closes`)  | **Footer uses `Closes` only**                                         |
-| Unlimited scopes per commit                | **Maximum 2 comma-separated scopes**                                  |
-| PR created when ready                      | **Always start with a draft PR**                                      |
+- [size-thresholds.json](../../skills/pr/assets/size-thresholds.json) is the
+  sole numeric PR-size authority.
+- [classify-pr-size.py](../../skills/pr/scripts/classify-pr-size.py) scans an
+  exact committed base/head diff for size.
+- [scan-pr-message.py](../../skills/pr/scripts/scan-pr-message.py) scans a
+  rendered PR body against its selected template, exact revision, and
+  conditional evidence.
 
 ## Exception Policy
 
@@ -34,23 +42,14 @@ Required exception note fields:
 - `temporary_mitigation`
 - `follow_up_action`
 
-Record exception notes in the pull request discussion, bound to the exact head
-and base OIDs to which they apply. Repository files cannot change this
-standard's rules. The canonical numeric PR-size thresholds live only in
-`../../skills/pr/assets/size-thresholds.json`; numeric values in this standard
-are human-readable projections that verification checks against that asset.
-
-`GIT-PR-SIZE-04` is a separate approval gate, not an exception under this
-policy: its exact five-line OWNER authorization contract applies instead, and
-the general exception-note fields do not apply. Missing authorization does not
-prevent pushing a self-contained oversized unit as a draft or running CI; it
-prevents review approval. Other missing exception notes reject submission.
+Record the note in the PR discussion against the exact head and base OIDs.
+Repository files cannot change the fixed PR-size thresholds.
+`GIT-PR-SIZE-04` uses its separate exact-revision OWNER authorization gate,
+not this exception policy.
 
 ## Rule Groups
 
-- `GIT-MSG-*`: Commit message format, type, scope, title length, body, and footer rules.
-- `GIT-BRN-*`: Branch naming format and scope convention rules.
-- `GIT-PR-*`: Pull request format, description structure, and review rules.
-- `GIT-PR-SIZE-*`: PR size zones (green/yellow/red/black) with all-path file thresholds and authored net-LOC thresholds.
-- `GIT-PR-TYPE-*`: PR categorisation across the 12 PR archetypes and isolation rules between them.
-- `GIT-PR-STACK-*`: Stacked-PR mechanics — bookmark naming, fix routing, merge order, and feature-flag policy.
+- `GIT-PR-02`: Rendered PR-message conformance.
+- `GIT-PR-SIZE-*`: Diff-size inputs, zones, evidence, and approval gates.
+- `GIT-PR-TYPE-02..05`: Implementation-diff composition and generated output.
+- `GIT-PR-STACK-04`: Feature-flag coverage for nontrivial behavior changes.

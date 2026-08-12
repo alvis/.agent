@@ -8,23 +8,30 @@
     "authored_net_loc": {
       "unit": "lines",
       "reason": "Authored additions and deletions measure reviewable code after generated-file changes are excluded."
+    },
+    "required_reviewers": {
+      "unit": "reviewers",
+      "reason": "Larger review surfaces need additional independent readers before approval."
     }
   },
   "zones": [
     {
       "name": "green",
       "max_files_changed": 15,
-      "max_authored_net_loc": 500
+      "max_authored_net_loc": 500,
+      "required_reviewers": 0
     },
     {
       "name": "yellow",
       "max_files_changed": 30,
-      "max_authored_net_loc": 1200
+      "max_authored_net_loc": 1200,
+      "required_reviewers": 1
     },
     {
       "name": "red",
       "max_files_changed": 60,
-      "max_authored_net_loc": 2000
+      "max_authored_net_loc": 2000,
+      "required_reviewers": 2
     }
   ]
 }

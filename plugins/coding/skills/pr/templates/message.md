@@ -1,14 +1,19 @@
 <!--
-Default PR template for `coding:pr create` and `coding:pr update`
+Default PR message template for `coding:pr create` and `coding:pr update`
 (`coding:commit --create-pr` delegates to `create`).
+
+`coding:standards/git/` owns conformance findings. Validate rendered output
+with `scripts/scan-pr-message.py`; this file alone owns the bundled shape.
 
 This is the **default** PR template used when the repo has no GitHub PR
 template of its own checked in (e.g. `.github/PULL_REQUEST_TEMPLATE.md`).
 When a repo template exists, that template takes precedence and is emitted
 verbatim instead of this one.
 
-Publication metadata: classify every PR with the archetype selected by
-`GIT-PR-TYPE-01`. Before publication, inspect the repository's existing labels
+Publication metadata: classify every PR with the archetype selected in
+[create-update.md](../references/create-update.md#select-the-pr-archetype).
+Before publication, inspect the
+repository's existing labels
 and attach the selected archetype when it is available. If unavailable, omit
 it, report it as skipped, and continue; never create or substitute labels. The
 label is never rendered in the title or body.
@@ -35,7 +40,7 @@ Placeholders (for non-LLM callers performing literal substitution):
   test_plan_body             by zone   Checks covering the named risks. Required for yellow/red/black.
   why_this_size_body         by zone   Concise, specific indivisibility rationale. Required for red/black.
   rollback_body              by type   Rollback steps or explicit forward-only mitigation. Required for migration.
-  feature_flag_body          by type   Flag name, default, removal target, and rollout plan. Required for feature-flag.
+  feature_flag_body          by type   Flag name, default, removal target, rollout plan, and cleanup change. Required for feature-flag.
   screenshots_body           by type   Before/after screenshots and relevant accessibility notes. Required for ui.
   generated_files_body       by diff   Generated paths and their source/generator. Required whenever any generated files exist.
   verification_body          yes       Checklist of the checks that must pass before sign-off, ticked as each is confirmed.
@@ -87,8 +92,9 @@ Substitution rules:
 
 ## 🚩 Feature Flag
 
-<!-- flag name, default state, removal target, and rollout plan; team ownership
-     belongs in CODEOWNERS or forge assignments; required for feature-flag -->
+<!-- flag name, default state, removal target, rollout plan, and cleanup change;
+     team ownership belongs in CODEOWNERS or forge assignments; required for
+     feature-flag -->
 {{feature_flag_body}}
 
 ## 🖼️ Screenshots
@@ -128,8 +134,8 @@ Substitution rules:
      user-visible · CI green locally · no new lint or type errors.
      Add one reviewer triplet for each reviewer required by the standard-owned
      active size-zone policy, in slot order. Do not
-     duplicate reviewer counts here; derive them from
-     `plugins/coding/standards/git/write.md` (GIT-PR-SIZE-03):
+     duplicate reviewer counts here; derive them from the active size-zone
+     policy in `coding:standards/git/`:
        - [ ] Reviewer slot N assigned
        - [ ] Reviewer slot N reviewed `<head-oid>` against `<base-oid>`
        - [ ] Reviewer slot N approved `<head-oid>` against `<base-oid>`
@@ -138,7 +144,9 @@ Substitution rules:
      pre-publication and verified post-publication head/base OID pairs. When
      either differs, replace both OID placeholders and reset that reviewer's
      reviewed and approved tasks until that reviewer acts on the new surface; a
-     no-op publication preserves evidence bound to the unchanged pair. -->
+     no-op publication preserves evidence bound to the unchanged pair.
+     Authoring may publish these tasks pending; review conformance requires all
+     three tasks checked for the active pair. -->
 {{verification_body}}
 
 ## 🚫 Boundary

@@ -45,6 +45,7 @@ class ZoneLimit:
     name: str
     max_files_changed: int
     max_authored_net_loc: int
+    required_reviewers: int
 
 
 def run_git(
@@ -446,6 +447,7 @@ def parse_zone_limit(data: object) -> ZoneLimit:
         "name",
         "max_files_changed",
         "max_authored_net_loc",
+        "required_reviewers",
     }:
         raise ValueError(f"invalid PR-size zone shape: {SIZE_THRESHOLDS}")
     name = data["name"]
@@ -464,10 +466,22 @@ def parse_zone_limit(data: object) -> ZoneLimit:
                 f"PR-size zone {name!r} {field} must be positive: {SIZE_THRESHOLDS}"
             )
         maxima[field] = value
+    required_reviewers = data["required_reviewers"]
+    if isinstance(required_reviewers, bool) or not isinstance(required_reviewers, int):
+        raise TypeError(
+            f"PR-size zone {name!r} required_reviewers must be an integer: "
+            f"{SIZE_THRESHOLDS}"
+        )
+    if required_reviewers < 0:
+        raise ValueError(
+            f"PR-size zone {name!r} required_reviewers cannot be negative: "
+            f"{SIZE_THRESHOLDS}"
+        )
     return ZoneLimit(
         name,
         maxima["max_files_changed"],
         maxima["max_authored_net_loc"],
+        required_reviewers,
     )
 
 
@@ -480,11 +494,11 @@ def validate_zone_limits(limits: tuple[ZoneLimit, ...]) -> None:
         if (
             earlier.max_files_changed >= later.max_files_changed
             or earlier.max_authored_net_loc >= later.max_authored_net_loc
+            or earlier.required_reviewers > later.required_reviewers
         ):
             raise ValueError(
-                "PR-size zone maxima must be strictly increasing for "
-                f"files_changed and authored_net_loc ({earlier.name} -> "
-                f"{later.name}): {SIZE_THRESHOLDS}"
+                "PR-size zone maxima must increase and required reviewers must "
+                f"not decrease ({earlier.name} -> {later.name}): {SIZE_THRESHOLDS}"
             )
 
 
@@ -504,6 +518,7 @@ def load_zone_limits() -> tuple[ZoneLimit, ...]:
     if not isinstance(metrics, dict) or set(metrics) != {
         "files_changed",
         "authored_net_loc",
+        "required_reviewers",
     }:
         raise ValueError(f"invalid PR-size metrics: {SIZE_THRESHOLDS}")
     for metric in metrics.values():
@@ -571,6 +586,16 @@ def classify(repo: Path, base_revision: str, head_revision: str) -> dict[str, ob
         deletions += int(deleted)
 
     net_loc = abs(additions - deletions)
+    limits = load_zone_limits()
+    zone = zone_for(len(files), net_loc, limits)
+    required_reviewers = next(
+        (
+            limit.required_reviewers
+            for limit in limits
+            if limit.name == zone
+        ),
+        limits[-1].required_reviewers,
+    )
     return {
         "authored_additions": additions,
         "authored_deletions": deletions,
@@ -580,7 +605,8 @@ def classify(repo: Path, base_revision: str, head_revision: str) -> dict[str, ob
         "generated_files": sorted(generated_files),
         "head_oid": head,
         "net_loc": net_loc,
-        "zone": zone_for(len(files), net_loc, load_zone_limits()),
+        "required_reviewers": required_reviewers,
+        "zone": zone,
     }
 
 

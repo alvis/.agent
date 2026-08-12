@@ -24,7 +24,30 @@ shell calls do not receive a plugin-root environment variable.
 
 This skill is the single entrypoint for saving work: local snapshots, edits to prior changes, splits, reorders, parallel tasks, the two exceptional direct-bookmark sync routes, and the compatibility route from `--create-pr` to `coding:pr create`. It auto-routes based on working-copy state; flags exist only for explicit operations and behavioural overrides. It is the sole owner of history mutations — `coding:finalize-commits` verifies stacks, and `coding:pr create` authors PR text, owns PR publication, and drives CI convergence.
 
+This skill owns commit, branch, and local-history directions. The PR action
+references own publication directions; `coding:standards/git/` separately owns
+findings in rendered PR messages and implementation diffs.
+
 **Coherence Mandate.** Every edit must produce one continuous, deliberate work. Rewrite over restructure, restructure over integrate, never append. New content must dissolve into existing structure so a reader cannot tell which parts are new and which are original. Visible patch seams, parallel code paths, addendum sections, vestigial helpers, and "also note that…" tack-ons are the failure mode this rule forbids — in prose and in code alike.
+
+## Commit and branch directions
+
+Inspect the working tree, branch or bookmark graph, remote refs, and open PRs
+before mutation. Plan domain-coherent changes that compile, test, and remain
+reviewable without forward references; preserve unrelated dirty paths.
+
+Use lowercase kebab-case branch segments. An ordinary branch is
+`<type>/<kebab-summary>`; preserve an established `<type>/<scope>/<topic>`
+shape when the repository uses scoped branches. A work stream uses exactly the
+single-PR or numbered-stack shape from `essential:references/naming.md`; its
+work ID is an identity, not a commit scope. Delete merged branches.
+
+Never rewrite a commit already merged into a shared destination. Fix merged
+work with a corrective commit or PR. Rewriting a merged non-destination branch
+requires explicit user consent and coordination; rewriting the shared
+destination tip is forbidden. Route an unmerged stack fix to the earliest
+change that owns the faulty artifact, then restack its descendants through
+`coding:pr update`.
 
 ## Boundaries
 
@@ -40,7 +63,7 @@ This skill is the single entrypoint for saving work: local snapshots, edits to p
 <IMPORTANT>
 - Every workflow MUST end with a linear clean chain + working code. No exceptions. If a workflow cannot guarantee this, STOP and surface to the user.
 - This skill never opens, updates, or polls PRs. Its only pushes are the explicit, single-bookmark sync steps in `workflow-correct-merged.md` Option 2 and `workflow-partial-to-branch.md`; `coding:pr create` owns PR publication and CI convergence.
-- NEVER rewrite merged-on-origin history without explicit consent. Detected target → `AskUserQuestion`, default = corrective PR per `GIT-PR-STACK-03`. `--allow-rewrite-merged` skips the prompt.
+- NEVER rewrite merged-on-origin history without explicit consent. Detected target → `AskUserQuestion`, default = the corrective-PR route in [workflow-correct-merged.md](references/workflow-correct-merged.md). `--allow-rewrite-merged` skips the prompt.
 - Every change MUST be self-contained: compile + lint + tests pass for each change in isolation. Shared files (package.json, tsconfig, lockfiles) evolve incrementally — no forward references.
 - `--paths-from` is a closed-set save, not a path suggestion. Never save,
   stage, reset, stash, or rewrite a non-selected dirty path, and never continue
@@ -65,7 +88,7 @@ This skill is the single entrypoint for saving work: local snapshots, edits to p
 | `--branch-prefix <name>` | Forward the branch/bookmark prefix to `coding:pr create` when `--create-pr` is present. |
 | `--no-verify` | Skip pre-commit + post-commit lint/test/build checks. With `--create-pr`, also map this to `coding:pr create --skip-local-test`; no new commit flag is introduced. |
 | `--dry-run` | Print the plan, don't mutate. |
-| `--allow-rewrite-merged` | Explicit consent to rewrite history already merged on origin (skips the `AskUserQuestion` corrective-PR prompt) per `GIT-PR-STACK-03`. |
+| `--allow-rewrite-merged` | Explicit consent to rewrite history already merged on origin (skips the `AskUserQuestion` corrective-PR prompt). |
 
 - **Prerequisites**: a git repository, jj-colocated or not. The
   manifest-scoped route additionally requires a checksum-bound manifest under
@@ -74,11 +97,10 @@ This skill is the single entrypoint for saving work: local snapshots, edits to p
   publication set. The helper capability-probes the installed jj commands,
   revsets, templates, operation pinning, and structural Git colocation; no jj
   version string alone authorizes the scoped route. Publication
-  prerequisites are checked by `coding:pr create`. Standards
-  `GIT-PR-STACK-01..06` (bookmark naming, fix earliest unmerged, no
-  merged-history rewrites, feature flags, bottom-to-top merge, draft PRs) bind
-  every route; `GIT-PR-SIZE-01..04` are reviewer-enforced and informational
-  here.
+  prerequisites are checked by `coding:pr create`. The directions above bind
+  branch naming, earliest-owner fix routing, and public-history safety.
+  Pull-request size and implementation-composition standards are review inputs
+  and informational here.
 
 ## Workflow
 

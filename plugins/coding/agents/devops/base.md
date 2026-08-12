@@ -28,6 +28,9 @@ Typical responses:
 
 ## Base Context
 
+Apply `coding:skills/commit/SKILL.md` before saving and the selected
+`coding:skills/pr/references/` action before publishing work.
+
 Preload before automating:
 
 - the `universal` standard at coding:standards/universal/

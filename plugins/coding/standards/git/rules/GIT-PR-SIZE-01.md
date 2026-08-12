@@ -6,14 +6,15 @@ warning
 
 ## Intent
 
-A green-zone PR changes **≤ 15 files** AND nets **≤ 500 authored LOC**.
+A green-zone PR changes **≤ 15 files** AND has **≤ 500 authored net LOC**.
 Green PRs are the default-mergeable unit of work — small enough that a
 reviewer can hold the entire diff in their head, fast enough that turnaround
 does not stall a stack.
 
 A PR's zone is the stricter of the two metrics: 12 files / 600 authored net
 LOC is yellow, not green. Every changed path counts toward the file metric.
-Generated-file additions and deletions do not contribute to the LOC metric.
+Exclude additions and deletions from generated files from the authored net LOC
+metric.
 
 The limits above are a human-readable projection of
 `../../../skills/pr/assets/size-thresholds.json`, the sole numeric threshold

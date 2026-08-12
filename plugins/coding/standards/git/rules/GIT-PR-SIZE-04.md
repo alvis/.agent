@@ -13,7 +13,8 @@ repository configuration cannot change these thresholds. A genuinely
 self-contained unit may be pushed as a draft and tested without prior
 authorization only when its canonical PR body supplies specific Risk, Test
 plan, and Why this size evidence. Review approval blocks until its exact
-surface receives one-off OWNER authorization in the PR discussion.
+surface receives the red-zone policy's two reviewer evidence triplets and
+one-off OWNER authorization in the PR discussion.
 
 The limits above are the open-ended projection of the highest bounds in
 `../../../skills/pr/assets/size-thresholds.json`, the sole numeric threshold
@@ -75,4 +76,5 @@ OID change invalidates the comment.
 
 ## Related
 
-GIT-PR-SIZE-02, GIT-PR-SIZE-03, GIT-PR-TYPE-02, GIT-PR-TYPE-03, GIT-PR-TYPE-04, GIT-PR-TYPE-05, GIT-PR-STACK-05
+GIT-PR-SIZE-02, GIT-PR-SIZE-03, GIT-PR-TYPE-02, GIT-PR-TYPE-03,
+GIT-PR-TYPE-04, GIT-PR-TYPE-05

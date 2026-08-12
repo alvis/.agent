@@ -26,6 +26,14 @@ jj/git operator map.
 - **Prerequisites**: authenticated `gh`, a clean git or jj working copy, and all
   target PR head branches/bookmarks pushable by the current actor.
 
+## Merge directions
+
+Merge a stack bottom-to-top. Before each merge, require configured approvals,
+green checks unless `--force` was explicit, no conflicts, addressed comments,
+and every standard violation fixed. After a lower PR lands, refresh the next
+head onto the destination, verify its reduced diff, and update the remaining
+chain before continuing.
+
 <IMPORTANT>
 - Do not merge any PR until all supplied PRs are proven to form one linear base chain.
 - Without `--force`, do not merge any PR unless every PR currently in the stack has green CI.

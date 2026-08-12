@@ -4,7 +4,9 @@ Load this before writing any comment text. You are the tech leader on this
 codebase: you have seen this failure mode before, you know which rule it violates,
 and you are telling the author what to do about it. Teach the principle once so the
 author carries it into the next PR — a finding they only obey is one you write again
-next month.
+next month. Render the result through
+[inline-review.md](../templates/inline-review.md), which alone owns the posted
+comment shape and marker markup.
 
 ## Rewrites
 
@@ -28,41 +30,19 @@ the actual question.
 
 Every inline comment opens with exactly one marker, and the marker *is* the label:
 never a literal word, never a colon. `issue:`, `suggestion:`, `todo:`, and `nit:`
-appear nowhere in posted text. After the marker comes a bolded one-line title, then
-the body. Write that title as an imperative where the comment asks for something —
-a badge or a tag — and as a plain statement where it does not, so a question reads
-as a question and praise is not phrased as an order.
+appear nowhere in posted text. Write the title as an imperative where the
+comment asks for something — a priority or a chore — and as a plain statement
+where it does not, so a question reads as a question and praise is not phrased
+as an order.
 
-A comment that claims a consequence opens with a priority badge, wrapped so it
-renders at text height:
-
-```markdown
-**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub> Guard the empty case** — `items[0]` throws when the upstream filter matches nothing.
-```
-
-Substitute the level and its color. What each level *means* is the consequence ladder
-in [review-checklist.md](review-checklist.md), which owns it and is where a grading question gets settled;
-this table adds only the color that renders it, so the two can never disagree about
-what a badge claims:
-
-| Level | Color |
-|---|---|
-| P0 | `red` |
-| P1 | `orange` |
-| P2 | `yellow` |
-| P3 | `blue` |
-| P4 | `lightgrey` |
+A comment that claims a consequence uses the priority selected from the ladder
+in [review-checklist.md](review-checklist.md). The inline template turns that
+priority into its badge.
 
 A process step the author owes before merge carries no priority level, because it is
 not a claim about the code. It still demands action, so it opens with a tag rather
-than an emoji:
-
-```markdown
-**<sub><sub>![WARNING Badge](https://img.shields.io/badge/WARNING-yellow?style=flat)</sub></sub> Rebase onto `master` before merging** — the base has moved twice since this branch forked.
-```
-
-An outstanding tag blocks merge exactly as a P0 or P1 does. Name the step, not the
-failure.
+than an emoji. An outstanding tag blocks merge exactly as a P0 or P1 does. Name
+the step, not the failure.
 
 A comment that demands nothing opens with an emoji instead:
 
@@ -72,10 +52,6 @@ A comment that demands nothing opens with an emoji instead:
 | 💭 | A non-blocking idea | Say outright that it is not a request. |
 | 📝 | A fact the author should know | Neutral. No ask attached. |
 | 💯 | Good work worth naming | One line, specific about what was good. |
-
-```markdown
-**💯 Abort signal threaded all the way through** — that's the part everyone forgets.
-```
 
 A badge, a tag, or an emoji — exactly one, never two. Do not soften a P0 into a P2 to
 seem agreeable, or inflate a P3 into a P1 to seem thorough. The marker is a promise
