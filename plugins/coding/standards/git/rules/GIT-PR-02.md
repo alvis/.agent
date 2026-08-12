@@ -11,7 +11,11 @@ bundled [message.md](../../../skills/pr/templates/message.md), or the
 repository-local template that took precedence. It contains required evidence,
 keeps included sections in template order, and never uses a placeholder as
 required evidence. A bundled-template rendering also contains no unresolved
-placeholders or author guidance comments.
+placeholders or author guidance comments. Every message states its Goal and
+observable behavioral Requirements; generic process gates are not behavioral
+requirements. Every heading has an emoji prefix. The authoring template marks
+omittable sections with `[ Optional ]`; the final PR message removes that
+authoring marker from every rendered heading.
 
 ## Scan
 
@@ -26,14 +30,16 @@ true.
 
 Re-render the body from the selected template. Supply every conditionally
 required section from the change and remove empty optional sections. Strip the
-bundled template's guidance comments, preserve a repository template verbatim,
-then rerun the scanner. Do not patch a failing body with a parallel summary or
-metadata section that the template does not own.
+bundled template's guidance comments and `[ Optional ]` heading markers,
+preserve a repository template verbatim, then rerun the scanner. Do not patch a
+failing body with a parallel summary or metadata section that the template does
+not own.
 
 ## Edge Cases
 
-- A repository-local template is scanned against its own heading order; it is
-  never rewritten into the bundled shape, and its own HTML comments remain.
+- A repository-local template is scanned against its own heading order and
+  remains verbatim, including its HTML comments, but it must implement the
+  required section and heading contracts.
 - Markdown headings inside fenced examples are content, not template sections.
 - Passing the mechanical scan does not establish the truth or specificity of a
   Risk, rollback, test, or indivisibility claim.

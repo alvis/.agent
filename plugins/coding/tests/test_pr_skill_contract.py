@@ -14,7 +14,9 @@ SIZE_THRESHOLDS = WRITE_PR / "assets" / "size-thresholds.json"
 CLASSIFIER = WRITE_PR / "scripts" / "classify-pr-size.py"
 MESSAGE_SCANNER = WRITE_PR / "scripts" / "scan-pr-message.py"
 COMMIT_SKILL = PLUGIN / "skills" / "commit" / "SKILL.md"
-COMMIT_DIRECTIONS = PLUGIN / "skills" / "commit" / "references" / "conventional-commits.md"
+COMMIT_DIRECTIONS = (
+    PLUGIN / "skills" / "commit" / "references" / "conventional-commits.md"
+)
 CREATE_UPDATE = WRITE_PR / "references" / "create-update.md"
 STACKED_PRS = WRITE_PR / "references" / "stacked-prs.md"
 REVIEW_WORKFLOW = WRITE_PR / "references" / "review-workflow.md"
@@ -49,6 +51,27 @@ def test_authoring_binds_all_deterministic_inputs_and_publication_output() -> No
 def test_canonical_message_template_carries_section_authoring_guidance() -> None:
     template = MESSAGE_TEMPLATE.read_text()
 
+    assert "\n📌\n" in template
+    assert "## 🎯 Goal" in template
+    assert "## ✅ Requirements" in template
+    assert "observable behavior" in template
+    assert "generic gates" in template
+    headings = [line for line in template.splitlines() if line.startswith("## ")]
+    assert all(not heading[3].isascii() for heading in headings)
+    required_headings = {
+        heading for heading in headings if not heading.endswith("[ Optional ]")
+    }
+    optional_headings = [
+        heading for heading in headings if heading not in required_headings
+    ]
+
+    assert required_headings == {
+        "## 🎯 Goal",
+        "## ✅ Requirements",
+        "## 🧵 Context",
+        "## 🧪 Verification",
+    }
+    assert all(heading.endswith("[ Optional ]") for heading in optional_headings)
     assert "what problem it solves and why" in template
     assert "design patterns" in template
     assert "anything a reader would reasonably expect here" in template
@@ -112,6 +135,54 @@ def test_version_control_policy_separates_standard_direction_and_templates() -> 
     assert "This file alone owns the posted markup" in inline_review
 
 
+def test_pr_review_covers_intent_standards_reuse_and_minimality() -> None:
+    workflow = (WRITE_PR / "references" / "review-workflow.md").read_text()
+    checklist = (WRITE_PR / "references" / "review-checklist.md").read_text()
+    template = (WRITE_PR / "templates" / "overall-review.md").read_text()
+
+    assert "Does the PR message state the contract?" not in checklist
+    assert "Does it really work as intended?" in checklist
+    assert "Does it follow every applicable standard?" in checklist
+    assert "Can anything be removed without changing the result?" in checklist
+    assert "code, content, tests, helpers, types, fixtures" in checklist
+    for standard in (
+        "`universal/`",
+        "`file-structure/`",
+        "`testing/`",
+        "`documentation/`",
+    ):
+        assert standard in workflow
+    assert "### 🎯 Goal and Requirements" in template
+    assert "{{pr_message_verdict}}" not in template
+    assert "{{intent_behavior_verdict}}" in template
+    assert "{{reuse_verdict}}" in template
+    assert "{{minimality_verdict}}" in template
+    assert "PR message and intent" not in template
+    assert "scan-pr-message.py" not in workflow
+    assert "message scanner" not in checklist
+
+
+def test_pr_authoring_normalizes_canonical_commit_body_headings() -> None:
+    create_update = (WRITE_PR / "references" / "create-update.md").read_text()
+
+    assert "strip its leading emoji token" in create_update
+    assert "trailing `[ Optional ]` suffix" in create_update
+    assert "canonical template headings and their plain aliases" in create_update
+
+
+def test_pr_review_template_uses_section_and_zone_emojis() -> None:
+    template = (WRITE_PR / "templates" / "overall-review.md").read_text()
+    rendered = template.split("```markdown", 1)[1].split("```", 1)[0]
+    headings = [line for line in rendered.splitlines() if line.startswith("### ")]
+
+    assert rendered.startswith("\n📌\n\n{{zone_emoji}} Reviewed `{{head_sha_short}}`")
+    assert all(not heading[4].isascii() for heading in headings)
+    assert "`🟢` green" in template
+    assert "`🟡` yellow" in template
+    assert "`🔴` red" in template
+    assert "`⚫` black" in template
+
+
 def test_new_stack_authors_against_existing_commit_oids() -> None:
     skill = (WRITE_PR / "references" / "create-update.md").read_text()
 
@@ -135,7 +206,9 @@ def test_batch_root_base_is_bound_after_base_resolution_before_both_pushes() -> 
     assert len(restacks) == 2
     assert base_resolution < root_binding < restacks[0] < restacks[1]
     assert "first selected affected head's exact base" in normalized
-    assert "For a suffix restack, `PR_BASE_01` is the unselected predecessor" in normalized
+    assert (
+        "For a suffix restack, `PR_BASE_01` is the unselected predecessor" in normalized
+    )
     assert "keep it unchanged for a retry only while" in normalized
     assert "discovery restart or base-map change recomputes it" in normalized
 
@@ -152,13 +225,12 @@ def test_reviewer_evidence_binds_to_the_complete_review_surface() -> None:
     assert "unchanged pair" in template
     assert "standard-owned" in template
     assert "<base-oid>" in template
-    for workflow in (skill, REVIEW_WORKFLOW.read_text()):
-        assert '--head-oid "$HEAD_OID"' in workflow
-        assert '--base-oid "$BASE_OID"' in workflow
+    assert '--head-oid "$HEAD_OID"' in skill
+    assert '--base-oid "$BASE_OID"' in skill
     assert "--allow-pending-reviewers" in skill
     review = REVIEW_WORKFLOW.read_text()
-    assert "deliberately omits" in review
-    assert "authoring-only `--allow-pending-reviewers`" in review
+    assert '--base "$BASE_OID" --head "$HEAD_OID"' in review
+    assert "scan-pr-message.py" not in review
 
 
 def test_pr_title_regex_and_ready_transition_preserve_directions() -> None:
@@ -194,9 +266,7 @@ def test_merged_skill_resolves_bundled_helpers_for_resource_lifetimes() -> None:
     router = (WRITE_PR / "SKILL.md").read_text()
     create_update = (WRITE_PR / "references" / "create-update.md").read_text()
     merge = (WRITE_PR / "references" / "merge.md").read_text()
-    review_extraction = (
-        WRITE_PR / "references" / "review-extraction.md"
-    ).read_text()
+    review_extraction = (WRITE_PR / "references" / "review-extraction.md").read_text()
     review = (WRITE_PR / "references" / "review-workflow.md").read_text()
 
     assert "set `CODING_PR_SKILL_DIR` to the absolute directory" in router
@@ -204,7 +274,7 @@ def test_merged_skill_resolves_bundled_helpers_for_resource_lifetimes() -> None:
         "scripts/preflight-jj-range-push.sh": (merge,),
         "scripts/temp-tree.sh": (create_update, review_extraction, review),
         "scripts/review-scan.sh": (review,),
-        "scripts/scan-pr-message.py": (create_update, review),
+        "scripts/scan-pr-message.py": (create_update,),
     }
     for helper, consumers in helper_consumers.items():
         assert (WRITE_PR / helper).is_file()
@@ -259,16 +329,17 @@ def test_review_scan_self_resolves_and_propagates_helper_failure(
 def test_review_uses_canonical_verification_section_name() -> None:
     review = (WRITE_PR / "references" / "review-workflow.md").read_text()
 
-    assert "Summary, Verification" in review
+    assert "Every zone requires Summary" in review
+    assert "`## 🎯 Goal`" in review
+    assert "`## ✅ Requirements`" in review
+    assert "`## 🧵 Context`" in review
+    assert "`## 🧪 Verification`" in review
     assert "Summary, Checklist" not in review
 
 
 def test_correct_merged_monitoring_stays_read_only() -> None:
     workflow = (
-        WRITE_PR.parent
-        / "commit"
-        / "references"
-        / "workflow-correct-merged.md"
+        WRITE_PR.parent / "commit" / "references" / "workflow-correct-merged.md"
     ).read_text()
     followups = workflow.split("## Mandatory follow-ups", 1)[1]
 
@@ -283,12 +354,14 @@ def test_owned_trees_bind_outputs_and_keep_cleanup_in_parent() -> None:
 
     assert "TEST_WORKTREE=$(jq -er .tree" in create_update
     assert "context-owning parent passes only" in create_update
-    assert "neither removes the worktree nor closes or reports on the parent-owned" in create_update
+    assert (
+        "neither removes the worktree nor closes or reports on the parent-owned"
+        in create_update
+    )
     assert "After consuming each batch report" in create_update
     assert "never transfers cleanup ownership" in create_update
     assert (
-        'open-clone "https://$HOST/$OWNER/$REPO" "$PR_NUMBER" "$HEAD_OID"'
-        in extraction
+        'open-clone "https://$HOST/$OWNER/$REPO" "$PR_NUMBER" "$HEAD_OID"' in extraction
     )
     assert "signal trap protects construction only" in extraction
     assert 'workspace="pr-tree-$(basename "$lease")"' in helper
@@ -329,12 +402,15 @@ def test_git_tree_lease_opens_and_closes(tmp_path: Path) -> None:
     lease = json.loads(opened.stdout)
     tree = Path(lease["tree"])
     assert tree.is_dir()
-    assert subprocess.run(
-        ["git", "-C", str(tree), "rev-parse", "HEAD"],
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.strip() == head
+    assert (
+        subprocess.run(
+            ["git", "-C", str(tree), "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        == head
+    )
     subprocess.run(["bash", str(helper), "close", lease["lease"]], check=True)
     assert not Path(lease["lease"]).exists()
 
@@ -356,9 +432,7 @@ def test_restack_requires_explicit_root_base_and_reports_partial_progress() -> N
     discovery = helper.index("if ! state=$(gh pr list")
     ancestry = helper.index('if [ "$state" != MERGED ]')
     assert discovery < ancestry
-    post_verify = helper.split(
-        '[ "$remote_sha" = "$expected_sha" ]', 1
-    )[1]
+    post_verify = helper.split('[ "$remote_sha" = "$expected_sha" ]', 1)[1]
     assert post_verify.index("restacked[") < post_verify.index('gh pr edit "$bookmark"')
 
 
@@ -438,7 +512,7 @@ def test_pr_metadata_stays_internal_and_template_owns_rationale() -> None:
     size_rule = (GIT_STANDARD / "rules" / "GIT-PR-SIZE-03.md").read_text()
 
     assert "specific indivisibility prose" in workflow
-    assert "## Why this size" in template
+    assert "## 📐 Why This Size [ Optional ]" in template
     assert "reviewer-time estimates" in template
     assert "Keep size counts, zone metadata" in size_rule
     assert "size counts, zone metadata" in workflow
@@ -452,12 +526,11 @@ def test_black_zone_requires_complete_body_and_live_authorization_receipt() -> N
     checklist = (WRITE_PR / "references" / "review-checklist.md").read_text()
     size_rule = (GIT_STANDARD / "rules" / "GIT-PR-SIZE-04.md").read_text()
 
-    assert (
-        "requires specific `## Risk`, `## Test plan`, and `## Why this size`"
-        in create_update
-    )
+    assert "requires specific `## ⚠️ Risk`," in create_update
     assert "yellow/red/black" in create_update
-    assert "Risk, Test plan, Why this size" in review
+    assert "`## ⚠️ Risk`" in review
+    assert "`## 🧭 Test Plan`" in review
+    assert "`## 📐 Why This Size`" in review
     for contract in (review, publishing):
         assert "`comment_url`" in contract
         assert "`authorization_body`" in contract
@@ -486,13 +559,13 @@ def test_archetype_is_a_preflighted_label_not_pr_content() -> None:
     assert "AVAILABLE_ARCHETYPES=" in workflow
     assert "verify one archetype label remains when" in workflow
     assert '--label "$ARCHETYPE"' in workflow
-    assert 'PR=$(gh pr create' in workflow
+    assert "PR=$(gh pr create" in workflow
     assert '--remove-label "$label"' in workflow
     assert 'gh pr view "$PR" --json labels' in workflow
-    assert '[.labels[].name | select(. as $label' in workflow
+    assert "[.labels[].name | select(. as $label" in workflow
     assert 'EXPECTED_ARCHETYPES=$(jq -cn --arg label "$ARCHETYPE"' in workflow
     assert 'test "$ACTUAL_ARCHETYPES" = "$EXPECTED_ARCHETYPES"' in workflow
-    assert workflow.index("ARCHETYPE_LABELS='[") < workflow.index('PR=$(gh pr create')
+    assert workflow.index("ARCHETYPE_LABELS='[") < workflow.index("PR=$(gh pr create")
     assert "If unavailable, omit" in template
     assert "label is never rendered in the title or" in template
     assert "attach the exact archetype label only when it exists" in normalized_workflow
@@ -505,7 +578,7 @@ def test_generated_files_section_is_conditional_and_emoji_named() -> None:
     workflow = (WRITE_PR / "references" / "create-update.md").read_text()
     template = MESSAGE_TEMPLATE.read_text()
 
-    assert "## 🏭 Generated Files" in template
+    assert "## 🏭 Generated Files [ Optional ]" in template
     assert "whenever any generated files exist" in template
     assert "`{{generated_files_body}}`" in workflow
 
@@ -558,8 +631,7 @@ def test_pr_size_thresholds_have_one_machine_readable_home_and_matching_docs() -
         if "files" in path.read_text().lower()
         and "authored" in path.read_text().lower()
         and any(
-            f"{zone['max_files_changed']} files" in path.read_text()
-            for zone in zones
+            f"{zone['max_files_changed']} files" in path.read_text() for zone in zones
         )
         and any(
             f"{zone['max_authored_net_loc']} authored" in path.read_text()
@@ -599,9 +671,7 @@ def test_classifier_uses_limits_from_a_controlled_asset(tmp_path: Path) -> None:
         ["git", "-C", str(repo), "config", "user.email", "test@example.com"],
         check=True,
     )
-    subprocess.run(
-        ["git", "-C", str(repo), "config", "user.name", "Test"], check=True
-    )
+    subprocess.run(["git", "-C", str(repo), "config", "user.name", "Test"], check=True)
     (repo / "README.md").write_text("base\n")
     subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
     subprocess.run(
@@ -700,7 +770,9 @@ def test_repo_local_templates_enforce_conditional_evidence_before_emission() -> 
 
     assert "every predicate" in local_template_gate
     assert "archetype-required, and diff-required" in local_template_gate
-    assert "never inserts category, label, title, or body metadata" in local_template_gate
+    assert (
+        "never inserts category, label, title, or body metadata" in local_template_gate
+    )
     assert "exact `## 🏭 Generated Files` heading" in local_template_gate
     assert "generated path or" in local_template_gate
     assert "its source or generator" in local_template_gate
@@ -719,7 +791,9 @@ def test_repo_templates_validate_zone_evidence_before_verbatim_emission() -> Non
 def test_github_stack_reference_tracks_current_upstream_contract() -> None:
     github_stacks = (WRITE_PR / "references" / "github-stacks.md").read_text()
 
-    assert "github.com/github/gh-stack/blob/main/skills/gh-stack/SKILL.md" in github_stacks
+    assert (
+        "github.com/github/gh-stack/blob/main/skills/gh-stack/SKILL.md" in github_stacks
+    )
     assert "https://gh.io/stacks" in github_stacks
     assert "https://docs.jj-vcs.dev/latest/bookmarks/" in github_stacks
     assert "https://docs.jj-vcs.dev/latest/git-experts/" in github_stacks
@@ -741,16 +815,25 @@ def test_github_stack_update_has_conditional_history_routes() -> None:
     assert "`coding:commit`" in jj_route
     assert "automatic" in jj_route
     assert "affected-unmerged-bookmark batch" in jj_route
-    for forbidden in ("gh stack rebase", "gh stack sync", "gh stack push", "gh stack submit"):
+    for forbidden in (
+        "gh stack rebase",
+        "gh stack sync",
+        "gh stack push",
+        "gh stack submit",
+    ):
         assert forbidden not in jj_route
     for command in ("gh stack rebase", "gh stack sync", "gh stack push"):
         assert command in git_route
 
 
-def test_github_stack_actions_attempt_the_command_before_optional_installation() -> None:
+def test_github_stack_actions_attempt_the_command_before_optional_installation() -> (
+    None
+):
     github_stacks = (WRITE_PR / "references" / "github-stacks.md").read_text()
 
-    direct_attempt = github_stacks.index("Attempt the requested command or API call directly")
+    direct_attempt = github_stacks.index(
+        "Attempt the requested command or API call directly"
+    )
     missing_extension = github_stacks.index("reports that the extension is missing")
     approval = github_stacks.index("ask before running")
     install = github_stacks.index("gh extension install github/gh-stack")
@@ -768,7 +851,9 @@ def test_pr_router_loads_github_stack_contract_for_every_stack_request() -> None
         "<stack-number-or-pr-number-or-pr-url-or-local-branch>"
     ) in router
     assert "references/github-stacks.md" in router
-    assert "For every request to create, inspect, update, restructure, publish" in router
+    assert (
+        "For every request to create, inspect, update, restructure, publish" in router
+    )
     assert "GitHub PR stack" in router
 
 
@@ -788,16 +873,28 @@ def test_pr_router_nests_stack_list_and_checkout_subactions() -> None:
 def test_pr_router_usage_exposes_remote_and_merge_destination_inputs() -> None:
     router = (WRITE_PR / "SKILL.md").read_text()
 
-    assert "/coding:pr create [<commit-ref>] [--branch-prefix <name>] [--remote <name>]" in router
-    assert "/coding:pr update [<pr-number-or-url> | <commit-ref>] [--branch-prefix <name>] [--remote <name>]" in router
-    assert "[--method=rebase|squash|merge] [--remote <name>] [--destination <branch>] [--force]" in router
+    assert (
+        "/coding:pr create [<commit-ref>] [--branch-prefix <name>] [--remote <name>]"
+        in router
+    )
+    assert (
+        "/coding:pr update [<pr-number-or-url> | <commit-ref>] [--branch-prefix <name>] [--remote <name>]"
+        in router
+    )
+    assert (
+        "[--method=rebase|squash|merge] [--remote <name>] [--destination <branch>] [--force]"
+        in router
+    )
 
 
 def test_generic_stack_contract_delegates_github_listing_without_restatement() -> None:
     stacked = (WRITE_PR / "references" / "stacked-prs.md").read_text()
     normalized = " ".join(stacked.split())
 
-    assert "Load [github-stacks.md](github-stacks.md) for every GitHub PR-stack request" in normalized
+    assert (
+        "Load [github-stacks.md](github-stacks.md) for every GitHub PR-stack request"
+        in normalized
+    )
     assert "including discovery" in normalized
     assert "sole owner of GitHub stack inventory behavior" in normalized
     assert "paginated GitHub REST endpoint" not in normalized
@@ -814,7 +911,7 @@ def test_github_stack_listing_uses_only_the_paginated_rest_inventory() -> None:
 
     assert forbidden_cli not in github_stacks
     assert "unconditionally inventory" in normalized
-    assert 'GET /repos/{owner}/{repo}/stacks' in github_stacks
+    assert "GET /repos/{owner}/{repo}/stacks" in github_stacks
     assert "gh api --paginate --slurp" in list_section
     assert '"repos/$REPOSITORY/stacks?per_page=100"' in list_section
     assert "fully merged and closed stacks" in github_stacks
@@ -898,7 +995,9 @@ def test_github_stack_reference_maps_every_supported_operator() -> None:
     )
 
     assert all(command in github_stacks for command in direct_commands)
-    assert "`gh stack up [n]`, `down [n]`, `top`, `bottom`, and `trunk`" in github_stacks
+    assert (
+        "`gh stack up [n]`, `down [n]`, `top`, `bottom`, and `trunk`" in github_stacks
+    )
 
 
 def test_github_stack_audit_contract_matches_current_mutation_semantics() -> None:
@@ -915,7 +1014,9 @@ def test_github_stack_audit_contract_matches_current_mutation_semantics() -> Non
     assert "leaves local tracking unchanged" in normalized
 
 
-def test_github_stack_failures_report_actual_errors_and_verify_the_owned_scope() -> None:
+def test_github_stack_failures_report_actual_errors_and_verify_the_owned_scope() -> (
+    None
+):
     github_stacks = (WRITE_PR / "references" / "github-stacks.md").read_text()
     normalized = " ".join(github_stacks.split())
 
@@ -936,8 +1037,7 @@ def test_github_stack_mutation_snippets_guard_every_dependency_boundary() -> Non
     github_stacks = (WRITE_PR / "references" / "github-stacks.md").read_text()
     normalized = " ".join(github_stacks.split())
     bash_blocks = [
-        fenced.split("\n```", 1)[0]
-        for fenced in github_stacks.split("```bash\n")[1:]
+        fenced.split("\n```", 1)[0] for fenced in github_stacks.split("```bash\n")[1:]
     ]
     sequential_mutations: list[list[str]] = []
     for block in bash_blocks:
@@ -988,9 +1088,7 @@ def test_github_stack_snippets_stop_before_consuming_failed_commands() -> None:
     parsing_guard = discovery.index('<<<"$STACKS_JSON" || exit $?', parsing)
     assert repo_command < repo_guard < api_command < api_guard < parsing < parsing_guard
 
-    checkout_command = checkout.index(
-        'gh stack checkout "$STACK_SELECTOR" || exit $?'
-    )
+    checkout_command = checkout.index('gh stack checkout "$STACK_SELECTOR" || exit $?')
     branch_verification = checkout.index("git branch --show-current || exit $?")
     stack_verification = checkout.index("gh stack view --json || exit $?")
     assert checkout_command < branch_verification < stack_verification
@@ -1092,8 +1190,8 @@ def test_jj_merge_publishes_only_remaining_affected_bookmarks_once() -> None:
     helper = (WRITE_PR / "scripts" / "preflight-jj-range-push.sh").read_text()
     normalized = " ".join(merge.split())
 
-    assert merge.count('scripts/preflight-jj-range-push.sh') == 1
-    assert 'scripts/test-jj-range-push.sh' in merge
+    assert merge.count("scripts/preflight-jj-range-push.sh") == 1
+    assert "scripts/test-jj-range-push.sh" in merge
     assert helper.count('git push --remote "$remote"') == 1
     assert merge.count('jj rebase -s "$child_root"') == 1
     assert 'jj rebase -s "$child_root" --onto <new-parent-ref>' in merge
@@ -1110,8 +1208,8 @@ def test_jj_merge_publishes_only_remaining_affected_bookmarks_once() -> None:
     assert '"$first_commit & ::$last_commit"' in helper
     assert "fail 'boundaries are not linear'" in helper
     assert helper.count('--at-operation "$operation_id"') == 5
-    bookmark_preflight = helper.index('bookmark list')
-    tag_preflight = helper.index('tag list')
+    bookmark_preflight = helper.index("bookmark list")
+    tag_preflight = helper.index("tag list")
     push_command = helper.index('git push --remote "$remote"')
     assert bookmark_preflight < tag_preflight < push_command
     assert 'actual_bookmarks" = "$expected_bookmarks' in helper
@@ -1305,7 +1403,10 @@ def test_dedicated_reviewer_reads_discussion_after_tree_provisioning() -> None:
     assert workflow.index("### Locate or create the review tree") < workflow.index(
         "### Read the existing discussion"
     )
-    assert "dedicated reviewer performs this phase after the parent has located or" in workflow
+    assert (
+        "dedicated reviewer performs this phase after the parent has located or"
+        in workflow
+    )
     assert "created and verified `REVIEW_DIR`" in workflow
 
 

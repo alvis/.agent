@@ -43,10 +43,16 @@ throughout.
 These are the findings a diff-only reader cannot make, and they are usually the
 most valuable ones in the review:
 
+- **Does it really work as intended?** Trace every stated goal and behavioral
+  requirement through the implementation, callers, failure paths, edge cases,
+  and tests. Exercise or otherwise prove the relevant runtime path when static
+  reading cannot establish behavior. Report behavior that only appears to work
+  on the happy path.
 - **Is this the best solution?** Walk the lean ladder in
   [WORKFLOW.md](../../../references/WORKFLOW.md). Search the repository before
-  accepting a new helper, type, or constant: a hand-rolled thing that a
-  foundational module or nearby code already provides is a finding, and so is an
+  accepting new code, content, tests, helpers, types, fixtures, utilities, or
+  constants. Reimplementing what a foundational module, nearby code, the
+  platform, or an installed dependency already provides is a finding, as is an
   abstraction with one caller.
 - **Is this the right place?** A correct change in the wrong location is still a
   finding. Watch for a guard repeated at every call site that belongs in the callee,
@@ -69,6 +75,15 @@ most valuable ones in the review:
 - **Scope against the stated goal.** The PR title, body, and any resolvable
   goal/spec are the contract. Report what the PR claims but does not do, and what it
   does without claiming — scope creep is a finding, not a bonus.
+- **Does it follow every applicable standard?** Review file placement against
+  `file-structure/`, behavior and APIs against `universal/` and `function/`,
+  tests against `testing/`, docs and comments against `documentation/`, and
+  each changed language against its language-specific standard. Cite the exact
+  rule for a violation.
+- **Can anything be removed without changing the result?** Flag code, content,
+  tests, helpers, wrappers, assertions, or repeated prose whose removal leaves
+  required behavior and readability unchanged. Repetition is justified only
+  when it materially improves readability or preserves a required boundary.
 - **Secrets and trust boundaries the diff introduces.** Any token, credential,
   internal hostname, or widened trust boundary entering the repository in this diff.
 - **Docs the change makes wrong.** Read the README, API doc, or example the changed
@@ -98,6 +113,10 @@ findings:
     evidence: <the rule, failure path, or repository precedent it rests on>
     alternative: <exact path this change belongs in instead, or null>
 goal_spec_alignment: matches | diverges | skipped_unknown
+intent_behavior: matches | diverges | skipped
+standards_alignment: matches | diverges | skipped
+reuse: no_missed_reuse | missed_reuse | skipped
+minimality: lean | removable_content | skipped
 not_reviewed:
   - path: <path>
     reason: <binary, generated, vendored, deleted, or too large>
@@ -154,6 +173,9 @@ overall body without copying inline-only markers or markup.
   a better location was actually found.
 - `goal_spec_alignment` is `skipped_unknown` when no goal or spec can be resolved.
   Never infer a goal from the diff and then grade the diff against it.
+- The other verdict fields summarize the corresponding mandatory checks; use
+  `skipped` only when the concern could not be completed and name that blocker
+  in `not_reviewed`.
 
 ## When a concern cannot be finished
 

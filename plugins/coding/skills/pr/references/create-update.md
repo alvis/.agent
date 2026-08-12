@@ -483,8 +483,10 @@ test "$ACTUAL_ARCHETYPES" = "$EXPECTED_ARCHETYPES"
 ```
 
 Publish a genuinely necessary self-contained black-zone unit as a draft
-without prior authorization only after its canonical body requires specific `## Risk`, `## Test plan`, and `## Why this size`
-evidence for yellow/red/black as applicable. The draft is the discussion
+without prior authorization only after its canonical body requires specific
+`## ⚠️ Risk`, `## 🧭 Test Plan`, and `## 📐 Why This Size` evidence for
+yellow/red/black as applicable.
+The draft is the discussion
 surface on which a repository owner may later record this exact five-line
 contract:
 
@@ -719,8 +721,8 @@ passes its base; text-only callers default to the first parent. Never invoke `gh
    file count includes every changed path and excludes generated-file
    additions and deletions only from authored net LOC. The canonical thresholds
    are fixed. Record the required sections for that zone. A black-zone change
-   remains black and requires specific `## Risk`, `## Test plan`, and
-   `## Why this size` evidence. Author them for the exact draft head/base pair
+   remains black and requires specific `## ⚠️ Risk`, `## 🧭 Test Plan`, and
+   `## 📐 Why This Size` evidence. Author them for the exact draft head/base pair
    that may carry later OWNER discussion
    authorization. The draft may be pushed and tested without prior
    authorization; review verifies authorization only before submitting
@@ -742,7 +744,16 @@ passes its base; text-only callers default to the first parent. Never invoke `gh
    missing, empty, placeholder-only, generic, or lacks its named evidence.
    This validation never inserts category, label, title, or body metadata.
    In particular:
-   - a red- or black-zone `## Why this size` contains specific indivisibility prose,
+   - every body contains a non-empty Summary, `## 🎯 Goal`,
+     `## ✅ Requirements`, `## 🧵 Context`, and `## 🧪 Verification`; Goal
+     states the intended outcome, while Requirements lists observable,
+     testable behavior rather than generic gates such as tests passing,
+     standards compliance, or green CI;
+   - every `##` section heading starts with an emoji, and every section the
+     template permits authors to omit ends with the exact `[ Optional ]`
+     suffix; the suffix describes template conditionality and does not waive a
+     zone, archetype, or diff requirement;
+   - a red- or black-zone `## 📐 Why This Size` contains specific indivisibility prose,
      and a black-zone body also contains specific Risk and Test plan evidence;
    - a `migration`, `feature-flag`, or `ui` PR supplies the corresponding
      Rollback, Feature Flag, or Screenshots evidence from step 6; and
@@ -758,11 +769,22 @@ passes its base; text-only callers default to the first parent. Never invoke `gh
    When the bundled default is also missing: exit 4, print the path that
    failed to resolve.
 6. Fill the bundled default's placeholders from the commit body, diff, and
-   recorded verification evidence:
+   recorded verification evidence. Before matching a Markdown section name,
+   strip its leading emoji token and trailing `[ Optional ]` suffix so the
+   canonical template headings and their plain aliases resolve identically:
    - `{{summary_paragraph}}` — first body paragraph (≤3 sentences); fall back
      to the subject text after `: ` when the body is empty.
+   - `{{goal_body}}` — exact content under `## Goal` / `Goal:` / `Intent:` /
+     `Purpose:`; otherwise the first body paragraph, then the subject text after
+     `: `. It states the outcome and why it matters, not the implementation.
+   - `{{requirements_body}}` — bullets under `## Requirements` /
+     `Requirements:` / `Acceptance Criteria:` / `Behavior:`. Each item names
+     observable, testable behavior. Stop when none exist or when every item is
+     a generic process gate such as passing tests, following standards, or
+     keeping CI green; never infer requirements from implementation details.
    - `{{context_body}}` — content under `## Context` / `Why:` /
-     `Background:`, if present.
+     `Background:`. Stop when absent rather than duplicating Summary or
+     inventing background from the diff.
    - `{{implementation_body}}` — content under `## Implementation` / `What:`
      / `How:`, if present.
    - `{{breaking_changes_body}}` — `BREAKING CHANGE:` footers; "None." when
@@ -804,10 +826,11 @@ passes its base; text-only callers default to the first parent. Never invoke `gh
      when absent.
 
    Drop an optional section that resolves to "None." rather than leaving a
-   stub. Never publish a generic or missing zone-required section; stop and
-   report the missing evidence when it cannot be derived specifically. Strip
-   every author-facing guidance comment from the rendered body — keep Summary
-   and Verification always.
+   stub. Never publish a generic or missing always-, zone-, archetype-, or
+   diff-required section; stop and report the missing evidence when it cannot
+   be derived specifically. Strip every author-facing guidance comment and
+   `[ Optional ]` heading marker from the rendered body; keep Summary, Goal,
+   Requirements, Context, and Verification always.
 7. After rendering and before emission or publication, scan the body against
    its selected template and active standard conditions. Build repeated
    `--generated-file` arguments from every generated path in `SIZE_JSON`, then
@@ -839,9 +862,10 @@ passes its base; text-only callers default to the first parent. Never invoke `gh
 ## Verification and Completion
 
 - The title matches the Conventional Commits regex and the rendered body passes
-  [scan-pr-message.py](../scripts/scan-pr-message.py); a repo template is
-  verbatim, or the bundled
-  default has no placeholder or dropped-section stub. The same
+  [scan-pr-message.py](../scripts/scan-pr-message.py). Every emitted body has
+  behavioral Goal and Requirements sections and emoji-prefixed headings with
+  no `[ Optional ]` authoring markers; a repo template is verbatim, or the
+  bundled default has no placeholder or dropped-section stub. The same
   head OID, base/empty-tree OID, template, thresholds, and placeholder map yield
   byte-identical `title\n\nbody` without timestamps or random IDs.
 - Local checks passed with every command/result recorded, or command execution
