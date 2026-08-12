@@ -56,11 +56,13 @@ replace this bootstrap contract.
 
 ### First-use work-memory bootstrap
 
-After the user confirms a new ID and the resolver returns `resolved` with
-`state_ignored: true`, the lease-holding PM runs `--bootstrap` before
-delegation or any other artifact write. It never derives an ID or bypasses a
-resolver gate. [lease.md](lease.md) owns the invocation, no-clobber semantics,
-initial content, and returned paths that enter `generated_files`.
+For substantial work, follow
+[directions/establish-work-stream.md](directions/establish-work-stream.md)
+before the first-use bootstrap. It owns identity reuse, the four confirmations,
+workspace selection, and their order. After its gates are settled, this
+lifecycle owns the resolved state paths; [lease.md](lease.md) owns the
+lease-verified invocation, no-clobber semantics, initial content, and returned
+paths that enter `generated_files`.
 
 ## Canonical topology
 

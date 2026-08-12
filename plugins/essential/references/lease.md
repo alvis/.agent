@@ -20,10 +20,11 @@ its digest, so reading `lease.json` never confers the lease.
 
 ## First-use work-memory bootstrap
 
-After the user has confirmed any new work identity and the resolver returns
-`resolved` with `state_ignored: true`, the PM invokes the resolver once
-more with that confirmed ID and `--bootstrap`, before delegating or creating
-any other work artifact:
+After the PM completes
+[directions/establish-work-stream.md](directions/establish-work-stream.md) and
+the resolver returns `resolved` with `state_ignored: true`, it invokes the
+resolver once more with the confirmed ID and `--bootstrap`, before delegating
+or creating any other work artifact:
 
 ```bash
 "$ESSENTIAL_ROOT/scripts/resolve-state-workspace" \
