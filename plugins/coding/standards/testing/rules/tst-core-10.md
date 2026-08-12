@@ -15,6 +15,8 @@ One line separates the two cases:
 
 **The operative test — ask what the assertion fails on.** If it fails when the data legitimately changes, it is a change-detector: remove it. If it fails only when the data is genuinely *wrong*, it is a property: keep it. Apply this question first — then check Edge Cases, which settle the shapes where a naive reading of it goes wrong (exact counts, mirrors, generated snapshots, properties over test scaffolding).
 
+How the test derives its oracle is part of that question. When conformance is defined by a category, grammar, schema, or template, derive the expected structure from that authority or use its canonical classifier. Never copy an exhaustive set of valid instances into the test: an enumerated oracle is a hand-maintained mirror even when the assertion loops over it. Keep the derivation independent of the behavior under test; do not validate an implementation by calling that implementation or consuming its derived output.
+
 The properties below are the common shapes a systematic property takes. They are **illustrative, not exhaustive** — an assertion that matches no row is not a violation for that reason. Put it to the operative test above. (Non-emptiness, idempotence, range invariants, and conservation are all legitimate properties with no row here.)
 
 | Property | Example |
@@ -64,6 +66,22 @@ expect(ROLES).toEqual(["admin", "user"]);
 expect(new Set(ROLES).size).toBe(ROLES.length);
 ```
 
+Structural conformance follows the same rule:
+
+```python
+# ❌ copies a Unicode category into test scaffolding
+assert heading[0] in EVERY_EMOJI
+
+# ✅ asks a canonical Unicode classifier for the required property
+assert unicode_data.has_property(first_grapheme(heading), EMOJI_PROPERTY)
+
+# ❌ copies the template's structure into the test
+assert h2_headings(subject) == ["Summary", "Context", "Verification"]
+
+# ✅ derives the required structure from the authoritative template
+assert h2_headings(subject) == h2_headings(template)
+```
+
 If shape correctness matters at compile time, encode it next to the constant — the TypeScript expression of this rule, not the rule itself:
 
 ```typescript
@@ -85,6 +103,7 @@ describe("fn:validateUpload", () => {
 - An exact-count assertion over a static set (`toHaveLength(23)`, `assertEqual(23, len(...))`) is a change-detector, not an invariant — the count is itself static content. Assert the property the count was standing in for, or delete it outright when it stood in for nothing.
 - **A property over the data itself is legitimate; a property over your own scaffolding is not.** When the static content *is* a deliverable — a shipped manifest, a roster, a config artifact, a field whose length must stay capped — asserting a property over it guards the real thing, and it stays. That the data is static is the point: the cap is a systematic property of the artifact, and no consumer needs to run for it to be evidence. What is pointless is asserting a property over a fixture the test file hand-wrote purely to exercise *other* code: nothing there can fail except the author's own setup, so it tests the scaffolding, not the system. "Fixtures-as-truth" in the Intent means restating fixture *values* — it never forbids properties over data that is itself the product.
 - **A mirror is not parity.** Cross-source parity means two sources *derive* the same answer independently (two implementations, a generator against its spec). A hand-maintained list in the test file that someone updates to match the source is a mirror, not a second derivation — it restates the values and is a violation, however much it resembles a parity check.
+- **An exhaustive oracle is still a mirror.** A test-local list of every accepted emoji, heading, field, token, or syntax form duplicates the category or structure it claims to verify and becomes incomplete as that authority evolves. Use a Unicode-aware predicate, parser, schema validator, or extraction from the authoritative template instead; a loop does not make enumerated data systematic.
 - **Deleting the assertion can orphan its fixture.** When removing a mirror, the test-local constant it compared against (`EXPECTED_IDS` and similar) usually becomes dead too. Delete it with the assertion; leaving it behind trades a change-detector for dead code (`GEN-DESN-04`).
 - **Asserting a function's output message tests the function, not the content.** A test that feeds a consumer an over-long input and asserts it reports an error exercises behavior and is compliant — the message text is an observation of the SUT, not static content restated. Prefer asserting the error structurally over substring-matching its copy, which is brittle for reasons of its own (`TST-DATA-07`).
 - A coverage contribution does not redeem a static-content test. Such an assertion executes code and moves the coverage number, so coverage-driven keep/restore logic will protect it; that is a defect in the measurement, not evidence of value. Cover the source through its consumer or a systematic property instead.
