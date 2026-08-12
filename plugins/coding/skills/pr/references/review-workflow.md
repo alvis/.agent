@@ -243,33 +243,16 @@ side) and every removed line (LEFT). A finding that cannot anchor moves into the
 overall body — never dropped, never posted against a guessed line.
 </IMPORTANT>
 
-Classify each size zone with the canonical read-only helper. A rendered-message
-failure is a standard finding citing the rule ID returned by
-[scan-pr-message.py](../scripts/scan-pr-message.py), not a process chore.
-Resolve `TEMPLATE` with the authoring workflow's precedence, bind `PR_BODY` to
-the live body, select `ARCHETYPE` from the diff and available label, derive
-`ZONE` and `GENERATED_ARGS` from `SIZE_JSON`, then run:
+Classify each size zone with the canonical read-only helper, then derive `ZONE`
+from `SIZE_JSON`:
 
 ```bash
 SIZE_JSON=$(uv run --python 3.13 \
   "${CODING_PR_SKILL_DIR}/scripts/classify-pr-size.py" \
   --repo "$REVIEW_DIR" --base "$BASE_OID" --head "$HEAD_OID")
-
-MESSAGE_SCAN=$(uv run --python 3.13 \
-  "${CODING_PR_SKILL_DIR}/scripts/scan-pr-message.py" \
-  --body-file - --template "$TEMPLATE" --zone "$ZONE" \
-  --archetype "$ARCHETYPE" --head-oid "$HEAD_OID" \
-  --base-oid "$BASE_OID" "${GENERATED_ARGS[@]}" <<<"$PR_BODY")
 ```
 
-Convert every scanner violation into one finding after confirming its live PR
-evidence. Passing the scanner establishes structure only; inspect the truth and
-specificity of each claim semantically. This review scan deliberately omits
-the authoring-only `--allow-pending-reviewers` flag: reviewer triplets count
-only when their assigned, reviewed, and approved tasks are checked for the
-active revision.
-
-Use its all-path `files_changed` and generated-excluding authored `net_loc`.
+Use the classifier's all-path `files_changed` and generated-excluding authored `net_loc`.
 Generated, vendored, and binary paths remain in the file count. Do not infer
 the size zone from GitHub's collapsed diff presentation.
 
@@ -280,12 +263,15 @@ zone for every PR in the stack.
 Use the classifier's returned zone. The table below explains that result for
 review; do not inspect or reproduce the classifier's internal threshold data.
 
-| Zone | PR body must add |
+Every zone requires Summary, `## 🎯 Goal`, `## ✅ Requirements`,
+`## 🧵 Context`, and `## 🧪 Verification`. The zone adds:
+
+| Zone | Additional PR-body evidence |
 |---|---|
-| green | Summary, Verification |
-| yellow | Risk, Test plan, and the policy-required reviewer evidence |
-| red | Why this size and the policy-required reviewer evidence |
-| black | Risk, Test plan, Why this size, and the policy-required reviewer evidence; full review of the self-contained unit; exact-revision OWNER authorization is required only for `APPROVE` |
+| green | None |
+| yellow | `## ⚠️ Risk`, `## 🧭 Test Plan`, and the policy-required reviewer evidence |
+| red | Yellow evidence plus `## 📐 Why This Size` and the policy-required reviewer evidence |
+| black | Red evidence plus full review of the self-contained unit; exact-revision OWNER authorization is required only for `APPROVE` |
 
 A black-zone review first judges whether the surface is genuinely one
 self-contained unit, then reviews it completely. Missing authorization does
@@ -313,9 +299,11 @@ advisory until confirmed against the rule they cite.
 ### Resolve the applicable standards
 
 Take standard paths from the "Plugin Constitution > Standards" sections of the
-system prompt, or Glob `**/standards/**`. Match stems to the changed
-languages, always include `code-review/`, and add `testing` when any `*.spec.*` or
-`*.test.*` file changed.
+system prompt, or Glob `**/standards/**`. Always include `code-review/`,
+`universal/`, `file-structure/`, `testing/`, and `documentation/`; include
+`function/` for functions, methods, or APIs, and every language-specific
+standard matching changed files. Apply testing standards to changed behavior
+even when the PR adds no test file.
 
 ### Review
 
@@ -330,15 +318,26 @@ The diff is the subject of the review, not the limit of the reading.
   owes are squarely about the diff and anchor to nothing.
 - **Ask whether the diff is the best solution**, not only whether it works: walk
   the lean ladder in [WORKFLOW.md](../../../references/WORKFLOW.md) — need,
-  foundational modules, nearby code, platform, installed dependency, then minimum new code. A
-  hand-rolled helper duplicating what the repository already provides is a finding.
+  foundational modules, nearby code, platform, installed dependency, then
+  minimum new code. Search code, content, tests, helpers, and fixtures;
+  reinventing an available equivalent is a finding.
+- **Prove the stated intent.** Trace each stated Goal and behavioral Requirement
+  through implementation, callers, edge/failure paths, and tests. Behavior that
+  diverges from the contract is a finding.
+- **Apply the complete standards set.** Check file structure, testing,
+  documentation, universal code, function/API, and every applicable
+  language-specific standard resolved above.
+- **Remove anything that earns no place.** Flag code, content, tests, helpers,
+  or repetition whose deletion preserves required behavior and readability.
 - **Say so when the change belongs somewhere else.** A guard repeated at each call
   site that belongs in the callee, validation in a controller that belongs in the
   domain, a symptom patched downstream of the function that produced the bad value —
   propose the better location and name the exact path. Never relocate it yourself.
 
 Cover the concerns in consequence order — correctness and security, then alignment,
-testing, quality, docs, style — in one pass.
+testing, quality, docs, style — in one pass. Record the goal/spec, intended
+behavior, standards, reuse, and minimality verdicts from the checklist even
+when they produce no finding.
 [review-checklist.md](review-checklist.md) carries the per-concern checklist, the
 depth ladder, and the finding schema;
 [review-tone.md](review-tone.md) governs every word that gets posted, and
@@ -468,6 +467,10 @@ With `--dry-run`, print the payload and post nothing.
 
 ## Verification
 
+- The review recorded whether the implementation delivers the stated Goal and
+  behavioral Requirements, whether every applicable standard was followed,
+  whether existing helpers/content/tests
+  were missed, and whether any code/content/tests can be removed unchanged.
 - Confirm the head, base-ref, and base-OID comparisons ran for every surface before
   the payload was built; any moved value blocked publication and is stated plainly
   in the ledger — the published review describes only the pinned stack it read.
@@ -490,7 +493,8 @@ With `--dry-run`, print the payload and post nothing.
 Write the detailed secret-free finding/thread ledger to a durable temporary
 file. Return its absolute path and a structured report below 1000 tokens with,
 per PR: review URL, reviewed head/base refs and OIDs, review tree and ownership,
-tracking path, zone, goal/spec alignment, finding counts by priority and kind,
+tracking path, zone, goal/spec and intended-behavior
+alignment, standards alignment, reuse, minimality, finding counts by priority and kind,
 submitted event, trust cap or `none`, unanchored count, paths not reviewed, and
 blocker. An outstanding `chore` is a
 merge blocker and must never be summarized as zero findings. Preserve stack

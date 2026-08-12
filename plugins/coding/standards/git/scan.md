@@ -30,7 +30,8 @@ are directions in [coding:commit](../../skills/commit/SKILL.md) and the
 
 ## Quick Scan
 
-- DO NOT publish a PR message that fails the selected template scan [`GIT-PR-02`]
+- DO NOT publish a PR message without Goal and behavioral Requirements or with
+  invalid emoji/optional headings [`GIT-PR-02`]
 - DO NOT misclassify generated paths or authored net LOC [`GIT-PR-SIZE-01`]
 - DO NOT omit required Risk or Test plan evidence outside green [`GIT-PR-SIZE-02`]
 - DO NOT omit a specific indivisibility rationale in red [`GIT-PR-SIZE-03`]
@@ -45,7 +46,7 @@ are directions in [coding:commit](../../skills/commit/SKILL.md) and the
 
 | Rule ID | Violation | Bad Example |
 |---|---|---|
-| `GIT-PR-02` | Rendered message fails template scan | Missing Verification |
+| `GIT-PR-02` | Rendered message fails template scan | Missing behavioral Requirements |
 | `GIT-PR-SIZE-01` | Wrong size inputs or zone | Generated path omitted from file count |
 | `GIT-PR-SIZE-02` | Missing non-green evidence | Yellow PR without Risk |
 | `GIT-PR-SIZE-03` | Missing red rationale | Generic or absent Why this size |

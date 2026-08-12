@@ -18,10 +18,16 @@ and attach the selected archetype when it is available. If unavailable, omit
 it, report it as skipped, and continue; never create or substitute labels. The
 label is never rendered in the title or body.
 
-Always required: Summary + Verification. Yellow, red, and black zones also
-require Risk + Test plan; red and black require Why this size. Context, Implementation,
-Breaking, Rollback, Feature Flag, Screenshots, Generated Files, Related,
-Boundary, and Notes are conditional.
+Always required: Summary + Goal + Requirements + Context + Verification. Goal
+states the outcome; Requirements lists observable behavior, never generic
+process gates.
+Yellow, red, and black zones also require Risk + Test Plan; red and black
+require Why This Size. Implementation, Breaking, Rollback, Feature Flag,
+Screenshots, Generated Files, Risk, Test Plan, Why This Size, Related,
+Boundary, and Notes are conditional and carry the `[ Optional ]` suffix in this
+authoring template even when a zone, archetype, or diff makes one mandatory for
+that PR. Remove `[ Optional ]` from every heading in the final rendered PR
+message. Every section heading starts with an emoji.
 
 The order is a single arc — why, what, what it costs, what to check, where it
 stops — with lookup material last. Authors fill placeholders in
@@ -33,7 +39,9 @@ Placeholders (for non-LLM callers performing literal substitution):
   Name                       Required  Source / Description
   -------------------------  --------  ----------------------------------------
   summary_paragraph          yes       Plain-language purpose, ≤3 sentences. Derived from commit body lead paragraph.
-  context_body               no        Why this change is needed; bug links; design background. Drop section if empty.
+  goal_body                  yes       Outcome this PR is intended to achieve and why it matters; no implementation detail.
+  requirements_body          yes       Testable, observable behavior required from the result; no generic quality/process gates.
+  context_body               yes       Why this change is needed; bug links; design background.
   implementation_body        no        What was implemented; trade-offs; design choices; evidence and results. Drop section if empty.
   breaking_changes_body      no        Breaking-change list + migration notes. Drop section if commit subject lacks `!` and no `BREAKING CHANGE:` trailer.
   risk_body                  by zone   Concrete failure modes and mitigations. Required for yellow/red/black.
@@ -57,6 +65,7 @@ Substitution rules:
 - Verification is required: it is never dropped, even when every item is still
   unticked.
 - Zone-required placeholders are never dropped or filled with generic stubs.
+- Remove `[ Optional ]` from every included section heading in rendered output.
 - Output MUST be byte-stable for the same input map (deterministic ordering,
   trailing newline, no trailing whitespace).
 -->
@@ -66,59 +75,71 @@ Substitution rules:
 <!-- purpose and main changes in plain language, ≤3 sentences -->
 {{summary_paragraph}}
 
+## 🎯 Goal
+
+<!-- the outcome this PR intends to achieve and why it matters; describe the
+     desired end state, not the implementation -->
+{{goal_body}}
+
+## ✅ Requirements
+
+<!-- bullets describing observable behavior the result must provide; exclude
+     generic gates such as passing tests, following standards, or keeping CI green -->
+{{requirements_body}}
+
 ## 🧵 Context
 
 <!-- why this change is needed: the problem and symptoms, related bug or ticket
      links, what problem it solves and why, and relevant design background -->
 {{context_body}}
 
-## 🛠️ Implementation
+## 🛠️ Implementation [ Optional ]
 
 <!-- features or behavior implemented and how the solution was achieved;
      trade-offs, architectural choices, and design patterns; evidence and
      results belong here, not in Verification -->
 {{implementation_body}}
 
-## 💥 Breaking Changes
+## 💥 Breaking Changes [ Optional ]
 
 <!-- what breaks, and the migration for it -->
 {{breaking_changes_body}}
 
-## ⏪ Rollback
+## ⏪ Rollback [ Optional ]
 
 <!-- migration rollback steps; when irreversible, say so and document the
      forward-only mitigation; required for migration -->
 {{rollback_body}}
 
-## 🚩 Feature Flag
+## 🚩 Feature Flag [ Optional ]
 
 <!-- flag name, default state, removal target, rollout plan, and cleanup change;
      team ownership belongs in CODEOWNERS or forge assignments; required for
      feature-flag -->
 {{feature_flag_body}}
 
-## 🖼️ Screenshots
+## 🖼️ Screenshots [ Optional ]
 
 <!-- before/after screenshots and relevant accessibility notes; required for ui -->
 {{screenshots_body}}
 
-## 🏭 Generated Files
+## 🏭 Generated Files [ Optional ]
 
 <!-- every generated path plus its source or generator; required whenever any
      generated files exist even when platform metadata collapses their diffs -->
 {{generated_files_body}}
 
-## Risk
+## ⚠️ Risk [ Optional ]
 
 <!-- concrete failure modes, impact, and mitigations; required for yellow/red/black -->
 {{risk_body}}
 
-## Test plan
+## 🧭 Test Plan [ Optional ]
 
 <!-- checks that exercise the named risks; required for yellow/red/black -->
 {{test_plan_body}}
 
-## Why this size
+## 📐 Why This Size [ Optional ]
 
 <!-- concise, specific reason this review surface is one indivisible change;
      required for red/black; generic justification does not satisfy it. Do not add
@@ -149,19 +170,19 @@ Substitution rules:
      three tasks checked for the active pair. -->
 {{verification_body}}
 
-## 🚫 Boundary
+## 🚫 Boundary [ Optional ]
 
 <!-- bullets naming adjacent work the instruction placed outside this change
      and where it lives, plus anything a reader would reasonably expect here
      that was not requested; not the author's own judgment calls -->
 {{boundary_body}}
 
-## 📋 Additional Notes
+## 📋 Additional Notes [ Optional ]
 
 <!-- known limitations, follow-ups, anything else a maintainer needs -->
 {{additional_notes_body}}
 
-## 🔗 Related Issues
+## 🔗 Related Issues [ Optional ]
 
 <!-- related tickets, issues, RFCs, specs, and discussions, for example:
      Closes #N · See #N · Spec: <link> · Discussion: <link> -->

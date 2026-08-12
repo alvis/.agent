@@ -1,53 +1,67 @@
 # Overall review body template
 
 Fill this and submit it as the review `body`, in the voice from
-[review-tone.md](../references/review-tone.md). Drop any section that would be empty rather than writing "None" under a
-heading. Detail lives in the inline comments; this is the map, and it should be
-actionable in under a minute.
-Render those comments through [inline-review.md](inline-review.md).
+[review-tone.md](../references/review-tone.md). Always populate Goal and
+Requirements, Tests, Standards, Reuse and minimality, and Verdict. Drop any other
+section that would be empty rather than writing "None" under a heading. Detail
+lives in the inline comments; this is the map, and it should be actionable in
+under a minute.
+Render inline comments through [inline-review.md](inline-review.md).
 
 ```markdown
-Reviewed `{{head_sha_short}}` — {{files_changed}} files, +{{additions}}/-{{deletions}}, {{zone}} zone.
+📌
+
+{{zone_emoji}} Reviewed `{{head_sha_short}}` — {{files_changed}} files, +{{additions}}/-{{deletions}}, {{zone}} zone.
 
 {{one_paragraph_read}}
 
-### Must change
+### 🚨 Must change
 
 > [!CAUTION]
 > {{what_blocks_merge}}
 
 - {{marker}} **{{file}}:{{line}}** — {{imperative_instruction}}
 
-### Worth considering
+### 💡 Worth considering
 
 > [!TIP]
 > {{highest_value_optional_improvement}}
 
 - {{marker}} **{{file}}:{{line}}** — {{suggestion}}
 
-### Goal and tests
+### 🎯 Goal and Requirements
 
 {{goal_spec_verdict}}
 
+{{intent_behavior_verdict}}
+
+### 🧪 Tests
+
 {{test_verdict}}
 
-### Standards
+### 📏 Standards
 
 {{standards_verdict}}
 
-### Not anchored to a line
+### ♻️ Reuse and minimality
+
+{{reuse_verdict}}
+
+{{minimality_verdict}}
+
+### 📍 Not anchored to a line
 
 > [!IMPORTANT]
 > {{why_these_could_not_anchor}}
 
 - {{marker}} **{{subject}}** — {{finding_that_could_not_anchor}}
 
-### Not reviewed
+### 👀 Not reviewed
 
 > [!IMPORTANT]
 > {{excluded_paths_and_reason}}
 
-### Verdict
+### 🧾 Verdict
 
 > [!{{verdict_alert}}]
 > {{verdict_sentence}}
@@ -55,6 +69,12 @@ Reviewed `{{head_sha_short}}` — {{files_changed}} files, +{{additions}}/-{{del
 
 Notes for the sections where the guidance is not self-evident:
 
+- **Opening marker** — render `📌` on its own line, then a blank line and the
+  review facts prefixed by the size-zone emoji: `🟢` green, `🟡` yellow,
+  `🔴` red, or `⚫` black. Preserve one space between `{{zone}}` and
+  `zone`.
+- **Section headings** — every `###` heading starts with its template emoji;
+  never emit an unprefixed review section.
 - **Opening paragraph** — lead with the judgement, not a summary of the diff the
   author already knows: "This gets the retry logic right and the shape is good; two
   things need to change before it merges." Name the zone when it is not green, and
@@ -72,10 +92,17 @@ Notes for the sections where the guidance is not self-evident:
   carries the verdict instead. `> [!TIP]` opens *Worth considering* only under a
   substantive `APPROVE`, and carries the single highest-value optional improvement.
   An alert whose section is dropped is dropped with it.
-- **Goal and tests** — state whether the change matches its goal and spec, or say
-  *skipped — goal/spec unknown* when neither could be resolved; never grade the diff
-  against a goal inferred from the diff. Then answer the test question: would these
-  tests fail if the implementation broke? "Coverage is fine" is not a verdict.
+- **Goal and Requirements** — state whether the change matches its stated goal
+  and spec and whether the implementation actually delivers each behavioral
+  requirement. Say *skipped — goal/spec unknown* only for external goal/spec
+  alignment.
+- **Tests** — answer whether these tests would fail if the implementation broke.
+  "Coverage is fine" is not a verdict.
+- **Standards** — cover file structure, testing, documentation, universal code,
+  function/API, and every applicable language-specific standard.
+- **Reuse and minimality** — state whether the PR missed existing code, content,
+  test, fixture, or helper reuse and whether anything can be removed without
+  changing required behavior or readability.
 - **Relocations** — a change that belongs elsewhere goes in whichever section its
   priority earns, with the destination path in the bullet: "Move the null guard into
   `src/orders/order.service.ts:88` — every other caller needs it too." When the right
