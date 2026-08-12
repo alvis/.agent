@@ -86,5 +86,7 @@ in the diff. A comment on the wrong line costs more author time than no comment.
   links the original report and summarizes the latest verdict and changed evidence.
   Omit the section when no prior issue changed verdict, and do not repeat unchanged
   issues. A fixed issue remains an overall-body line rather than a new inline comment.
-- Never resolve or reply to another reviewer's threads. This skill adds its own
-  review; it does not moderate the conversation.
+- For each unresolved inline thread, inspect the pinned head for related changes.
+  When the concern is addressed, post a concise confirmation reply only if no
+  existing reply records the work, then resolve the thread. Never resolve a concern
+  that still applies, and never duplicate an existing implementation reply.

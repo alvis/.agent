@@ -269,6 +269,22 @@ def test_rereview_body_reports_only_changed_previous_verdicts() -> None:
     assert "links the original report" in publishing
 
 
+def test_inline_thread_replies_and_resolution_have_distinct_owners() -> None:
+    workflow = REVIEW_WORKFLOW.read_text()
+    publishing = (WRITE_PR / "references" / "review-publishing.md").read_text()
+    loop = (WRITE_PR / "references" / "review-loop.md").read_text()
+
+    assert "must not resolve the thread" in loop
+    assert "reply to the comments whose" in loop
+    assert "fixes are now present. Do not resolve those threads" in loop
+    assert "If no reply records the published work" in workflow
+    assert "if such a reply already exists, do not post another" in workflow
+    assert "resolveReviewThread" in workflow
+    assert "Never resolve a thread whose concern still applies" in workflow
+    assert "post a concise confirmation reply only if no" in publishing
+    assert "never duplicate an existing implementation reply" in publishing
+
+
 def test_commit_message_directions_preserve_the_retired_standard_contract() -> None:
     directions = COMMIT_DIRECTIONS.read_text()
 
