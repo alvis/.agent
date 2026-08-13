@@ -1,6 +1,6 @@
 ---
 name: sync-notion
-description: Synchronize paired local files and Notion pages in a declared direction, validate opaque transport identity metadata, and coordinate guarded conflict resolution. Own transport and pairing; require an explicitly selected external body-author capability before semantic body creation or change.
+description: Synchronize paired local files and Notion pages in a declared direction, validate opaque transport identity metadata, and coordinate guarded conflict resolution. Own transport and pairing; require an explicitly selected body-author capability before semantic body creation or change.
 model: opus
 argument-hint: "<validate-metadata|local-to-notion|notion-to-local|two-way-merge> <file-or-ref> [counterpart...] [--transport-profile=<absolute-file>] [--body-author=<plugin:skill>] [--transport-root=<dir>] [--out=<dir>]"
 ---
@@ -21,10 +21,10 @@ local–Notion pairs. Public modes are `validate-metadata`, `local-to-notion`,
   handover contributes only a logical profile and optional relative suggestion,
   never a selected root. Never invent a mirror location or filename from a
   workspace, title, or id.
-- Notion transport bodies are opaque here. This marketplace neither defines
-  their grammar nor ships a body-authoring skill. `notion-sync` may update
-  transport metadata; any semantic body creation or change requires the exact
-  external capability supplied as `--body-author=<plugin:skill>`.
+- Notion transport bodies are opaque here. `specification:mdc` owns the MDC
+  grammar and authors semantic MDC bodies; another body dialect requires the
+  exact capability supplied as `--body-author=<plugin:skill>`. `notion-sync`
+  may update transport metadata but never interprets body grammar.
 - `validate-metadata` is read-only, interprets only frontmatter identity keys,
   and never loads a transport profile, reads `NOTION_TOKEN`, or inspects body
   syntax.

@@ -9,9 +9,9 @@ argument-hint: "<notion-url-or-id> [--work-id=<id>] [--mirror=<path>] [--transpo
 
 Safely coordinate three copies of a Notion-backed specification: an immutable
 recorded base, the work-local authored copy, and a fresh remote staging pull.
-`specification:sync-notion` owns transport. This marketplace treats body syntax
-as opaque: an explicitly selected external `body_author` owns semantic body
-changes. Detect changes by comparing the specification content
+`specification:sync-notion` owns transport. `specification:mdc` owns the MDC
+body grammar; another dialect uses an explicitly selected `body_author` for
+semantic body changes. Detect changes by comparing the specification content
 directly (byte-for-byte, or via `git diff`), disregarding only the volatile
 Notion `last_edited_time` line for semantic equality. Approvals bind to the
 approved specification content, not to any hash.

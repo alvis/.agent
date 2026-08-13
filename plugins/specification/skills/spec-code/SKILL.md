@@ -23,10 +23,12 @@ for engineers.
   Temporary reasoning belongs in the active work's `design/`, `proposals/`,
   `changes/`, or `decisions/`; durable specification docs belong under
   `docs/specs/<capability>/` only after verified completion.
-- This marketplace treats Notion body syntax as opaque and ships no authoring
-  grammar. Before creating or semantically changing a Notion body, require an
-  explicit `--body-author=<plugin:skill>`, validate its canonical capability
-  identity, and invoke that exact installed capability. Use
+- This marketplace owns the MDC body grammar through `specification:mdc`.
+  Before creating or semantically changing an MDC body, require the explicit
+  `--body-author=specification:mdc` selector and invoke that exact capability.
+  For another Notion body dialect, require an explicit
+  `--body-author=<plugin:skill>`, validate its canonical capability identity,
+  and invoke that exact installed capability. Use
   `specification:sync-spec` only for a selected existing Notion specification's
   work-local materialization or verified completion; local and inline sources
   do not detour through it. For a Notion source, the work-local materialization
@@ -47,7 +49,7 @@ for engineers.
 - **Required**: instruction and lowercase `--capability=<slug>`.
 - **Optional**: work id, authoritative source/location/direction, explicit
   transport root, absolute destination-local transport profile file, exact
-  external body-author capability for Notion body mutation, live template
+  selected body-author capability for Notion body mutation, live template
   path/ref, explicit local transport path and parent for CREATE, project
   type, `--reference=<doc>`, `--discovery=<path>`, `--sync-template`, and
   `--skip-notion-sync`.

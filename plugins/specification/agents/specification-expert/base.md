@@ -48,14 +48,15 @@ Typical responses:
   `specification:sync-spec` only when the selected source is a Notion
   specification that requires work-local materialization; transport belongs to
   `specification:sync-notion`.
-- **Page Creation / Updates**: this marketplace defines no Notion body grammar.
-  For a new page, require an explicit canonical
-  `--body-author=<plugin:skill>`, invoke that exact installed capability on the
-  explicit local transport path and approved body with parent metadata, then
-  pass the identical selector to `specification:sync-notion` in
-  local-to-Notion mode. For an existing paired specification, pass the same
-  explicitly selected capability through `specification:sync-spec` completion
-  after approval. Never infer or default the selector.
+- **Page Creation / Updates**: `specification:mdc` owns the MDC body grammar.
+  For a new or changed MDC page, require the explicit
+  `--body-author=specification:mdc` selector, invoke that exact capability on
+  the explicit local transport path and approved body with parent metadata,
+  then pass the identical selector to `specification:sync-notion` in
+  local-to-Notion mode. For another body dialect, require its exact selected
+  `--body-author=<plugin:skill>` capability instead. For an existing paired
+  specification, pass the same selector through `specification:sync-spec`
+  completion after approval. Never infer or default the selector.
 - **Diffing and recursive pulls**: delegate them to
   `specification:sync-notion`. It computes structured diffs from staged bytes
   after invoking the selected profile's conformance-validated
