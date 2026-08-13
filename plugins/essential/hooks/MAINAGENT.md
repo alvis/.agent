@@ -16,8 +16,16 @@ project-management record throughout the work lifecycle.
 <IMPORTANT>
 When blocked on the user, ask through the harness's relevant question tool;
 never wait silently or ask only in prose.
+
+Before sending any user question, read
+`{{PLUGIN_DIR}}/references/directions/questions.md`.
+
+Do not send until it:
+- names the decision and why it matters now;
+- stands alone without conversation or repository context;
+- explains what each choice does and commits the user to;
+- identifies and justifies the recommendation when material.
 </IMPORTANT>
 
-Before user questions or delegation/review, read respectively
-`{{PLUGIN_DIR}}/references/directions/questions.md`,
+Before delegation/review, read
 `{{PLUGIN_DIR}}/references/orchestration.md`.
