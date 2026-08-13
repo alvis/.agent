@@ -13,7 +13,7 @@ If a violation is detected, load the matching rule guide at `./rules/<rule-id>.m
 
 - DO NOT mix multiple responsibilities in one function [`FUNC-ARCH-01`] (→ GEN-DESN-01)
 - DO NOT build multi-line text with string concatenation [`FUNC-ARCH-02`]
-- DO NOT add wrappers that provide no behavioral value [`FUNC-ARCH-03`] (→ GEN-DESN-03)
+- DO NOT add wrappers that provide no behavioral value; rechecking trusted producer postconditions or remapping their impossible violations does not count [`FUNC-ARCH-03`] (→ GEN-DESN-03, GEN-SAFE-03)
 - DO NOT inject the parent class into a child (`new Child({ parent: this })`) or use `extends Parent` purely to share private helpers; use a parent factory method or a standalone module-level helper instead [`FUNC-ARCH-04`]
 - DO NOT keep short-circuit guards before loops that average ≤3 iterations; use optional chaining at the call site [`FUNC-ARCH-05`]
 - DO NOT omit explicit return types [`FUNC-SIGN-01`]
@@ -35,7 +35,7 @@ If a violation is detected, load the matching rule guide at `./rules/<rule-id>.m
 |---|---|---|
 | `FUNC-ARCH-01` | Function has multiple responsibilities | `function saveAndNotify(){ saveUser(user); sendWelcomeEmail(user); }` |
 | `FUNC-ARCH-02` | Multi-line text uses concatenation | `msg += "- Email is required\n"`; `let message = "Validation failed:\n";` |
-| `FUNC-ARCH-03` | Wrapper adds no behavioral value | `return service.run(data)` |
+| `FUNC-ARCH-03` | Wrapper adds no behavioral value | `return service.run(data)`; `validateResult(await internal.run())` |
 | `FUNC-ARCH-04` | Parent class injected into child, or `extends Parent` used purely to share private helpers | `new Child({ parent: this })`; `class Child extends Parent {}` (for shared helpers only) |
 | `FUNC-ARCH-05` | Unnecessary short-circuit guard before small loop | `if (!cb) return; for (const x of items) cb(x)`; `if (!handlers.length) return; for (const h of handlers) h(evt)` |
 | `FUNC-SIGN-01` | Missing explicit return type | `function parse(x){ return x }`; `function getUserById(id: string) {` |

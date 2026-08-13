@@ -18,6 +18,7 @@ This standard enforces requirements beyond common team conventions:
 |-----------------------------------------|--------------------------------------------------------------------|
 | Suppression comments used pragmatically | **Suppression is exceptional and requires explicit user approval** |
 | Wrapper functions often tolerated       | **Zero wrapper tolerance unless value is added**                   |
+| Defensive runtime checks added routinely | **Runtime checks require a trust boundary or independently mutable invariant** |
 | Optimize while implementing             | **Profile first, optimize second**                                 |
 | Mixed style tolerated                   | **Must match established project patterns**                        |
 | Quick fixes accepted                    | **Root-cause remediation required**                                |

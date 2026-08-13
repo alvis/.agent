@@ -22,7 +22,7 @@
 
 - **FUNC-ARCH-01**: Each function has one clear purpose and one primary reason to change. (→ GEN-DESN-01)
 - **FUNC-ARCH-02**: Use `Array.join("\n")` for multi-line messages rather than repeated concatenation.
-- **FUNC-ARCH-03**: Do not create pass-through wrappers that add no policy, validation, or transformation. (→ GEN-DESN-03)
+- **FUNC-ARCH-03**: Do not create pass-through wrappers that add no policy, boundary validation, supported-failure mapping, or transformation. Validation of trusted producer postconditions is not value. (→ GEN-DESN-03, GEN-SAFE-03)
 - **FUNC-ARCH-04**: Never inject the parent class into a child; if the child needs private parent state use a parent factory method that closes over the needed values, and if it needs only the parent's public surface use a module-level standalone helper that takes the parent as its first argument. Never use `extends Parent` purely to share private helpers.
 - **FUNC-ARCH-05**: Remove early-return short-circuit guards when the protected loop averages ≤3 iterations; tiny guards before tiny loops add branch noise without saving meaningful work, so prefer optional chaining (`fn?.(...)`) at the call site and reserve guards for loops that typically run more than three iterations.
 

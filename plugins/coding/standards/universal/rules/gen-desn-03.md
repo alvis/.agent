@@ -2,7 +2,7 @@
 
 ## Intent
 
-A module, class, or service wrapper must add concrete value: validation, policy enforcement, transformation, caching, telemetry, retries, or error normalization. Pass-through modules/services that merely re-export or delegate without adding behavior are prohibited. For function-level no-value wrappers, see `FUNC-ARCH-03`.
+A module, class, or service wrapper must add concrete value: boundary validation, policy enforcement, transformation, caching, telemetry, retries, or error normalization. Pass-through modules/services that merely re-export or delegate without adding behavior are prohibited. Validation that only reasserts a trusted first-party producer postcondition is not value; apply `GEN-SAFE-03`. For function-level no-value wrappers, see `FUNC-ARCH-03`.
 
 ## Fix
 
@@ -61,7 +61,7 @@ function createDefaultLogger(): Logger {
 | Added Value          | Example                                |
 |----------------------|----------------------------------------|
 | Caching              | Cache lookup before repository call    |
-| Validation           | Schema parse before forwarding         |
+| Boundary validation  | Schema parse of untrusted input         |
 | Error normalization  | Catch and rethrow domain error         |
 | Telemetry            | Duration/metric logging around call    |
 | Policy enforcement   | Permission check before action         |
@@ -75,4 +75,4 @@ function createDefaultLogger(): Logger {
 
 ## Related
 
-FUNC-ARCH-03, GEN-DESN-01, GEN-DESN-02, GEN-DESN-04, GEN-CONS-01
+FUNC-ARCH-03, GEN-DESN-01, GEN-DESN-02, GEN-DESN-04, GEN-SAFE-03, GEN-CONS-01
