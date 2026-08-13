@@ -1,12 +1,9 @@
-from __future__ import annotations
-
 import json
-from pathlib import Path
 import subprocess
 import time
+from pathlib import Path
 
 import pytest
-
 
 ESSENTIAL = Path(__file__).resolve().parents[1]
 LEASE = ESSENTIAL / "scripts/state-lease"
@@ -57,6 +54,7 @@ class StateWriteHarness:
             input=content,
             capture_output=True,
             text=True,
+            check=False,
         )
         return completed.returncode, json.loads(completed.stdout)
 
@@ -73,9 +71,9 @@ def test_write_applies_content_and_heartbeats(harness: StateWriteHarness) -> Non
     code, payload = harness.write(token, "state.md", "fresh state\n")
     assert code == 0, payload
     assert payload["status"] == "written"
-    assert (
-        (harness.work_dir / "state.md").read_text(encoding="utf-8") == "fresh state\n"
-    )
+    assert (harness.work_dir / "state.md").read_text(
+        encoding="utf-8"
+    ) == "fresh state\n"
     after = json.loads(harness.lease_path.read_text(encoding="utf-8"))
     assert after["expires_at_epoch"] > before["expires_at_epoch"]
     assert after["acquired_at"] == before["acquired_at"]
@@ -83,7 +81,7 @@ def test_write_applies_content_and_heartbeats(harness: StateWriteHarness) -> Non
 
 def test_write_creates_nested_target(harness: StateWriteHarness) -> None:
     token = harness.acquire()
-    code, payload = harness.write(token, "state/journal.md", "line\n")
+    code, _payload = harness.write(token, "state/journal.md", "line\n")
     assert code == 0
     assert (harness.work_dir / "state/journal.md").is_file()
 
@@ -128,7 +126,7 @@ def test_refuses_symlinked_target(harness: StateWriteHarness) -> None:
     victim = harness.root / "victim.md"
     victim.write_text("original", encoding="utf-8")
     (harness.work_dir / "state.md").symlink_to(victim)
-    code, payload = harness.write(token, "state.md")
+    code, _payload = harness.write(token, "state.md")
     assert code == 2
     assert victim.read_text(encoding="utf-8") == "original"
 

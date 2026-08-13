@@ -1,7 +1,5 @@
-from __future__ import annotations
-
-from pathlib import Path
 import re
+from pathlib import Path
 
 PLUGIN = Path(__file__).resolve().parents[1]
 FACELIFT = PLUGIN / "skills/design/references/facelift.md"

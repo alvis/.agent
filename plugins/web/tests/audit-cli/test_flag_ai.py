@@ -1,7 +1,6 @@
 """Verify AI-flag routing across rule list, confidence, and heuristic paths."""
 
 import pytest
-
 from audit_cli.report.flag_ai import (
     AI_GROUNDED_RULES,
     CONFIDENCE_THRESHOLD,
@@ -18,7 +17,9 @@ def _make_finding(rule_id: str = "DES-GENERIC-00") -> Finding:
         severity="p1",
         selector=".btn",
         evidence=Evidence(),
-        recommendation=Recommendation(action="fix it", code_suggestion="", rule_ref=rule_id),
+        recommendation=Recommendation(
+            action="fix it", code_suggestion="", rule_ref=rule_id
+        ),
         needs_ai_review=False,
     )
 
@@ -48,7 +49,10 @@ def test_confidence_above_threshold_does_not_flag() -> None:
 
 def test_background_image_heuristic_flags_for_review() -> None:
     finding = _make_finding()
-    assert should_flag_for_ai(finding, FlagContext(has_text_over_background_image=True)) is True
+    assert (
+        should_flag_for_ai(finding, FlagContext(has_text_over_background_image=True))
+        is True
+    )
 
 
 @pytest.mark.parametrize(
@@ -60,6 +64,10 @@ def test_background_image_heuristic_flags_for_review() -> None:
         (None, True, True),
     ],
 )
-def test_combined_flag_matrix(confidence: float | None, heuristic: bool, expected: bool) -> None:
-    context = FlagContext(confidence=confidence, has_text_over_background_image=heuristic)
+def test_combined_flag_matrix(
+    confidence: float | None, heuristic: bool, expected: bool
+) -> None:
+    context = FlagContext(
+        confidence=confidence, has_text_over_background_image=heuristic
+    )
     assert should_flag_for_ai(_make_finding(), context) is expected

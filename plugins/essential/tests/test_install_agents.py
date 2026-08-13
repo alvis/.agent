@@ -139,7 +139,7 @@ def test_stitches_nested_json_lists_and_multiline_strings_deterministically(
             "name": "test-agent",
             "description": "first line\nsecond line. Preferably named Ava, Kit, or June when the main agent spawns this role.",
             "emptyObject": {},
-            "emptyList": []
+            "emptyList": [],
         },
         body="\n\n# Test agent\n",
     )
@@ -220,10 +220,7 @@ def test_standalone_stitch_requires_or_derives_essential_root(
         tmp_path / "external",
         "lead-agent",
         frontmatter={"name": "lead-agent"},
-        body=(
-            "# Lead agent\n\n"
-            "@essential:references/directions/lead-agent.md\n"
-        ),
+        body=("# Lead agent\n\n@essential:references/directions/lead-agent.md\n"),
     )
     stitch = (
         stitch_agent_definition
@@ -306,10 +303,7 @@ def test_standalone_stitch_derives_installed_cache_essential_root(
         tmp_path / "cache/alvis/coding/1.0.0",
         "tech-lead",
         frontmatter={"name": "tech-lead"},
-        body=(
-            "# Tech lead\n\n"
-            "@essential:references/directions/lead-agent.md\n"
-        ),
+        body=("# Tech lead\n\n@essential:references/directions/lead-agent.md\n"),
     )
     stitch = (
         stitch_agent_definition
@@ -440,9 +434,9 @@ def test_codex_projection_preserves_direct_only_delegation_modes(
         body=body,
     )
 
-    instructions = tomllib.loads(
-        stitch_codex_agent_definition(template)
-    )["developer_instructions"]
+    instructions = tomllib.loads(stitch_codex_agent_definition(template))[
+        "developer_instructions"
+    ]
 
     assert "## Delegation Modes" in instructions
     assert "Direct persistent delegation" in instructions
@@ -452,16 +446,12 @@ def test_codex_projection_preserves_direct_only_delegation_modes(
 def test_rejects_missing_base_invalid_json_and_directory_name_mismatch(
     tmp_path: Path,
 ) -> None:
-    missing = write_template(
-        tmp_path, "missing", frontmatter={"name": "missing"}
-    )
+    missing = write_template(tmp_path, "missing", frontmatter={"name": "missing"})
     (missing / "base.md").unlink()
     with pytest.raises(AgentTemplateError, match="base.md"):
         stitch_agent_definition(missing)
 
-    invalid = write_template(
-        tmp_path, "invalid", frontmatter={"name": "invalid"}
-    )
+    invalid = write_template(tmp_path, "invalid", frontmatter={"name": "invalid"})
     (invalid / "frontmatter/claude.json").write_text("{", encoding="utf-8")
     with pytest.raises(AgentTemplateError, match="invalid JSON"):
         stitch_agent_definition(invalid)
@@ -642,9 +632,7 @@ def test_rejects_codex_overlay_values_without_toml_scalar_syntax(
 def test_rejects_shared_delegation_policy_in_agent_body(phrase: str) -> None:
     with pytest.raises(AgentTemplateError, match="repeats shared delegation policy"):
         validate_agent_contract(
-            sources_from_combined(
-                {"name": "test-agent", "intelligence": "inherit"}
-            ),
+            sources_from_combined({"name": "test-agent", "intelligence": "inherit"}),
             phrase,
         )
 
@@ -709,9 +697,7 @@ def test_requires_project_memory_path_section_and_maintenance_contract(
 
 
 def test_mainagent_requires_canonical_state_without_duplicating_state_policy() -> None:
-    prompt = (ROOT / "plugins/essential/hooks/MAINAGENT.md").read_text(
-        encoding="utf-8"
-    )
+    prompt = (ROOT / "plugins/essential/hooks/MAINAGENT.md").read_text(encoding="utf-8")
 
     assert (
         "Before working on any project, MUST read\n"
@@ -741,7 +727,7 @@ def test_role_hooks_expand_the_state_reference() -> None:
             hook["command"]
             for group in hooks_document["hooks"][event]
             for hook in group["hooks"]
-            if hook["type"] == "command" and ".md\"" in hook["command"]
+            if hook["type"] == "command" and '.md"' in hook["command"]
         ]
         assert len(commands) == 2
         for command in commands:
@@ -850,9 +836,9 @@ def test_distributed_agents_satisfy_the_delegation_contract() -> None:
 
 
 def test_install_skill_derives_smoke_expectations_from_the_matrix() -> None:
-    skill = (
-        ROOT / "plugins/essential/skills/install-agents/SKILL.md"
-    ).read_text(encoding="utf-8")
+    skill = (ROOT / "plugins/essential/skills/install-agents/SKILL.md").read_text(
+        encoding="utf-8"
+    )
     codex_models = {
         projection["codex"]["model"]
         for projection in INTELLIGENCE_LEVELS.values()
@@ -864,9 +850,9 @@ def test_install_skill_derives_smoke_expectations_from_the_matrix() -> None:
 
 
 def test_install_skill_resolves_codex_script_from_its_loaded_resource() -> None:
-    skill = (
-        ROOT / "plugins/essential/skills/install-agents/SKILL.md"
-    ).read_text(encoding="utf-8")
+    skill = (ROOT / "plugins/essential/skills/install-agents/SKILL.md").read_text(
+        encoding="utf-8"
+    )
     codex_instructions = skill.split("# Codex", 1)[1].split("```", 1)[0]
 
     assert "absolute directory containing this loaded SKILL.md" in codex_instructions
@@ -875,9 +861,9 @@ def test_install_skill_resolves_codex_script_from_its_loaded_resource() -> None:
 
 
 def test_install_skill_verifies_the_configured_codex_home() -> None:
-    skill = (
-        ROOT / "plugins/essential/skills/install-agents/SKILL.md"
-    ).read_text(encoding="utf-8")
+    skill = (ROOT / "plugins/essential/skills/install-agents/SKILL.md").read_text(
+        encoding="utf-8"
+    )
 
     assert '"${CODEX_HOME:-$HOME/.codex}/agents/tech-lead.toml"' in skill
 
@@ -897,9 +883,9 @@ def test_governance_heuristic_does_not_use_a_cross_plugin_relative_link() -> Non
 def test_agent_authoring_skills_verify_both_harness_projections(
     skill_name: str,
 ) -> None:
-    skill = (
-        ROOT / f"plugins/governance/skills/{skill_name}/SKILL.md"
-    ).read_text(encoding="utf-8")
+    skill = (ROOT / f"plugins/governance/skills/{skill_name}/SKILL.md").read_text(
+        encoding="utf-8"
+    )
 
     assert "--harness claude" in skill
     assert "--harness codex" in skill
@@ -910,9 +896,7 @@ def test_every_distributed_agent_has_project_memory() -> None:
     # parity against the on-disk template directories, not a hardcoded
     # count that breaks whenever an agent is added or removed
     on_disk = {
-        path.name
-        for path in (ROOT / "plugins").glob("*/agents/*")
-        if path.is_dir()
+        path.name for path in (ROOT / "plugins").glob("*/agents/*") if path.is_dir()
     }
     assert templates
     assert on_disk == {template.name for template in templates}
@@ -1009,9 +993,7 @@ def test_distributed_collaboration_sections_are_point_form_only() -> None:
         lines = [line for line in collaboration.splitlines() if line.strip()]
         # a lead role wraps its delegation map in <IMPORTANT>; the tags
         # delimit the map without adding prose to it
-        lines = [
-            line for line in lines if line not in ("<IMPORTANT>", "</IMPORTANT>")
-        ]
+        lines = [line for line in lines if line not in ("<IMPORTANT>", "</IMPORTANT>")]
         assert lines, template.name
         assert all(line.startswith("- ") for line in lines), (template.name, lines)
         assert all("): " not in line for line in lines), (template.name, lines)
@@ -1050,9 +1032,10 @@ def test_installed_mode_uses_only_enabled_plugins_from_essential_marketplace(
 
     templates = discover_agent_templates(essential, records)
 
-    assert {
-        f"{template.owner}:{template.name}" for template in templates
-    } == {"essential:essential-agent", "web:web-agent"}
+    assert {f"{template.owner}:{template.name}" for template in templates} == {
+        "essential:essential-agent",
+        "web:web-agent",
+    }
 
 
 @pytest.mark.parametrize("harness", ("claude", "codex"))
@@ -1097,9 +1080,7 @@ def test_installed_mode_includes_explicitly_trusted_marketplace(
         include_marketplaces=("external",),
     )
 
-    assert {template.name for template in default_templates} == {
-        "essential-agent"
-    }
+    assert {template.name for template in default_templates} == {"essential-agent"}
     assert {template.name for template in included_templates} == {
         "analytics-agent",
         "essential-agent",
@@ -1161,7 +1142,9 @@ def test_cross_marketplace_duplicate_requires_original_plugin_disabled(
         },
     ]
 
-    with pytest.raises(AgentTemplateError, match="duplicate agent name 'analytics-agent'"):
+    with pytest.raises(
+        AgentTemplateError, match="duplicate agent name 'analytics-agent'"
+    ):
         install_agents(
             essential,
             tmp_path / "collision",
@@ -1171,13 +1154,16 @@ def test_cross_marketplace_duplicate_requires_original_plugin_disabled(
         )
 
     records[1]["enabled"] = False
-    assert install_agents(
-        essential,
-        tmp_path / "migrated",
-        records,
-        harness,
-        include_marketplaces=("external",),
-    ) == 2
+    assert (
+        install_agents(
+            essential,
+            tmp_path / "migrated",
+            records,
+            harness,
+            include_marketplaces=("external",),
+        )
+        == 2
+    )
 
 
 @pytest.mark.parametrize(
@@ -1201,10 +1187,7 @@ def test_installed_lead_reference_survives_cache_cleanup_and_refreshes(
         coding,
         "tech-lead",
         frontmatter={"name": "tech-lead"},
-        body=(
-            "# Tech lead\n\n"
-            "@essential:references/directions/lead-agent.md\n"
-        ),
+        body=("# Tech lead\n\n@essential:references/directions/lead-agent.md\n"),
     )
     records = [
         {
@@ -1223,9 +1206,7 @@ def test_installed_lead_reference_survives_cache_cleanup_and_refreshes(
 
     install_agents(essential_v1, destination, records, harness=harness)
 
-    stable_direction = (
-        destination / ".essential" / direction_relative
-    )
+    stable_direction = destination / ".essential" / direction_relative
     installed_agent = destination / f"tech-lead{suffix}"
     assert f"@{stable_direction.resolve()}" in installed_agent.read_text(
         encoding="utf-8"
@@ -1371,9 +1352,10 @@ def test_codex_installed_mode_resolves_versioned_cache_not_marketplace_source(
 
     templates = discover_agent_templates(essential, harness="codex")
 
-    assert {
-        f"{template.owner}:{template.name}" for template in templates
-    } == {"essential:essential-agent", "coding:coding-agent"}
+    assert {f"{template.owner}:{template.name}" for template in templates} == {
+        "essential:essential-agent",
+        "coding:coding-agent",
+    }
 
 
 @pytest.mark.parametrize("version", ("..", "../outside"))
@@ -1444,9 +1426,10 @@ def test_installed_mode_keeps_only_latest_record_per_plugin_id(
 
     templates = discover_agent_templates(essential, records)
 
-    assert {
-        f"{template.owner}:{template.name}" for template in templates
-    } == {"essential:essential-agent", "web:new-agent"}
+    assert {f"{template.owner}:{template.name}" for template in templates} == {
+        "essential:essential-agent",
+        "web:new-agent",
+    }
 
 
 def test_installed_mode_rejects_wrong_or_ambiguous_essential_identity(
@@ -1545,8 +1528,7 @@ def test_source_checkout_installs_every_discovered_agent(tmp_path: Path) -> None
         assert "intelligence" not in agent
         assert "intelligenceLevel" not in agent
     expected_direction = (
-        f"@{destination.resolve()}"
-        "/.essential/references/directions/lead-agent.md"
+        f"@{destination.resolve()}/.essential/references/directions/lead-agent.md"
     )
     for name in ("tech-lead", "ai-research-lead", "design-lead"):
         installed = (destination / f"{name}.md").read_text(encoding="utf-8")
@@ -1581,8 +1563,7 @@ def test_source_checkout_installs_native_codex_agents(tmp_path: Path) -> None:
     assert ".claude/agent-memory/" not in tech_lead["developer_instructions"]
     assert "Dynamic Workflow" not in tech_lead["developer_instructions"]
     expected_direction = (
-        f"@{destination.resolve()}"
-        "/.essential/references/directions/lead-agent.md"
+        f"@{destination.resolve()}/.essential/references/directions/lead-agent.md"
     )
     for name in ("tech-lead", "ai-research-lead", "design-lead"):
         installed = tomllib.loads(
@@ -1616,19 +1597,13 @@ def test_source_checkout_installs_native_codex_agents(tmp_path: Path) -> None:
         agent = tomllib.loads(path.read_text(encoding="utf-8"))
         source_template = templates_by_file[path.name]
         metadata = json.loads(
-            (source_template.path / "frontmatter/meta.json").read_text(
-                encoding="utf-8"
-            )
+            (source_template.path / "frontmatter/meta.json").read_text(encoding="utf-8")
         )
-        expected_projection = INTELLIGENCE_LEVELS[
-            metadata["intelligence"]
-        ]["codex"]
+        expected_projection = INTELLIGENCE_LEVELS[metadata["intelligence"]]["codex"]
         preferred_names = PREFERRED_NAMES.search(metadata["description"])
         assert preferred_names is not None
         assert agent["nickname_candidates"] == list(preferred_names.groups())
-        codex_contract = (
-            agent["description"] + "\n" + agent["developer_instructions"]
-        )
+        codex_contract = agent["description"] + "\n" + agent["developer_instructions"]
         assert "worktree" not in codex_contract.replace(expected_direction, "")
         assert "Workflow launches" not in codex_contract
         for field in ("model", "model_reasoning_effort"):
@@ -1708,11 +1683,7 @@ def test_rerun_overwrites_discovered_agents_without_pruning_other_files(
 
 @pytest.mark.parametrize(
     "template",
-    sorted(
-        path
-        for path in (ROOT / "plugins").glob("*/agents/*")
-        if path.is_dir()
-    ),
+    sorted(path for path in (ROOT / "plugins").glob("*/agents/*") if path.is_dir()),
     ids=lambda path: f"{path.parents[1].name}:{path.name}",
 )
 def test_every_distributed_agent_template_stitches(template: Path) -> None:

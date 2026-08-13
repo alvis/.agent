@@ -6,7 +6,6 @@ from pathlib import Path
 
 import pytest
 
-
 ROOT = Path(__file__).resolve().parents[3]
 
 CLAUDE = shutil.which("claude")
@@ -21,6 +20,7 @@ pytestmark = pytest.mark.skipif(
 
 
 def run_claude(config: str, *args: str) -> subprocess.CompletedProcess[str]:
+    assert CLAUDE is not None
     env = os.environ | {"CLAUDE_CONFIG_DIR": config}
     return subprocess.run(
         [CLAUDE, "plugin", *args],
@@ -28,6 +28,7 @@ def run_claude(config: str, *args: str) -> subprocess.CompletedProcess[str]:
         env=env,
         text=True,
         capture_output=True,
+        check=False,
     )
 
 
@@ -38,9 +39,7 @@ def run_installed_hooks(
     event: str,
     input_json: str,
 ) -> tuple[subprocess.CompletedProcess[str], ...]:
-    hooks_document = json.loads(
-        (plugin_root / "hooks/hooks.json").read_text()
-    )
+    hooks_document = json.loads((plugin_root / "hooks/hooks.json").read_text())
     substitutions = {
         "${CLAUDE_PLUGIN_ROOT}": str(plugin_root),
         "${HOME}": os.environ["HOME"],
@@ -62,6 +61,7 @@ def run_installed_hooks(
                     input=input_json,
                     text=True,
                     capture_output=True,
+                    check=False,
                 )
             )
     return tuple(completed)

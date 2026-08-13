@@ -1,13 +1,11 @@
-from __future__ import annotations
-
+import itertools
 import json
 import os
-from pathlib import Path
 import shutil
 import subprocess
+from pathlib import Path
 
 import pytest
-
 
 ESSENTIAL = Path(__file__).resolve().parents[1]
 REPOSITORY = ESSENTIAL.parents[1]
@@ -36,9 +34,7 @@ class CheckerHarness:
         fake_bin.mkdir()
         fake_wc = fake_bin / "wc"
         fake_wc.write_text(
-            "#!/bin/sh\n"
-            "printf 'call\\n' >>\"$WC_LOG\"\n"
-            "exec /usr/bin/wc \"$@\"\n",
+            '#!/bin/sh\nprintf \'call\\n\' >>"$WC_LOG"\nexec /usr/bin/wc "$@"\n',
             encoding="utf-8",
         )
         fake_wc.chmod(0o755)
@@ -97,18 +93,17 @@ def test_returns_every_oversized_file_together_after_one_wc(
     checker: CheckerHarness,
 ) -> None:
     first = checker.write_bytes(".state/works/eng-421/one.md", 16_385)
-    second = checker.write_bytes(
-        ".state/works/eng-421/dir with spaces/two.md", 20_000
-    )
+    second = checker.write_bytes(".state/works/eng-421/dir with spaces/two.md", 20_000)
     valid = checker.write_bytes(".state/works/eng-421/valid.md", 12_289)
 
     completed, payload = checker.run_checker(first, second, valid)
 
     assert completed.returncode == 1, completed.stderr
     assert payload["status"] == "split_required"
-    assert {
-        entry["path"]: entry["bytes"] for entry in payload["oversized"]
-    } == {str(first): 16_385, str(second): 20_000}
+    assert {entry["path"]: entry["bytes"] for entry in payload["oversized"]} == {
+        str(first): 16_385,
+        str(second): 20_000,
+    }
     assert checker.calls() == 1
 
 
@@ -320,13 +315,13 @@ def test_single_pr_and_stacked_branches_resolve_to_their_stream(
     # a single-digit ordinal is not the documented shape; neither resolves,
     # and two candidates leave nothing to fall back to
     for branch in (
-        "feat/work-id-naming-rewrite",   # its own topic, not this stream
-        "feat/work-id-naming/3-late",    # ordinals are exactly two digits
-        "feat/work-id-naming/00-prep",   # and run 01-99, so 00 is not a slice
+        "feat/work-id-naming-rewrite",  # its own topic, not this stream
+        "feat/work-id-naming/3-late",  # ordinals are exactly two digits
+        "feat/work-id-naming/00-prep",  # and run 01-99, so 00 is not a slice
         "feat/work-id-naming/123-late",  # three digits is not the shape either
-        "feature/work-id-naming",        # `feature` is not a conventional type
-        "work-id-naming",                # a bare branch is not a branch shape
-        "feat/work_id_naming",           # matched as written, never slugged
+        "feature/work-id-naming",  # `feature` is not a conventional type
+        "work-id-naming",  # a bare branch is not a branch shape
+        "feat/work_id_naming",  # matched as written, never slugged
     ):
         git("checkout", "-q", "--orphan", branch, cwd=root)
         completed, payload = run_resolver(root)
@@ -673,9 +668,7 @@ def test_normal_and_bootstrap_resolution_reject_symlinked_entrypoint(
     (work_dir / "state.md").symlink_to(outside)
 
     automatic, automatic_payload = run_resolver(root)
-    bootstrap, bootstrap_payload = run_resolver(
-        root, "eng-421-symlink", bootstrap=True
-    )
+    bootstrap, bootstrap_payload = run_resolver(root, "eng-421-symlink", bootstrap=True)
 
     for completed, payload in (
         (automatic, automatic_payload),
@@ -871,9 +864,7 @@ def test_default_tree_ignore_covers_work_from_a_secondary_worktree(
     assert payload["state_root"] == str(root.resolve())
     assert payload["active_workspace"] == str(linked.resolve())
     assert payload["durable_root"] == str(linked.resolve())
-    assert payload["work_dir"] == str(
-        root.resolve() / ".state/works/eng-421-test"
-    )
+    assert payload["work_dir"] == str(root.resolve() / ".state/works/eng-421-test")
 
 
 def test_state_root_falls_back_to_a_sole_workspace(tmp_path: Path) -> None:
@@ -920,15 +911,15 @@ def test_resolves_pure_jj_workspace_with_fake_cli(tmp_path: Path) -> None:
     fake_jj = fake_bin / "jj"
     fake_jj.write_text(
         "#!/bin/sh\n"
-        "[ \"$1\" = --ignore-working-copy ] && shift\n"
-        "case \"$1:$2\" in\n"
+        '[ "$1" = --ignore-working-copy ] && shift\n'
+        'case "$1:$2" in\n'
         "  root:) printf '%s\\n' \"$JJ_ACTIVE_ROOT\" ;;\n"
         "  git:root) printf '%s\\n' \"$JJ_GIT_DIR\" ;;\n"
         "  workspace:list) printf 'default\\nsecondary\\n' ;;\n"
         "  workspace:root)\n"
-        "    if [ \"${3:-}\" = --name ] && [ \"${4:-}\" = default ]; then\n"
+        '    if [ "${3:-}" = --name ] && [ "${4:-}" = default ]; then\n'
         "      printf '%s\\n' \"$JJ_DEFAULT_ROOT\"\n"
-        "    elif [ \"${3:-}\" = --name ] && [ \"${4:-}\" = secondary ]; then\n"
+        '    elif [ "${3:-}" = --name ] && [ "${4:-}" = secondary ]; then\n'
         "      printf '%s\\n' \"$JJ_ACTIVE_ROOT\"\n"
         "    else\n"
         "      printf '%s\\n' \"$JJ_ACTIVE_ROOT\"\n"
@@ -954,9 +945,7 @@ def test_resolves_pure_jj_workspace_with_fake_cli(tmp_path: Path) -> None:
     assert payload["state_root"] == str(default.resolve())
     assert payload["work_id"] == "secondary"
     assert payload["work_id_source"] == "jj_workspace"
-    assert payload["work_dir"] == str(
-        default.resolve() / ".state/works/secondary"
-    )
+    assert payload["work_dir"] == str(default.resolve() / ".state/works/secondary")
 
 
 @pytest.mark.skipif(not shutil.which("jj"), reason="jj is unavailable")
@@ -990,9 +979,7 @@ def test_resolves_default_and_secondary_jj_workspaces(tmp_path: Path) -> None:
     assert payload["state_root"] == str(root.resolve())
     assert payload["work_id"] == "secondary"
     assert payload["work_id_source"] == "jj_workspace"
-    assert payload["work_dir"] == str(
-        root.resolve() / ".state/works/secondary"
-    )
+    assert payload["work_dir"] == str(root.resolve() / ".state/works/secondary")
     assert payload["ignore_file"] == str(root.resolve() / ".gitignore")
     assert payload["state_ignored"]
 
@@ -1113,7 +1100,7 @@ def assert_context_contract(context: str) -> None:
     )
     for path in expected:
         assert path in context
-    for first, second in zip(expected, expected[1:]):
+    for first, second in itertools.pairwise(expected):
         assert context.index(first) < context.index(second)
     for detail in (
         "docs/architecture/runtime-boundaries.md",
@@ -1159,8 +1146,8 @@ def test_context_root_discovery_supports_pure_jj_subdirectories(
     fake_jj = fake_bin / "jj"
     fake_jj.write_text(
         "#!/bin/sh\n"
-        "[ \"$1\" = --ignore-working-copy ] && shift\n"
-        "[ \"$1\" = root ] || exit 1\n"
+        '[ "$1" = --ignore-working-copy ] && shift\n'
+        '[ "$1" = root ] || exit 1\n'
         "printf '%s\\n' \"$JJ_ACTIVE_ROOT\"\n",
         encoding="utf-8",
     )

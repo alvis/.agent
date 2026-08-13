@@ -1,10 +1,7 @@
-from __future__ import annotations
-
+import itertools
 import json
 import re
 from pathlib import Path
-from typing import Any
-
 
 ROOT = Path(__file__).resolve().parents[3]
 PLUGINS = ROOT / "plugins"
@@ -72,12 +69,12 @@ def test_markdown_templates_have_valid_document_structure() -> None:
         assert headings.count(1) == 1, path
         assert all(
             current <= previous + 1
-            for previous, current in zip(headings, headings[1:])
+            for previous, current in itertools.pairwise(headings)
         ), path
 
 
-def unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-    result: dict[str, Any] = {}
+def unique_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    result: dict[str, object] = {}
     for key, value in pairs:
         assert key not in result
         result[key] = value

@@ -1,14 +1,11 @@
-from __future__ import annotations
-
 import hashlib
 import json
 import os
-from pathlib import Path
 import subprocess
 import time
+from pathlib import Path
 
 import pytest
-
 
 ESSENTIAL = Path(__file__).resolve().parents[1]
 LEASE = ESSENTIAL / "scripts/state-lease"
@@ -29,10 +26,17 @@ class LeaseHarness:
 
     def run_lease(self, verb: str, *arguments: str) -> tuple[int, dict]:
         completed = subprocess.run(
-            [SYSTEM_BASH, str(LEASE), verb,
-             "--work-dir", str(self.work_dir), *arguments],
+            [
+                SYSTEM_BASH,
+                str(LEASE),
+                verb,
+                "--work-dir",
+                str(self.work_dir),
+                *arguments,
+            ],
             capture_output=True,
             text=True,
+            check=False,
         )
         payload = json.loads(completed.stdout)
         return completed.returncode, payload
@@ -79,9 +83,7 @@ def test_acquire_creates_well_formed_lease(lease: LeaseHarness) -> None:
 
 def test_second_acquire_is_contended(lease: LeaseHarness) -> None:
     lease.acquire()
-    code, payload = lease.run_lease(
-        "acquire", "--capability", "pm", "--session", "s2"
-    )
+    code, payload = lease.run_lease("acquire", "--capability", "pm", "--session", "s2")
     assert code == 3
     assert payload["status"] == "contended"
     record = json.loads(lease.lease_path.read_text(encoding="utf-8"))
@@ -89,7 +91,7 @@ def test_second_acquire_is_contended(lease: LeaseHarness) -> None:
 
 
 def test_status_reports_free_held_foreign(lease: LeaseHarness) -> None:
-    code, payload = lease.run_lease("status")
+    _code, payload = lease.run_lease("status")
     assert payload["status"] == "free"
     token = lease.acquire()["token"]
     _, payload = lease.run_lease("status", "--token", token)
@@ -129,9 +131,7 @@ def test_release_requires_matching_token(lease: LeaseHarness) -> None:
 
 def test_takeover_refused_on_live_lease(lease: LeaseHarness) -> None:
     lease.acquire()
-    code, payload = lease.run_lease(
-        "takeover", "--capability", "pm", "--session", "s2"
-    )
+    code, payload = lease.run_lease("takeover", "--capability", "pm", "--session", "s2")
     assert code == 5
     assert payload["status"] == "refused"
     record = json.loads(lease.lease_path.read_text(encoding="utf-8"))
@@ -141,9 +141,7 @@ def test_takeover_refused_on_live_lease(lease: LeaseHarness) -> None:
 def test_takeover_succeeds_on_expired_lease(lease: LeaseHarness) -> None:
     lease.acquire("s1", "--ttl", "1")
     time.sleep(2)
-    code, payload = lease.run_lease(
-        "acquire", "--capability", "pm", "--session", "s2"
-    )
+    code, payload = lease.run_lease("acquire", "--capability", "pm", "--session", "s2")
     assert code == 4
     assert payload["status"] == "takeover_required"
     code, payload = lease.run_lease(
@@ -176,10 +174,18 @@ def test_no_partial_files_left_behind(lease: LeaseHarness) -> None:
 
 def test_session_defaults_when_flag_absent(lease: LeaseHarness) -> None:
     completed = subprocess.run(
-        [SYSTEM_BASH, str(LEASE), "acquire", "--work-dir", str(lease.work_dir),
-         "--capability", "pm"],
+        [
+            SYSTEM_BASH,
+            str(LEASE),
+            "acquire",
+            "--work-dir",
+            str(lease.work_dir),
+            "--capability",
+            "pm",
+        ],
         capture_output=True,
         text=True,
+        check=False,
         env={**os.environ, "CLAUDE_SESSION_ID": "env-session"},
     )
     assert completed.returncode == 0, completed.stderr
@@ -190,11 +196,19 @@ def test_session_defaults_when_flag_absent(lease: LeaseHarness) -> None:
 def test_session_falls_back_to_pid_identity(lease: LeaseHarness) -> None:
     env = {k: v for k, v in os.environ.items() if k != "CLAUDE_SESSION_ID"}
     completed = subprocess.run(
-        [SYSTEM_BASH, str(LEASE), "acquire", "--work-dir", str(lease.work_dir),
-         "--capability", "pm"],
+        [
+            SYSTEM_BASH,
+            str(LEASE),
+            "acquire",
+            "--work-dir",
+            str(lease.work_dir),
+            "--capability",
+            "pm",
+        ],
         capture_output=True,
         text=True,
         env=env,
+        check=False,
     )
     assert completed.returncode == 0, completed.stderr
     record = json.loads(lease.lease_path.read_text(encoding="utf-8"))
@@ -207,7 +221,7 @@ def test_heartbeat_preserves_acquired_at_without_date_parsing(
     token = lease.acquire()["token"]
     before = json.loads(lease.lease_path.read_text(encoding="utf-8"))
     time.sleep(1.1)
-    code, payload = lease.run_lease("heartbeat", "--token", token)
+    code, _payload = lease.run_lease("heartbeat", "--token", token)
     assert code == 0
     after = json.loads(lease.lease_path.read_text(encoding="utf-8"))
     assert after["acquired_at"] == before["acquired_at"]
@@ -216,15 +230,11 @@ def test_heartbeat_preserves_acquired_at_without_date_parsing(
 
 
 def test_ensure_acquires_renews_and_refuses(lease: LeaseHarness) -> None:
-    code, payload = lease.run_lease(
-        "ensure", "--capability", "pm", "--session", "s1"
-    )
+    code, payload = lease.run_lease("ensure", "--capability", "pm", "--session", "s1")
     assert code == 0
     assert payload["status"] == "acquired"
     token = payload["token"]
-    code, payload = lease.run_lease(
-        "ensure", "--capability", "pm", "--token", token
-    )
+    code, payload = lease.run_lease("ensure", "--capability", "pm", "--token", token)
     assert code == 0
     assert payload["status"] == "renewed"
     code, payload = lease.run_lease("ensure", "--capability", "pm")
@@ -241,8 +251,6 @@ def test_ensure_revives_own_expired_lease_only(lease: LeaseHarness) -> None:
     code, payload = lease.run_lease("ensure", "--capability", "pm")
     assert code == 4
     assert payload["status"] == "takeover_required"
-    code, payload = lease.run_lease(
-        "ensure", "--capability", "pm", "--token", token
-    )
+    code, payload = lease.run_lease("ensure", "--capability", "pm", "--token", token)
     assert code == 0
     assert payload["status"] == "renewed"

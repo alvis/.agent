@@ -34,7 +34,9 @@ def test_nextjs_src_app_tree_is_discovered(tmp_path: Path) -> None:
     (tmp_path / "next.config.ts").write_text("export default {};\n")
     app_dir = tmp_path / "src" / "app"
     (app_dir / "page.tsx").parent.mkdir(parents=True, exist_ok=True)
-    (app_dir / "page.tsx").write_text("export default function Page() { return null; }\n")
+    (app_dir / "page.tsx").write_text(
+        "export default function Page() { return null; }\n"
+    )
     (app_dir / "blog" / "[slug]" / "page.tsx").parent.mkdir(parents=True, exist_ok=True)
     (app_dir / "blog" / "[slug]" / "page.tsx").write_text(
         "export default function BlogPage() { return null; }\n"

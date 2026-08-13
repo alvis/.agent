@@ -3,6 +3,7 @@ import runpy
 import string
 import subprocess
 from pathlib import Path
+from typing import TypedDict
 
 import pytest
 
@@ -14,6 +15,16 @@ BASE_OID = "2" * 40
 TEMPLATE_HEADINGS = [
     line for line in MESSAGE_TEMPLATE.read_text().splitlines() if line.startswith("## ")
 ]
+
+
+class Violation(TypedDict):
+    message: str
+    rule_id: str
+
+
+class ScanResult(TypedDict):
+    valid: bool
+    violations: list[Violation]
 
 
 def section_name(heading: str) -> str:
@@ -75,7 +86,7 @@ def run_scanner(
     head_oid: str = HEAD_OID,
     base_oid: str = BASE_OID,
     allow_pending_reviewers: bool = True,
-) -> tuple[subprocess.CompletedProcess[str], dict[str, object]]:
+) -> tuple[subprocess.CompletedProcess[str], ScanResult]:
     body_path = tmp_path / "body.md"
     body_path.write_text(body, encoding="utf-8")
     command = [
@@ -105,7 +116,7 @@ def run_scanner(
     return completed, json.loads(completed.stdout)
 
 
-def rule_ids(result: dict[str, object]) -> set[str]:
+def rule_ids(result: ScanResult) -> set[str]:
     return {item["rule_id"] for item in result["violations"]}
 
 

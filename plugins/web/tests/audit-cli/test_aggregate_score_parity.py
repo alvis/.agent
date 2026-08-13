@@ -18,7 +18,10 @@ from audit_cli.report.aggregate import (
 )
 
 _FIXTURE_PATH = Path(__file__).parent / "fixtures" / "findings_sample.json"
-_JS_AGGREGATOR = Path(__file__).resolve().parents[2] / "skills/audit/scripts/design-audit-aggregator.js"
+_JS_AGGREGATOR = (
+    Path(__file__).resolve().parents[2]
+    / "skills/audit/scripts/design-audit-aggregator.js"
+)
 
 
 def _require_executable(name: str, /) -> str:
@@ -111,5 +114,11 @@ def test_python_aggregator_matches_js_scoring() -> None:
     for key, score in py_category_scores.items():
         assert js_by_cat[key]["score"] == score, f"category {key} diverged"
 
-    assert compute_overall_score(py_category_scores) == js_report["summary"]["overallScore"]
-    assert determine_risk(js_report["summary"]["bySeverity"]) == js_report["summary"]["risk"]
+    assert (
+        compute_overall_score(py_category_scores)
+        == js_report["summary"]["overallScore"]
+    )
+    assert (
+        determine_risk(js_report["summary"]["bySeverity"])
+        == js_report["summary"]["risk"]
+    )

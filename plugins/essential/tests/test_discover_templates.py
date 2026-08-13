@@ -12,11 +12,10 @@ holds them. CI has a network, so the gate runs there. An offline developer gets
 a skip rather than a failure that says nothing about their change.
 """
 
-from __future__ import annotations
-
 import importlib.util
 import sys
 from pathlib import Path
+from types import ModuleType
 
 import pytest
 
@@ -29,7 +28,7 @@ VALIDATOR = (
 )
 
 
-def _load_validator():
+def _load_validator() -> ModuleType:
     spec = importlib.util.spec_from_file_location("discover_validator", VALIDATOR)
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
