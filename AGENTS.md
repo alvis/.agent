@@ -8,6 +8,9 @@ does, delete it — that governs this file and everything shipped from this tree
 This is the **source** of one plugin marketplace for Claude Code and Codex: the
 plugins under `plugins/` are projected into each harness's manifest format.
 
+This remains a greenfield project: breaking changes are accepted and expected.
+No legacy compatibility is needed; remove every deprecated symbol.
+
 <IMPORTANT>
 Edit plugin sources here. Never edit `~/.claude/plugins/` — that is a downstream cache
 that lags this tree and will mislead you. Refresh it with `claude plugin update`.
