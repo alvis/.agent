@@ -556,6 +556,5 @@ def test_repository_files_cannot_reclassify_fixed_pr_size_zones() -> None:
     assert "> 60 files" in policy
     assert "> 2000 authored net LOC" in policy
     assert (
-        "repository configuration cannot change these thresholds"
-        in normalized_policy
+        "repository configuration cannot change these thresholds" in normalized_policy
     )

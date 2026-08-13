@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 from analyze_agent_usage import Invocation, discover_plugin_agents, tally
 
@@ -26,12 +27,9 @@ def test_unqualified_installed_agent_usage_maps_to_its_unique_owner() -> None:
     assert "frontend-implementer" not in stats.tallies
 
 
-def test_discovers_distributed_agent_metadata_by_owner(tmp_path) -> None:
+def test_discovers_distributed_agent_metadata_by_owner(tmp_path: Path) -> None:
     plugins = tmp_path / "plugins"
-    metadata = (
-        plugins
-        / "web/agents/frontend-implementer/frontmatter/meta.json"
-    )
+    metadata = plugins / "web/agents/frontend-implementer/frontmatter/meta.json"
     metadata.parent.mkdir(parents=True)
     metadata.write_text(
         json.dumps({"name": "frontend-implementer"}),
@@ -44,7 +42,7 @@ def test_discovers_distributed_agent_metadata_by_owner(tmp_path) -> None:
 
 
 def test_ignores_malformed_or_nameless_frontmatter_and_missing_root(
-    tmp_path,
+    tmp_path: Path,
 ) -> None:
     plugins = tmp_path / "plugins"
     malformed = plugins / "web/agents/malformed/frontmatter/meta.json"

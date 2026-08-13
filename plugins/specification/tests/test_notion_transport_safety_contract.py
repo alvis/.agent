@@ -1,23 +1,22 @@
-from __future__ import annotations
-
 import hashlib
 import itertools
 import json
 import os
-from pathlib import Path
 import subprocess
+import sys
+from collections.abc import Callable
+from pathlib import Path
+from typing import cast
 
 import pytest
-
 
 PLUGIN = Path(__file__).resolve().parents[1]
 SKILLS = PLUGIN / "skills"
 TRANSPORT_PROFILE_VALIDATOR = (
     SKILLS / "sync-notion/scripts/validate-transport-profile.py"
 )
-TRANSPORT_METADATA_CHECK = (
-    SKILLS / "sync-notion/scripts/validate-transport-metadata.sh"
-)
+TRANSPORT_METADATA_CHECK = SKILLS / "sync-notion/scripts/validate-transport-metadata.sh"
+type Validator = Callable[[bytes], tuple[subprocess.CompletedProcess[str], bytes]]
 
 
 def make_profile(root: Path) -> tuple[Path, dict[str, object]]:
@@ -138,7 +137,7 @@ def test_bundled_validator_emits_exact_profile_byte_digest_without_token(
     environment = dict(os.environ)
     environment["NOTION_TOKEN"] = "should-never-appear"
     result = subprocess.run(
-        ["python3", str(TRANSPORT_PROFILE_VALIDATOR), str(profile_path)],
+        [sys.executable, str(TRANSPORT_PROFILE_VALIDATOR), str(profile_path)],
         check=False,
         capture_output=True,
         text=True,
@@ -158,7 +157,7 @@ def test_bundled_validator_emits_exact_profile_byte_digest_without_token(
 
 def test_bundled_validator_help_is_functional() -> None:
     result = subprocess.run(
-        ["python3", str(TRANSPORT_PROFILE_VALIDATOR), "--help"],
+        [sys.executable, str(TRANSPORT_PROFILE_VALIDATOR), "--help"],
         check=False,
         capture_output=True,
         text=True,
@@ -176,7 +175,7 @@ def test_bundled_validator_emits_secret_free_unverified_template(
     environment = dict(os.environ)
     environment["NOTION_TOKEN"] = "should-never-appear"
     result = subprocess.run(
-        ["python3", str(TRANSPORT_PROFILE_VALIDATOR), "--print-template"],
+        [sys.executable, str(TRANSPORT_PROFILE_VALIDATOR), "--print-template"],
         check=False,
         capture_output=True,
         text=True,
@@ -202,7 +201,7 @@ def test_bundled_validator_emits_secret_free_unverified_template(
     profile_path.write_text(json.dumps(template["profile"]), encoding="utf-8")
     profile_path.chmod(0o600)
     validation = subprocess.run(
-        ["python3", str(TRANSPORT_PROFILE_VALIDATOR), str(profile_path)],
+        [sys.executable, str(TRANSPORT_PROFILE_VALIDATOR), str(profile_path)],
         check=False,
         capture_output=True,
         text=True,
@@ -218,11 +217,12 @@ def test_bundled_validator_rejects_noncanonical_conformance_digest(
 ) -> None:
     root = tmp_path.resolve()
     profile_path, profile = make_profile(root)
-    profile["conformance"]["evidence_sha256"] = "0" * 64  # type: ignore[index]
+    conformance = cast(dict[str, object], profile["conformance"])
+    conformance["evidence_sha256"] = "0" * 64
     profile_path.write_text(json.dumps(profile), encoding="utf-8")
     profile_path.chmod(0o600)
     result = subprocess.run(
-        ["python3", str(TRANSPORT_PROFILE_VALIDATOR), str(profile_path)],
+        [sys.executable, str(TRANSPORT_PROFILE_VALIDATOR), str(profile_path)],
         check=False,
         capture_output=True,
         text=True,
@@ -239,11 +239,13 @@ def test_bundled_validator_rejects_reused_evidence_for_changed_vector(
 ) -> None:
     root = tmp_path.resolve()
     profile_path, profile = make_profile(root)
-    profile["capabilities"]["push"]["flags"] = ["--json", "--force"]  # type: ignore[index]
+    capabilities = cast(dict[str, object], profile["capabilities"])
+    push = cast(dict[str, object], capabilities["push"])
+    push["flags"] = ["--json", "--force"]
     profile_path.write_text(json.dumps(profile), encoding="utf-8")
     profile_path.chmod(0o600)
     result = subprocess.run(
-        ["python3", str(TRANSPORT_PROFILE_VALIDATOR), str(profile_path)],
+        [sys.executable, str(TRANSPORT_PROFILE_VALIDATOR), str(profile_path)],
         check=False,
         capture_output=True,
         text=True,
@@ -259,25 +261,35 @@ def test_conditional_create_is_independent_from_conditional_update(
 ) -> None:
     root = tmp_path.resolve()
     profile_path, profile = make_profile(root)
-    conditional_create = profile["capabilities"]["conditional_create"]  # type: ignore[index]
-    conditional_create.update(  # type: ignore[union-attr]
-        {"support": "unavailable", "command": None, "flags": [], "output_contract": None}
+    capabilities = cast(dict[str, object], profile["capabilities"])
+    conditional_create = cast(dict[str, object], capabilities["conditional_create"])
+    conditional_create.update(
+        {
+            "support": "unavailable",
+            "command": None,
+            "flags": [],
+            "output_contract": None,
+        }
     )
-    evidence = profile["conformance"]["evidence"]  # type: ignore[index]
-    evidence["capability_vectors"]["conditional_create"] = []  # type: ignore[index]
-    evidence["output_contracts"]["conditional_create"] = "unavailable"  # type: ignore[index]
-    evidence["results"]["conditional_create"] = "unavailable"  # type: ignore[index]
+    conformance = cast(dict[str, object], profile["conformance"])
+    evidence = cast(dict[str, object], conformance["evidence"])
+    capability_vectors = cast(dict[str, object], evidence["capability_vectors"])
+    output_contracts = cast(dict[str, object], evidence["output_contracts"])
+    results = cast(dict[str, object], evidence["results"])
+    capability_vectors["conditional_create"] = []
+    output_contracts["conditional_create"] = "unavailable"
+    results["conditional_create"] = "unavailable"
     evidence_bytes = json.dumps(
         evidence,
         ensure_ascii=False,
         sort_keys=True,
         separators=(",", ":"),
     ).encode("utf-8")
-    profile["conformance"]["evidence_sha256"] = hashlib.sha256(evidence_bytes).hexdigest()  # type: ignore[index]
+    conformance["evidence_sha256"] = hashlib.sha256(evidence_bytes).hexdigest()
     profile_path.write_text(json.dumps(profile), encoding="utf-8")
     profile_path.chmod(0o600)
     result = subprocess.run(
-        ["python3", str(TRANSPORT_PROFILE_VALIDATOR), str(profile_path)],
+        [sys.executable, str(TRANSPORT_PROFILE_VALIDATOR), str(profile_path)],
         check=False,
         capture_output=True,
         text=True,
@@ -293,7 +305,7 @@ _transport_file_counter = itertools.count()
 
 
 @pytest.fixture
-def run_validator(tmp_path: Path):
+def run_validator(tmp_path: Path) -> Validator:
     def _run(content: bytes) -> tuple[subprocess.CompletedProcess[str], bytes]:
         # a fresh file per invocation mirrors the one-directory-per-call
         # isolation the original tempfile-based helper provided
@@ -311,7 +323,7 @@ def run_validator(tmp_path: Path):
 
 
 def test_validator_reports_existing_revision_without_mutating_bytes(
-    run_validator,
+    run_validator: Validator,
 ) -> None:
     original = (
         b"---\n"
@@ -329,7 +341,7 @@ def test_validator_reports_existing_revision_without_mutating_bytes(
 
 
 def test_validator_allows_unsynced_absence_without_inserting_field(
-    run_validator,
+    run_validator: Validator,
 ) -> None:
     original = b"---\ntitle: New child\nparent: parent-ref\n---\n# New child\n"
     result, final = run_validator(original)
@@ -340,14 +352,10 @@ def test_validator_allows_unsynced_absence_without_inserting_field(
 
 
 def test_validator_rejects_duplicate_revision_without_mutating_bytes(
-    run_validator,
+    run_validator: Validator,
 ) -> None:
     original = (
-        b"---\n"
-        b"last_edited_time: first\n"
-        b"last_edited_time: second\n"
-        b"---\n"
-        b"# Duplicate\n"
+        b"---\nlast_edited_time: first\nlast_edited_time: second\n---\n# Duplicate\n"
     )
     result, final = run_validator(original)
 
@@ -357,7 +365,7 @@ def test_validator_rejects_duplicate_revision_without_mutating_bytes(
 
 
 def test_validator_reports_identity_and_detects_a_changed_ref(
-    run_validator,
+    run_validator: Validator,
 ) -> None:
     before = (
         b"---\n"
@@ -376,12 +384,9 @@ def test_validator_reports_identity_and_detects_a_changed_ref(
 
     assert before_result.returncode == 0, before_result.stderr
     assert after_result.returncode == 0, after_result.stderr
+    assert "transport_ref=01234567-89ab-cdef-0123-456789abcdef" in before_result.stdout
     assert (
-        "transport_ref=01234567-89ab-cdef-0123-456789abcdef" in before_result.stdout
-    )
-    assert (
-        "transport_parent=fedcba98-7654-3210-fedc-ba9876543210"
-        in before_result.stdout
+        "transport_parent=fedcba98-7654-3210-fedc-ba9876543210" in before_result.stdout
     )
     assert before_result.stdout != after_result.stdout
 
@@ -389,12 +394,16 @@ def test_validator_reports_identity_and_detects_a_changed_ref(
 @pytest.mark.parametrize(
     "original",
     (
-        pytest.param(b"---\nref: first\nref: second\n---\n# Duplicate\n", id="duplicate-ref"),
-        pytest.param(b"---\ntitle: No identity\n---\n# Missing\n", id="missing-identity"),
+        pytest.param(
+            b"---\nref: first\nref: second\n---\n# Duplicate\n", id="duplicate-ref"
+        ),
+        pytest.param(
+            b"---\ntitle: No identity\n---\n# Missing\n", id="missing-identity"
+        ),
     ),
 )
 def test_validator_rejects_duplicate_or_missing_identity(
-    run_validator, original: bytes
+    run_validator: Validator, original: bytes
 ) -> None:
     result, final = run_validator(original)
     assert result.returncode != 0
@@ -403,7 +412,7 @@ def test_validator_rejects_duplicate_or_missing_identity(
 
 
 def test_validator_rejects_non_exact_delimiter_and_symlink_input(
-    run_validator, tmp_path: Path
+    run_validator: Validator, tmp_path: Path
 ) -> None:
     non_exact = b"---\nref: stable-ref\n---   \n# Contract\n"
     result, final = run_validator(non_exact)
@@ -460,9 +469,7 @@ def test_body_author_is_external_and_bound_through_specification_calls() -> None
 
 
 def test_specification_contracts_do_not_bypass_profile_or_property_policy() -> None:
-    agent = (PLUGIN / "agents/specification-expert/base.md").read_text(
-        encoding="utf-8"
-    )
+    agent = (PLUGIN / "agents/specification-expert/base.md").read_text(encoding="utf-8")
     direct_transport_tokens = (
         "Bash: " + "notion-sync",
         "--follow-" + "children",
@@ -477,9 +484,9 @@ def test_specification_contracts_do_not_bypass_profile_or_property_policy() -> N
     assert ("conformance-validated " + "diff") not in agent
     assert "conformance-validated\n  `recursive_pull` vector" in agent
 
-    document_mode = (
-        SKILLS / "spec-code/references/document-mode.md"
-    ).read_text(encoding="utf-8")
+    document_mode = (SKILLS / "spec-code/references/document-mode.md").read_text(
+        encoding="utf-8"
+    )
     assert ('Status = "' + 'Implemented"') not in document_mode
     assert ('Status = "' + 'Drafting"') not in document_mode
     assert "explicit destination-owned mapping" in document_mode

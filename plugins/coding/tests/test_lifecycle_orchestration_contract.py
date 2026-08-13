@@ -1,21 +1,11 @@
-from __future__ import annotations
-
 import json
-from pathlib import Path
-import shutil
 import subprocess
+from pathlib import Path
 
 import pytest
 
-
 PLUGIN = Path(__file__).resolve().parents[1]
-CRITIC_FRONTMATTER = (
-    PLUGIN / "agents/code-quality-critic/frontmatter/claude.json"
-)
-
-pytestmark = pytest.mark.skipif(
-    not shutil.which("jq"), reason="code-quality hook requires jq"
-)
+CRITIC_FRONTMATTER = PLUGIN / "agents/code-quality-critic/frontmatter/claude.json"
 
 
 @pytest.fixture(scope="module")

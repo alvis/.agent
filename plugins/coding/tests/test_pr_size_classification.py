@@ -5,12 +5,25 @@ import shlex
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Any
+from typing import TypedDict
 
 import pytest
 
 PLUGIN = Path(__file__).resolve().parents[1]
 CLASSIFIER = PLUGIN / "skills" / "pr" / "scripts" / "classify-pr-size.py"
+
+
+class SizeResult(TypedDict):
+    authored_additions: int
+    authored_deletions: int
+    base_oid: str
+    binary_files: list[str]
+    files_changed: int
+    generated_files: list[str]
+    head_oid: str
+    net_loc: int
+    required_reviewers: int
+    zone: str
 
 
 def git(repo: Path, *args: str) -> str:
@@ -39,7 +52,7 @@ def repository(tmp_path: Path) -> tuple[Path, str]:
 
 def classify(
     repo: Path, base: str, head: str, *, environment: dict[str, str] | None = None
-) -> dict[str, Any]:
+) -> SizeResult:
     completed = subprocess.run(
         [
             "uv",
@@ -111,7 +124,7 @@ done
     return {"PATH": f"{shim_directory}{os.pathsep}{os.environ['PATH']}"}, commands
 
 
-def classify_in_process(repo: Path, base: str, head: str) -> dict[str, Any]:
+def classify_in_process(repo: Path, base: str, head: str) -> SizeResult:
     namespace = runpy.run_path(str(CLASSIFIER), run_name="pr_size_classifier")
     return namespace["classify"](repo, base, head)
 

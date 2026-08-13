@@ -1,10 +1,9 @@
 """Verify BrowserDriver surfaces structured agent-browser batch errors."""
 
 import subprocess
-from typing import Sequence
+from collections.abc import Sequence
 
 import pytest
-
 from audit_cli.drive.browser import BrowserDriver, BrowserDriverError
 
 

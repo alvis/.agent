@@ -1,10 +1,11 @@
 """Verify CLI plumbing for --cdp-url and the agent-browser preflight check."""
 
 import subprocess
-from typing import Sequence
+import tempfile
+from collections.abc import Sequence
+from typing import ClassVar, Self
 
 import pytest
-
 from audit_cli import cli as cli_module
 
 
@@ -47,7 +48,7 @@ def test_cdp_url_is_threaded_into_browser_driver(
         ) -> None:
             captured["cdp_url"] = cdp_url
 
-        def __enter__(self) -> "_FakeDriver":
+        def __enter__(self) -> Self:
             return self
 
         def __exit__(self, *exc: object) -> None:
@@ -60,7 +61,7 @@ def test_cdp_url_is_threaded_into_browser_driver(
     # exercise the instantiation we call main() without --dry-run but mock
     # the crawl loop dependencies that would otherwise require a real browser.
     class _FakeServer:
-        def __enter__(self) -> "_FakeServer":
+        def __enter__(self) -> Self:
             return self
 
         def __exit__(self, *exc: object) -> None:
@@ -72,7 +73,7 @@ def test_cdp_url_is_threaded_into_browser_driver(
         class _Result:
             anchor_urls: tuple[str, ...] = ()
             bonus_urls: tuple[str, ...] = ()
-            viewport_reports: dict[str, object] = {}
+            viewport_reports: ClassVar[dict[str, object]] = {}
 
         return _Result()
 
@@ -87,7 +88,7 @@ def test_cdp_url_is_threaded_into_browser_driver(
             "--max-pages",
             "1",
             "--out",
-            str(pytest.importorskip("tempfile").mkdtemp()),
+            tempfile.mkdtemp(),
         ]
     )
 

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Fixture-driven and loader smoke tests for the coding standard scanner.
 
 Run directly: `uvx pytest plugins/coding/tests/test_scanner.py`.
@@ -32,6 +31,7 @@ for _cached in [m for m in sys.modules if m == "scanners" or m.startswith("scann
 from scanlib.core import run
 from scanlib.loader import load_rules
 from scanlib.prefixes import FALLBACK_PREFIXES, derive_rule_id_prefixes
+from scanlib.rule import Rule
 
 FIXTURES_DIR = TESTS_DIR / "fixtures"
 RULES = tuple(load_rules())
@@ -51,11 +51,11 @@ def _own_scanners_package() -> None:
         sys.path.remove(path)
     sys.path.insert(0, path)
 
+
 # a rule fixture is any `fixtures/<dir>/` carrying an `expected.txt` golden —
 # other directories (legacy ad-hoc fixtures) are ignored.
 FIXTURE_DIRS = sorted(
-    p for p in FIXTURES_DIR.iterdir()
-    if p.is_dir() and (p / "expected.txt").is_file()
+    p for p in FIXTURES_DIR.iterdir() if p.is_dir() and (p / "expected.txt").is_file()
 )
 
 CORPUS = FIXTURES_DIR / "_corpus"
@@ -114,7 +114,7 @@ def test_underscore_modules_are_skipped() -> None:
 
 
 @pytest.mark.parametrize("rule", RULES, ids=lambda r: r.id)
-def test_every_rule_is_a_category_choice(rule) -> None:
+def test_every_rule_is_a_category_choice(rule: Rule) -> None:
     # running with each id as --category must not raise SystemExit(2)
     output = _capture([str(FIXTURES_DIR), "--category", rule.id])
     assert f"  {rule.id}:" in output
@@ -163,27 +163,24 @@ def test_derives_live_standard_prefixes() -> None:
     prefixes = derive_rule_id_prefixes()
     assert prefixes
     assert all(
-        prefix.isupper() and prefix.replace("_", "").isalnum()
-        for prefix in prefixes
+        prefix.isupper() and prefix.replace("_", "").isalnum() for prefix in prefixes
     )
 
 
-def test_empty_glob_falls_back(tmp_path: Path) -> None:
+def test_empty_glob_falls_back(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     # point the deriver at an empty directory: the metadata glob yields nothing,
     # so it must return the hardcoded FALLBACK_PREFIXES. this is the
     # branch that runs when the scanner executes outside the .claude repo.
     from scanlib import prefixes
 
-    original = prefixes._plugins_root
-    prefixes._plugins_root = lambda: tmp_path
-    try:
-        derived = prefixes.derive_rule_id_prefixes()
-    finally:
-        prefixes._plugins_root = original
+    monkeypatch.setattr(prefixes, "_plugins_root", lambda: tmp_path)
+    derived = prefixes.derive_rule_id_prefixes()
     assert derived == FALLBACK_PREFIXES
 
 
-def test_tiered_standard_without_rule_guides_contributes_prefix(tmp_path: Path) -> None:
+def test_tiered_standard_without_rule_guides_contributes_prefix(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     standard = tmp_path / "alpha/standards/example"
     standard.mkdir(parents=True)
     (standard / "meta.md").write_text(
@@ -193,12 +190,8 @@ def test_tiered_standard_without_rule_guides_contributes_prefix(tmp_path: Path) 
 
     from scanlib import prefixes
 
-    original = prefixes._plugins_root
-    prefixes._plugins_root = lambda: tmp_path
-    try:
-        derived = prefixes.derive_rule_id_prefixes()
-    finally:
-        prefixes._plugins_root = original
+    monkeypatch.setattr(prefixes, "_plugins_root", lambda: tmp_path)
+    derived = prefixes.derive_rule_id_prefixes()
     assert derived == ("NEW",)
 
 
@@ -230,8 +223,7 @@ def test_profile_standards_extend_live_prefixes_and_ignore_missing_meta(
 
     from scanlib import prefixes
 
-    original = prefixes._plugins_root
-    prefixes._plugins_root = lambda: plugins_root
+    monkeypatch.setattr(prefixes, "_plugins_root", lambda: plugins_root)
     monkeypatch.setenv(
         "CODING_LINT_STANDARD_ROOTS",
         os.pathsep.join(
@@ -242,10 +234,7 @@ def test_profile_standards_extend_live_prefixes_and_ignore_missing_meta(
             )
         ),
     )
-    try:
-        derived = prefixes.derive_rule_id_prefixes()
-    finally:
-        prefixes._plugins_root = original
+    derived = prefixes.derive_rule_id_prefixes()
     assert derived == ("EXT", "LIVE", "MORE")
 
 

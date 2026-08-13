@@ -1,7 +1,6 @@
 import re
 from pathlib import Path
 
-
 PLUGIN = Path(__file__).resolve().parents[1]
 ESTABLISH = PLUGIN / "references/directions/establish-work-stream.md"
 CODING_WORKFLOW = PLUGIN.parent / "coding/references/WORKFLOW.md"

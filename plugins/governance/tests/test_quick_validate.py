@@ -3,7 +3,10 @@ from pathlib import Path
 
 import pytest
 
-MODULE_PATH = Path(__file__).resolve().parent.parent / "skills/write-skill/scripts/quick_validate.py"
+MODULE_PATH = (
+    Path(__file__).resolve().parent.parent
+    / "skills/write-skill/scripts/quick_validate.py"
+)
 SPEC = importlib.util.spec_from_file_location("quick_validate", MODULE_PATH)
 assert SPEC and SPEC.loader
 quick_validate = importlib.util.module_from_spec(SPEC)
@@ -13,11 +16,11 @@ SPEC.loader.exec_module(quick_validate)
 class RecordingRun:
     """Stand-in for subprocess.run that records calls and replays outcomes."""
 
-    def __init__(self, outcomes: list) -> None:
+    def __init__(self, outcomes: list[object]) -> None:
         self.outcomes = list(outcomes)
-        self.calls: list = []
+        self.calls: list[tuple[object, ...]] = []
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: object, **kwargs: object) -> object:
         self.calls.append(args)
         outcome = self.outcomes.pop(0)
         if isinstance(outcome, BaseException):
@@ -42,9 +45,7 @@ def yaml_lines(*lines: str) -> str:
 def collect_skill_policy_failures(skills: list[Path]) -> dict[str, object]:
     return {
         str(report["path"]): report["errors"]
-        for report in (
-            quick_validate.validate_policy(skill) for skill in skills
-        )
+        for report in (quick_validate.validate_policy(skill) for skill in skills)
         if report["errors"]
     }
 
@@ -657,8 +658,6 @@ def test_this_repository_passes_the_skill_policy_gate() -> None:
     the rule it enforces.
     """
     root = Path(__file__).resolve().parents[3]
-    failures = collect_skill_policy_failures(
-        quick_validate.discover_skills(root)
-    )
+    failures = collect_skill_policy_failures(quick_validate.discover_skills(root))
 
     assert failures == {}

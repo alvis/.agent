@@ -2,8 +2,6 @@
 
 from pathlib import Path
 
-from pytest import MonkeyPatch
-
 from audit_cli.crawl.page import (
     ViewportSpec,
     _probe_home_logo_behavior,
@@ -14,6 +12,7 @@ from audit_cli.crawl.queue import CrawlQueue
 from audit_cli.drive.browser import BrowserDriver, BrowserDriverError, BrowserResult
 from audit_cli.drive.inject import AuditServer
 from audit_cli.types import InteractionCandidate, InteractionPlan
+from pytest import MonkeyPatch
 
 SERVER = AuditServer(host="127.0.0.1", port=0, scripts_dir=Path())
 SUCCESS = BrowserResult(stdout="", stderr="", exit_code=0)
@@ -32,9 +31,7 @@ class _FakeDriver(BrowserDriver):
         self.calls.append(("navigate", url))
         return SUCCESS
 
-    def wait_for_fn(
-        self, expression: str, *, timeout_ms: int = 3000
-    ) -> BrowserResult:
+    def wait_for_fn(self, expression: str, *, timeout_ms: int = 3000) -> BrowserResult:
         self.calls.append(("wait_for_fn", expression, timeout_ms))
         return SUCCESS
 
@@ -102,9 +99,7 @@ class _LogoProbeDriver(_FakeDriver):
             exit_code=0,
         )
 
-    def wait_for_fn(
-        self, expression: str, *, timeout_ms: int = 3000
-    ) -> BrowserResult:
+    def wait_for_fn(self, expression: str, *, timeout_ms: int = 3000) -> BrowserResult:
         self.calls.append(("wait_for_fn", expression, timeout_ms))
         if self.fail_wait and "scrollY" in expression:
             raise BrowserDriverError("scroll did not return to top")
@@ -230,9 +225,7 @@ def test_audit_page_reports_missing_modal_backdrop_blur(
         same_origin_host="127.0.0.1:3200",
     )
 
-    assert any(
-        issue.get("ruleId") == "DES-MODA-04" for issue in result.modal_findings
-    )
+    assert any(issue.get("ruleId") == "DES-MODA-04" for issue in result.modal_findings)
 
 
 def test_probe_modal_backdrop_accepts_visible_blurred_overlay() -> None:

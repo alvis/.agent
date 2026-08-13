@@ -1,13 +1,10 @@
-from __future__ import annotations
-
 import json
-from pathlib import Path
 import re
 import subprocess
 import time
+from pathlib import Path
 
 import pytest
-
 
 ESSENTIAL = Path(__file__).resolve().parents[1]
 DOCTOR = ESSENTIAL / "skills/doctor/scripts/state-doctor"
@@ -93,6 +90,7 @@ class Workspace:
             command,
             capture_output=True,
             text=True,
+            check=False,
         )
         payload = json.loads(completed.stdout)
         return completed.returncode, payload["findings"]
@@ -112,6 +110,7 @@ def run_state_dir(root: Path) -> tuple[int, list[dict]]:
         [str(DOCTOR), "--state-dir", str(root / ".state"), "--json"],
         capture_output=True,
         text=True,
+        check=False,
     )
     return completed.returncode, json.loads(completed.stdout)["findings"]
 
@@ -184,6 +183,7 @@ def test_bootstrap_output_carries_no_defect(tmp_path: Path) -> None:
         [str(DOCTOR), "--work-dir", work_dir, "--json"],
         capture_output=True,
         text=True,
+        check=False,
     )
     assert completed.returncode == 0, completed.stderr
     findings = json.loads(completed.stdout)["findings"]
@@ -256,8 +256,7 @@ def test_required_cancelled(workspace: Workspace) -> None:
 
 def test_parent_done_with_unfinished_required_child(workspace: Workspace) -> None:
     workspace.write_state(
-        row("AAA", "✓", "done", evidence="rolled up")
-        + row("AAA01", "-", "planned")
+        row("AAA", "✓", "done", evidence="rolled up") + row("AAA01", "-", "planned")
     )
     _, findings = workspace.run_doctor()
     assert any(
@@ -871,11 +870,7 @@ def test_adr_nested_list_placeholders_survive_continuation(
 ) -> None:
     write_effective_adr(
         workspace.root,
-        body=(
-            "- Follow-up:\n"
-            "  Additional context.\n"
-            "    - TODO: choose provider\n"
-        ),
+        body=("- Follow-up:\n  Additional context.\n    - TODO: choose provider\n"),
     )
 
     _, findings = workspace.run_doctor()
@@ -979,8 +974,7 @@ def test_adr_accepts_markdown_list_status_markers(
 ) -> None:
     path = write_effective_adr(workspace.root)
     path.write_text(
-        "# ADR-0001: Choice\n\n"
-        f"{marker} Status: `Accepted`\n",
+        f"# ADR-0001: Choice\n\n{marker} Status: `Accepted`\n",
         encoding="utf-8",
     )
 
@@ -1240,8 +1234,7 @@ def test_adr_index_requires_markdown_delimiter_row(
         "# ADR-0001: Current\n\n- Status: `Accepted`\n", encoding="utf-8"
     )
     (architecture / "README.md").write_text(
-        "| Document | Status |\n"
-        "| [Current](decisions/0001-current.md) | Accepted |\n",
+        "| Document | Status |\n| [Current](decisions/0001-current.md) | Accepted |\n",
         encoding="utf-8",
     )
 
@@ -1458,7 +1451,7 @@ def test_adr_index_ignores_links_inside_inline_html_attributes(
     )
     (architecture / "README.md").write_text(
         "| Document | Status |\n| --- | --- |\n"
-        "| <span data-link=\"[Current](decisions/0001-current.md)\">Current</span> | Accepted |\n",
+        '| <span data-link="[Current](decisions/0001-current.md)">Current</span> | Accepted |\n',
         encoding="utf-8",
     )
 
@@ -1988,8 +1981,7 @@ def test_adr_rejects_heading_without_rendered_title(workspace: Workspace) -> Non
     integrity = [
         finding
         for finding in findings
-        if finding["check"] == "adr-integrity"
-        and "canonical" in finding["message"]
+        if finding["check"] == "adr-integrity" and "canonical" in finding["message"]
     ]
     assert integrity
     assert all(finding.get("fix") for finding in integrity)
@@ -2064,11 +2056,7 @@ def test_adr_ignores_placeholders_inside_blockquoted_fences(
 ) -> None:
     write_effective_adr(
         workspace.root,
-        body=(
-            "> ```text\n"
-            "> TODO: supplied-by-runtime\n"
-            "> ```\n"
-        ),
+        body=("> ```text\n> TODO: supplied-by-runtime\n> ```\n"),
     )
 
     _, findings = workspace.run_doctor()
@@ -2100,12 +2088,7 @@ def test_adr_ignores_fences_indented_in_list_content(
 ) -> None:
     write_effective_adr(
         workspace.root,
-        body=(
-            "- Example:\n"
-            "    ~~~\n"
-            "    TODO: supplied-by-runtime\n"
-            "    ~~~\n"
-        ),
+        body=("- Example:\n    ~~~\n    TODO: supplied-by-runtime\n    ~~~\n"),
     )
 
     _, findings = workspace.run_doctor()
@@ -2151,8 +2134,7 @@ def test_effective_adr_rejects_todo_headings(
         )
     else:
         path.write_text(
-            "# ADR-0001: Choice\n\n- Status: `Accepted`\n\n"
-            f"{heading}\n",
+            f"# ADR-0001: Choice\n\n- Status: `Accepted`\n\n{heading}\n",
             encoding="utf-8",
         )
 
@@ -2197,8 +2179,8 @@ def test_effective_adr_allows_autolinks_and_inline_html(
         workspace.root,
         body=(
             "Links: <https://example.com> <team@example.com> "
-            "<span>valid</span> <List items=\"all\">items</List> "
-            "<Record class=\"entry\">entry</Record>.\n"
+            '<span>valid</span> <List items="all">items</List> '
+            '<Record class="entry">entry</Record>.\n'
         ),
     )
 
@@ -2462,8 +2444,7 @@ def test_effective_adr_requires_canonical_heading_as_first_title(
     decisions = architecture / "decisions"
     decisions.mkdir(parents=True)
     (decisions / "0001-current.md").write_text(
-        "# Notes\n\n- Status: `Accepted`\n\n"
-        "# ADR-0001: Current\n\nThe decision.\n",
+        "# Notes\n\n- Status: `Accepted`\n\n# ADR-0001: Current\n\nThe decision.\n",
         encoding="utf-8",
     )
     (architecture / "README.md").write_text(
@@ -2476,8 +2457,7 @@ def test_effective_adr_requires_canonical_heading_as_first_title(
     heading = [
         finding
         for finding in findings
-        if finding["check"] == "adr-integrity"
-        and "canonical" in finding["message"]
+        if finding["check"] == "adr-integrity" and "canonical" in finding["message"]
     ]
     assert heading
     assert all(finding.get("fix") for finding in heading)
@@ -2488,8 +2468,7 @@ def test_effective_adr_rejects_indented_code_heading(workspace: Workspace) -> No
     decisions = architecture / "decisions"
     decisions.mkdir(parents=True)
     (decisions / "0001-current.md").write_text(
-        "    # ADR-0001: Current\n\n- Status: `Accepted`\n\n"
-        "The decision.\n",
+        "    # ADR-0001: Current\n\n- Status: `Accepted`\n\nThe decision.\n",
         encoding="utf-8",
     )
     (architecture / "README.md").write_text(
@@ -2516,8 +2495,7 @@ def test_effective_adr_preserves_line_boundaries_around_comments(
     decisions = architecture / "decisions"
     decisions.mkdir(parents=True)
     (decisions / "0001-current.md").write_text(
-        "# <!--\nnote\n-->ADR-0001: Current\n\n"
-        "- Status: `Accepted`\n\nThe decision.\n",
+        "# <!--\nnote\n-->ADR-0001: Current\n\n- Status: `Accepted`\n\nThe decision.\n",
         encoding="utf-8",
     )
     (architecture / "README.md").write_text(
@@ -2583,8 +2561,7 @@ def test_adr_archive_rejects_duplicate_header_fields(workspace: Workspace) -> No
     duplicate = [
         finding
         for finding in findings
-        if finding["check"] == "adr-superseded"
-        and "exactly one" in finding["message"]
+        if finding["check"] == "adr-superseded" and "exactly one" in finding["message"]
     ]
     assert duplicate
     assert "Superseded by" in duplicate[0]["message"]
@@ -2793,7 +2770,7 @@ def test_adr_archive_ignores_links_inside_inline_html_attributes(
     )
     (archived / "0001-old-choice.md").write_text(
         "> **Status:** Superseded\n>\n"
-        "> **Superseded by:** <span data-link=\"[ADR-0002 — Current](../0002-current.md)\">Current</span>\n>\n"
+        '> **Superseded by:** <span data-link="[ADR-0002 — Current](../0002-current.md)">Current</span>\n>\n'
         "> **What changed:** The complete change replaced the old choice.\n\n"
         "# ADR-0001: Old choice\n\n- Status: `Accepted`\n\n"
         "## Decision\n\nThe original choice.\n",
@@ -2903,9 +2880,7 @@ def test_adr_archive_rejects_empty_blockquote_body(workspace: Workspace) -> None
 
 
 @pytest.mark.parametrize("marker", ["-", "*", "+", "1."])
-def test_adr_archive_rejects_empty_list_body(
-    workspace: Workspace, marker: str
-) -> None:
+def test_adr_archive_rejects_empty_list_body(workspace: Workspace, marker: str) -> None:
     architecture = workspace.root / "docs" / "architecture"
     decisions = architecture / "decisions"
     archived = decisions / "superseded"
@@ -3108,6 +3083,7 @@ def test_adr_scan_runs_when_state_dir_is_absent(tmp_path: Path) -> None:
         cwd=repository,
         capture_output=True,
         text=True,
+        check=False,
     )
     assert completed.returncode == 0, completed.stderr
     assert json.loads(completed.stdout)["findings"] == []
@@ -3122,6 +3098,7 @@ def test_missing_non_state_dir_is_an_error(tmp_path: Path) -> None:
         cwd=repository,
         capture_output=True,
         text=True,
+        check=False,
     )
     assert completed.returncode == 2
     assert "not a directory" in completed.stderr
@@ -3217,8 +3194,7 @@ def test_adr_archive_rejects_unfilled_change_summary(workspace: Workspace) -> No
 
     _, findings = workspace.run_doctor()
     assert any(
-        finding["check"] == "adr-superseded"
-        and "What changed" in finding["message"]
+        finding["check"] == "adr-superseded" and "What changed" in finding["message"]
         for finding in findings
     )
 
@@ -3376,8 +3352,7 @@ def test_adr_index_does_not_match_archived_filename_substrings(
 
     _, findings = workspace.run_doctor()
     assert not any(
-        finding["check"] == "adr-index"
-        and "archived ADR" in finding["message"]
+        finding["check"] == "adr-index" and "archived ADR" in finding["message"]
         for finding in findings
     )
 
@@ -3408,7 +3383,7 @@ def test_unparseable_state_is_only_info(workspace: Workspace) -> None:
     )
     code, findings = workspace.run_doctor("--strict")
     assert code == 0
-    assert [f for f in findings if f["check"] == "layout"][0]["severity"] == "info"
+    assert next(f for f in findings if f["check"] == "layout")["severity"] == "info"
     assert not [f for f in findings if f["severity"] == "error"]
     # Free-form prose is not a defect, but an unreadable phase must still
     # surface: it is what silences every phase-gated check.
@@ -3438,6 +3413,7 @@ def test_overview_drift(workspace: Workspace) -> None:
         [str(DOCTOR), "--state-dir", str(state_dir), "--json"],
         capture_output=True,
         text=True,
+        check=False,
     )
     findings = json.loads(completed.stdout)["findings"]
     assert any(finding["check"] == "overview" for finding in findings)
@@ -3472,6 +3448,7 @@ def test_overview_drift_ignores_tables_outside_the_streams_section(
         [str(DOCTOR), "--state-dir", str(state_dir), "--json"],
         capture_output=True,
         text=True,
+        check=False,
     )
     findings = json.loads(completed.stdout)["findings"]
     overview = [f for f in findings if f["check"] == "overview"]
@@ -3481,9 +3458,7 @@ def test_overview_drift_ignores_tables_outside_the_streams_section(
 
 def test_unparseable_rows_surface_as_warning(workspace: Workspace) -> None:
     workspace.write_state(
-        row("AAA")
-        + "| BBB | - | planned | truncated row |\n"
-        + "| CCC | broken |\n"
+        row("AAA") + "| BBB | - | planned | truncated row |\n" + "| CCC | broken |\n"
     )
     _, findings = workspace.run_doctor()
     warnings = [
@@ -3542,8 +3517,7 @@ def test_adr_filename_and_numeric_prefix_are_validated(tmp_path: Path) -> None:
     )
     _, findings = run_state_dir(tmp_path)
     assert any(
-        finding["check"] == "adr-layout"
-        and "filename must use" in finding["message"]
+        finding["check"] == "adr-layout" and "filename must use" in finding["message"]
         for finding in findings
     )
     assert any(
@@ -3614,8 +3588,7 @@ def test_archive_placeholder_summary_is_rejected(tmp_path: Path) -> None:
     )
     _, findings = run_state_dir(tmp_path)
     assert any(
-        finding["check"] == "adr-superseded"
-        and "What changed" in finding["message"]
+        finding["check"] == "adr-superseded" and "What changed" in finding["message"]
         for finding in findings
     )
 
@@ -3888,8 +3861,7 @@ def test_last_progress_column_and_journal_backing_are_required(
 
     write_overview(
         workspace.root,
-        "# State overview\n\n## Streams\n\n"
-        + overview_row(progress="2026-08-06 (0d)"),
+        "# State overview\n\n## Streams\n\n" + overview_row(progress="2026-08-06 (0d)"),
     )
     _, findings = run_state_dir(workspace.root)
     drift = [f for f in findings if f["check"] == "last-progress"]
@@ -3982,8 +3954,7 @@ def test_a_segmented_journal_is_followed_to_its_newest_segment(
 
     write_overview(
         workspace.root,
-        "# State overview\n\n## Streams\n\n"
-        + overview_row(progress="2026-08-06 (0d)"),
+        "# State overview\n\n## Streams\n\n" + overview_row(progress="2026-08-06 (0d)"),
     )
     _, findings = run_state_dir(workspace.root)
     assert any(
@@ -4017,7 +3988,7 @@ def test_an_inferred_location_is_an_error(workspace: Workspace) -> None:
             progress="2026-07-30 (7d)", location="/Users/dev/tree ⚠ inferred"
         ),
     )
-    code, findings = run_state_dir(workspace.root)
+    _code, findings = run_state_dir(workspace.root)
     inferred = [f for f in findings if f["check"] == "location"]
     assert len(inferred) == 1
     assert inferred[0]["severity"] == "error"
@@ -4090,7 +4061,10 @@ def test_a_completed_stream_inside_the_window_is_left_alone(
         ("20260727-feat-trading-venue-routing-v5cfxb", "carries a date prefix"),
         ("feat-trading-venue-routing", "carries a type prefix"),
         ("markets-and-symbols-v5cfxb", "random suffix"),
-        ("a-work-id-that-runs-past-the-thirty-two-byte-bound", "over the 32-byte bound"),
+        (
+            "a-work-id-that-runs-past-the-thirty-two-byte-bound",
+            "over the 32-byte bound",
+        ),
         ("Markets_And_Symbols", "not a plain lowercase-hyphen slug"),
     ],
 )
@@ -4103,11 +4077,10 @@ def test_non_conforming_work_ids_are_reported_never_renamed(
         "# Charter\n\n- Charter: `approved`\n", encoding="utf-8"
     )
     (work_dir / "state.md").write_text(
-        f"# Work state\n\n- Work ID: `{work_id}`\n"
-        "- Lifecycle status: `working`\n",
+        f"# Work state\n\n- Work ID: `{work_id}`\n- Lifecycle status: `working`\n",
         encoding="utf-8",
     )
-    code, findings = run_state_dir(tmp_path)
+    _code, findings = run_state_dir(tmp_path)
     naming = [f for f in findings if f["check"] == "work-id-naming"]
     assert len(naming) == 1
     assert naming[0]["severity"] == "info"
@@ -4353,9 +4326,7 @@ def test_an_absent_phase_field_reads_differently_from_an_unparseable_one(
     workspace: Workspace,
 ) -> None:
     (workspace.work_dir / "state.md").write_text(
-        "# Work state\n\n- Work ID: `demo`\n\n## Tasks\n\n"
-        + HEADER
-        + row("AAA"),
+        "# Work state\n\n- Work ID: `demo`\n\n## Tasks\n\n" + HEADER + row("AAA"),
         encoding="utf-8",
     )
     _, findings = workspace.run_doctor()

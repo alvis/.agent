@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """Validate the staged Discover presentation contract without dependencies."""
 
-from __future__ import annotations
-
 import argparse
 from collections import Counter
 import json
@@ -11,6 +9,7 @@ import subprocess
 import sys
 from html.parser import HTMLParser
 from pathlib import Path
+from types import ModuleType
 
 
 DISCOVER_ROOT = Path(__file__).resolve().parents[1]
@@ -998,7 +997,7 @@ def validate_direction_reference_contract() -> list[str]:
 _BUILD_ARTIFACT = None
 
 
-def _load_builder():
+def _load_builder() -> ModuleType:
     """Import build_artifact by path, caching the module.
 
     The scripts directory is a plain directory (not a package), so the module is

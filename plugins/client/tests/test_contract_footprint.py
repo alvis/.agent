@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from pathlib import Path
 
 from contract_footprint import check_plugin

@@ -1,8 +1,5 @@
-from __future__ import annotations
-
 import re
 from pathlib import Path
-
 
 PLUGIN = Path(__file__).resolve().parents[1]
 SKILLS = PLUGIN / "skills"
@@ -35,8 +32,7 @@ def test_screen_design_contracts_require_external_configuration() -> None:
 
 def test_client_plugin_ships_no_body_grammar() -> None:
     text = "\n".join(
-        path.read_text(encoding="utf-8")
-        for path in sorted(PLUGIN.rglob("*.md"))
+        path.read_text(encoding="utf-8") for path in sorted(PLUGIN.rglob("*.md"))
     )
     assert "closing marker" not in text.lower()
     assert "annotation bodies" not in text.lower()

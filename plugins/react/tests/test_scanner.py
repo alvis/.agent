@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Fixture-driven and loader smoke tests for the React Props scanner.
 
 Run directly: `uvx pytest plugins/react/tests/test_scanner.py`.
@@ -34,6 +33,7 @@ for _cached in [m for m in sys.modules if m == "scanners" or m.startswith("scann
 
 from scanlib.core import run
 from scanlib.loader import load_rules
+from scanlib.rule import Rule
 
 FIXTURES_DIR = TESTS_DIR / "fixtures"
 RULES = tuple(load_rules(package="scanners"))
@@ -41,8 +41,7 @@ RULES = tuple(load_rules(package="scanners"))
 # a fixture is any `fixtures/<dir>/` carrying an `expected.txt` golden;
 # the scanned category comes from `category.txt` or the directory name.
 FIXTURE_DIRS = sorted(
-    p for p in FIXTURES_DIR.iterdir()
-    if p.is_dir() and (p / "expected.txt").is_file()
+    p for p in FIXTURES_DIR.iterdir() if p.is_dir() and (p / "expected.txt").is_file()
 )
 
 
@@ -121,6 +120,6 @@ def test_blocks_helper_is_skipped() -> None:
 
 
 @pytest.mark.parametrize("rule", RULES, ids=lambda r: r.id)
-def test_every_rule_is_a_category_choice(rule) -> None:
+def test_every_rule_is_a_category_choice(rule: Rule) -> None:
     output = _capture([str(FIXTURES_DIR), "--category", rule.id])
     assert f"  {rule.id}:" in output

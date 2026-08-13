@@ -5,10 +5,10 @@ import os
 import re
 import subprocess
 import sys
+from collections.abc import Sequence
 from pathlib import Path
 
 import pytest
-
 
 ROOT = Path(__file__).resolve().parents[1]
 MARKETPLACE_PATH = ROOT / ".claude-plugin" / "marketplace.json"
@@ -26,9 +26,7 @@ SCHEMA_ROOT = ROOT / "scripts" / "schemas"
 JSON_TYPES = {
     "array": lambda value: isinstance(value, list),
     "boolean": lambda value: isinstance(value, bool),
-    "integer": lambda value: (
-        isinstance(value, int) and not isinstance(value, bool)
-    ),
+    "integer": lambda value: isinstance(value, int) and not isinstance(value, bool),
     "number": lambda value: (
         isinstance(value, (int, float)) and not isinstance(value, bool)
     ),
@@ -142,8 +140,7 @@ def load_json(path: Path) -> dict:
 def assert_supported_schema(schema: dict, path: str = "$") -> None:
     """Keep contracts within the dependency-free JSON Schema subset below."""
     assert not set(schema) - SCHEMA_KEYWORDS, (
-        f"{path}: unsupported schema keywords "
-        f"{sorted(set(schema) - SCHEMA_KEYWORDS)}"
+        f"{path}: unsupported schema keywords {sorted(set(schema) - SCHEMA_KEYWORDS)}"
     )
     if "type" in schema:
         assert schema["type"] in JSON_TYPES, (
@@ -157,9 +154,7 @@ def assert_supported_schema(schema: dict, path: str = "$") -> None:
 
 def load_schema(name: str) -> dict:
     schema = load_json(SCHEMA_ROOT / name)
-    assert schema["$schema"] == (
-        "https://json-schema.org/draft/2020-12/schema"
-    )
+    assert schema["$schema"] == ("https://json-schema.org/draft/2020-12/schema")
     assert_supported_schema(schema)
     return schema
 
@@ -185,11 +180,14 @@ def assert_matches_schema(value: object, schema: dict, path: str = "$") -> None:
                 f"{path}: {value!r} does not match {schema['pattern']!r}"
             )
 
-    if isinstance(value, (int, float)) and not isinstance(value, bool):
-        if "minimum" in schema:
-            assert value >= schema["minimum"], (
-                f"{path}: {value!r} is below minimum {schema['minimum']!r}"
-            )
+    if (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and "minimum" in schema
+    ):
+        assert value >= schema["minimum"], (
+            f"{path}: {value!r} is below minimum {schema['minimum']!r}"
+        )
 
     if isinstance(value, list):
         assert len(value) >= schema.get("minItems", 0), (
@@ -263,9 +261,7 @@ def available_capabilities(plugin_root: Path) -> set[str]:
     for container_name in ("skills", "agents"):
         container = plugin_root / container_name
         if container.is_dir():
-            available.update(
-                path.name for path in container.iterdir() if path.is_dir()
-            )
+            available.update(path.name for path in container.iterdir() if path.is_dir())
     available.update(
         name
         for name in ("references", "standards", "templates", "scripts")
@@ -289,10 +285,14 @@ def tracked_paths() -> list[Path]:
     return [path for path in paths if path.is_file()]
 
 
-def test_tracked_paths_skip_deleted_worktree_entries(monkeypatch) -> None:
-    def fake_run(*args, **kwargs):
+def test_tracked_paths_skip_deleted_worktree_entries(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fake_run(
+        command: Sequence[str], **kwargs: object
+    ) -> subprocess.CompletedProcess[bytes]:
         return subprocess.CompletedProcess(
-            args,
+            command,
             0,
             stdout=b"README.md\0plugins/removed-contract.md\0",
         )
@@ -321,8 +321,7 @@ def qualified_tokens(path: Path) -> list[str]:
         ]
     text = path.read_text(encoding="utf-8")
     inline_tokens = [
-        match.group("token")
-        for match in INLINE_QUALIFIED_TOKEN.finditer(text)
+        match.group("token") for match in INLINE_QUALIFIED_TOKEN.finditer(text)
     ]
     standard_tokens = [
         match.group("token")
@@ -372,9 +371,9 @@ def qualified_token_failure(
         invalid = [
             candidate
             for candidate in expanded_targets(target)
-            if not (plugin_root / candidate.rstrip("/")).resolve().is_relative_to(
-                plugin_root
-            )
+            if not (plugin_root / candidate.rstrip("/"))
+            .resolve()
+            .is_relative_to(plugin_root)
             or not (plugin_root / candidate.rstrip("/")).resolve().exists()
         ]
         if invalid:
@@ -414,9 +413,7 @@ def qualified_token_failure(
 
     if owner == "standard":
         relative = source_path.relative_to(root / "plugins")
-        standards_root = (
-            root / "plugins" / relative.parts[0] / "standards"
-        ).resolve()
+        standards_root = (root / "plugins" / relative.parts[0] / "standards").resolve()
         candidate = (standards_root / target).resolve()
         if not candidate.is_relative_to(standards_root) or not candidate.exists():
             return f"missing local standard {token}"
@@ -454,9 +451,7 @@ def codex_marketplace_plugins() -> list[dict]:
 
 def hook_commands(hooks: dict, event: str) -> list[str]:
     return [
-        handler["command"]
-        for matcher in hooks[event]
-        for handler in matcher["hooks"]
+        handler["command"] for matcher in hooks[event] for handler in matcher["hooks"]
     ]
 
 
@@ -480,9 +475,7 @@ def test_codex_marketplace_is_a_structural_projection_of_claude_catalog() -> Non
     assert [plugin["name"] for plugin in codex_plugins] == [
         plugin["name"] for plugin in claude_plugins
     ]
-    for claude_plugin, codex_plugin in zip(
-        claude_plugins, codex_plugins, strict=True
-    ):
+    for claude_plugin, codex_plugin in zip(claude_plugins, codex_plugins, strict=True):
         assert codex_plugin["source"] == {
             "source": "local",
             "path": claude_plugin["source"],
@@ -504,27 +497,19 @@ def test_codex_manifests_are_thin_adapters_over_shared_plugin_content() -> None:
 
     for plugin in marketplace_plugins():
         plugin_root = resolve_plugin_path(ROOT, plugin["source"])
-        claude_manifest = load_json(
-            plugin_root / ".claude-plugin" / "plugin.json"
-        )
+        claude_manifest = load_json(plugin_root / ".claude-plugin" / "plugin.json")
         codex_directory = plugin_root / ".codex-plugin"
         codex_manifest = load_json(codex_directory / "plugin.json")
 
-        assert {path.name for path in codex_directory.iterdir()} == {
-            "plugin.json"
-        }
+        assert {path.name for path in codex_directory.iterdir()} == {"plugin.json"}
         assert_matches_schema(codex_manifest, schema)
         assert codex_manifest["name"] == plugin["name"]
         assert codex_manifest["version"] == claude_manifest["version"]
         assert codex_manifest["description"] == plugin["description"]
         assert codex_manifest["skills"] == "./skills/"
-        assert resolve_plugin_path(
-            plugin_root, codex_manifest["skills"]
-        ).is_dir()
+        assert resolve_plugin_path(plugin_root, codex_manifest["skills"]).is_dir()
 
-        assert codex_manifest.get("mcpServers") == claude_manifest.get(
-            "mcpServers"
-        )
+        assert codex_manifest.get("mcpServers") == claude_manifest.get("mcpServers")
         if "mcpServers" in codex_manifest:
             assert resolve_plugin_path(
                 plugin_root, codex_manifest["mcpServers"]
@@ -644,11 +629,14 @@ def test_qualified_contract_accepts_existing_cross_plugin_standard(
     source.parent.mkdir(parents=True)
     source.write_text("Follow plugin:shared:standard:function.\n")
 
-    assert qualified_contract_failures(
-        tmp_path,
-        {"local", "shared"},
-        [source],
-    ) == []
+    assert (
+        qualified_contract_failures(
+            tmp_path,
+            {"local", "shared"},
+            [source],
+        )
+        == []
+    )
 
 
 def test_qualified_contract_scans_shipped_assets(tmp_path: Path) -> None:
@@ -660,8 +648,10 @@ def test_qualified_contract_scans_shipped_assets(tmp_path: Path) -> None:
     asset.write_text("Use `foreign:missing-skill`.\n")
 
     assert qualified_contract_failures(tmp_path, {"local"}, [asset]) == [
-        "plugins/local/assets/broken.md: unknown marketplace owner foreign "
-        "in foreign:missing-skill"
+        (
+            "plugins/local/assets/broken.md: unknown marketplace owner foreign "
+            "in foreign:missing-skill"
+        )
     ]
 
 
@@ -712,17 +702,13 @@ def shared_codex_skill_root_violations(plugin_root: Path) -> list[str]:
             continue
         if path.name == "SKILL.md" and content.startswith("---\n"):
             content = content.split("---\n", 2)[2]
-        if relative_path == Path(
-            "essential/skills/install-agents/SKILL.md"
-        ):
+        if relative_path == Path("essential/skills/install-agents/SKILL.md"):
             content = content.split("# Codex", 1)[1]
         for variable in claude_only_roots:
             if variable in content:
                 violations.append(f"{relative_path}: {variable}")
 
-        skill_contract_path = plugin_root.joinpath(
-            *relative_path.parts[:3], "SKILL.md"
-        )
+        skill_contract_path = plugin_root.joinpath(*relative_path.parts[:3], "SKILL.md")
         skill_contract = (
             skill_contract_path.read_text(encoding="utf-8")
             if skill_contract_path.is_file()
@@ -757,9 +743,7 @@ def assert_shared_codex_skill_paths_use_loaded_resource_roots(
 
 
 def test_shared_codex_skill_paths_use_loaded_resource_roots() -> None:
-    assert_shared_codex_skill_paths_use_loaded_resource_roots(
-        ROOT / "plugins"
-    )
+    assert_shared_codex_skill_paths_use_loaded_resource_roots(ROOT / "plugins")
 
 
 @pytest.mark.parametrize("suffix", (".js", ".py"))
@@ -772,14 +756,9 @@ def test_shared_codex_skill_path_scan_catches_claude_roots_in_all_text_files(
     leaked_path.write_text("CLAUDE_PLUGIN_ROOT\n", encoding="utf-8")
 
     with pytest.raises(AssertionError) as error:
-        assert_shared_codex_skill_paths_use_loaded_resource_roots(
-            tmp_path
-        )
+        assert_shared_codex_skill_paths_use_loaded_resource_roots(tmp_path)
 
-    assert (
-        f"example/skills/leak/script{suffix}: CLAUDE_PLUGIN_ROOT"
-        in str(error.value)
-    )
+    assert f"example/skills/leak/script{suffix}: CLAUDE_PLUGIN_ROOT" in str(error.value)
 
 
 def test_shared_codex_skill_path_scan_limits_claude_statusline_exemption(
@@ -797,9 +776,7 @@ def test_shared_codex_skill_path_scan_limits_claude_statusline_exemption(
     shared_statusline.write_text("CLAUDE_PLUGIN_ROOT\n", encoding="utf-8")
 
     with pytest.raises(AssertionError) as error:
-        assert_shared_codex_skill_paths_use_loaded_resource_roots(
-            tmp_path
-        )
+        assert_shared_codex_skill_paths_use_loaded_resource_roots(tmp_path)
 
     assert "example/skills/install-statusline/script" in str(error.value)
     assert "essential/skills/install-statusline/script" not in str(error.value)
@@ -823,9 +800,7 @@ def test_shared_codex_skill_path_scan_rejects_invalid_resource_roots(
     skill_path.write_text(f'run "${{{variable}}}/script"\n', encoding="utf-8")
 
     with pytest.raises(AssertionError) as error:
-        assert_shared_codex_skill_paths_use_loaded_resource_roots(
-            tmp_path
-        )
+        assert_shared_codex_skill_paths_use_loaded_resource_roots(tmp_path)
 
     assert f"example/skills/leak/SKILL.md: {variable}" in str(error.value)
 
@@ -866,13 +841,10 @@ def test_shared_codex_skill_path_scan_scopes_loaded_roots_to_owning_skill(
     )
 
     with pytest.raises(AssertionError) as error:
-        assert_shared_codex_skill_paths_use_loaded_resource_roots(
-            tmp_path
-        )
+        assert_shared_codex_skill_paths_use_loaded_resource_roots(tmp_path)
 
-    assert (
-        "example/skills/consumer/SKILL.md: EXAMPLE_OWNER_SKILL_DIR"
-        in str(error.value)
+    assert "example/skills/consumer/SKILL.md: EXAMPLE_OWNER_SKILL_DIR" in str(
+        error.value
     )
 
 
@@ -891,9 +863,8 @@ def test_shared_codex_skill_path_scan_does_not_treat_mentions_as_declarations(
     with pytest.raises(AssertionError) as error:
         assert_shared_codex_skill_paths_use_loaded_resource_roots(tmp_path)
 
-    assert (
-        "example/skills/mention/SKILL.md: EXAMPLE_UNDECLARED_SKILL_DIR"
-        in str(error.value)
+    assert "example/skills/mention/SKILL.md: EXAMPLE_UNDECLARED_SKILL_DIR" in str(
+        error.value
     )
 
 
@@ -912,10 +883,7 @@ def test_shared_codex_skill_path_scan_does_not_authorize_negated_roots(
     with pytest.raises(AssertionError) as error:
         assert_shared_codex_skill_paths_use_loaded_resource_roots(tmp_path)
 
-    assert (
-        "example/skills/negated/SKILL.md: EXAMPLE_OLD_SKILL_DIR"
-        in str(error.value)
-    )
+    assert "example/skills/negated/SKILL.md: EXAMPLE_OLD_SKILL_DIR" in str(error.value)
 
 
 def test_shared_codex_skill_path_scan_accepts_locally_assigned_shell_roots(
@@ -924,8 +892,7 @@ def test_shared_codex_skill_path_scan_accepts_locally_assigned_shell_roots(
     script_path = tmp_path / "example" / "skills" / "local" / "script.sh"
     script_path.parent.mkdir(parents=True)
     script_path.write_text(
-        'LOCAL_SKILL_DIR="$(dirname -- "$0")"\n'
-        'run "${LOCAL_SKILL_DIR}/resource"\n',
+        'LOCAL_SKILL_DIR="$(dirname -- "$0")"\nrun "${LOCAL_SKILL_DIR}/resource"\n',
         encoding="utf-8",
     )
 
@@ -945,9 +912,7 @@ def test_shared_hooks_follow_the_cross_harness_schema() -> None:
             if (plugin_root / name).is_file()
         }
         expected_events = set().union(*payload_events.values())
-        claude_manifest = load_json(
-            plugin_root / ".claude-plugin" / "plugin.json"
-        )
+        claude_manifest = load_json(plugin_root / ".claude-plugin" / "plugin.json")
         assert "hooks" not in claude_manifest
 
         if not expected_events:
@@ -977,9 +942,7 @@ def test_shared_hooks_follow_the_cross_harness_schema() -> None:
                     for payload_name in payload_events
                 ):
                     continue
-                relative_command = command.removeprefix(
-                    "${CLAUDE_PLUGIN_ROOT}/"
-                )
+                relative_command = command.removeprefix("${CLAUDE_PLUGIN_ROOT}/")
                 assert relative_command != command
                 assert (plugin_root / relative_command).is_file()
 
@@ -1010,8 +973,7 @@ def test_context_hooks_replace_every_plugin_dir_placeholder() -> None:
                     ["/bin/sh", "-c", command],
                     capture_output=True,
                     check=True,
-                    env=os.environ
-                    | {"CLAUDE_PLUGIN_ROOT": str(plugin_root)},
+                    env=os.environ | {"CLAUDE_PLUGIN_ROOT": str(plugin_root)},
                     input=json.dumps({"hook_event_name": event}),
                     text=True,
                 )
@@ -1053,9 +1015,7 @@ def test_codex_role_bindings_wait_for_installed_custom_agents(
             env=base_env,
             text=True,
         )
-        assert json.loads(claude.stdout)["hookSpecificOutput"][
-            "additionalContext"
-        ]
+        assert json.loads(claude.stdout)["hookSpecificOutput"]["additionalContext"]
 
         codex_env = base_env | {"PLUGIN_ROOT": str(plugin_root)}
         codex_missing = subprocess.run(
@@ -1069,7 +1029,7 @@ def test_codex_role_bindings_wait_for_installed_custom_agents(
 
         agent_path = tmp_path / "agents" / f"{agent_name}.toml"
         agent_path.parent.mkdir(exist_ok=True)
-        agent_path.write_text("name = \"installed\"\n")
+        agent_path.write_text('name = "installed"\n')
         codex_installed = subprocess.run(
             ["/bin/sh", "-c", command],
             capture_output=True,

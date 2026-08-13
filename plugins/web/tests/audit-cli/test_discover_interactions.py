@@ -21,9 +21,9 @@ def _load(name: str) -> dict[str, object]:
 def test_ten_identical_buttons_dedup_to_single_candidate() -> None:
     snapshot = _load("ax_snapshot_dup_buttons.json")
     plan = discover_interactions(snapshot)
-    assert [
-        (candidate.role, candidate.name) for candidate in plan.candidates
-    ] == [("button", "Add to cart")]
+    assert [(candidate.role, candidate.name) for candidate in plan.candidates] == [
+        ("button", "Add to cart")
+    ]
 
 
 def test_social_link_is_dropped_silently() -> None:
@@ -53,14 +53,13 @@ def test_refs_snapshot_shape_discovers_button_candidates() -> None:
             "e17": {"name": "Open menu", "role": "button"},
             "e18": {"name": "Overview", "role": "link"},
         },
-        "snapshot": "- button \"Open menu\" [ref=e17]\\n- link \"Overview\" [ref=e18]",
+        "snapshot": '- button "Open menu" [ref=e17]\\n- link "Overview" [ref=e18]',
     }
 
     plan = discover_interactions(snapshot)
 
     assert [
-        (candidate.uid, candidate.role, candidate.name)
-        for candidate in plan.candidates
+        (candidate.uid, candidate.role, candidate.name) for candidate in plan.candidates
     ] == [(17, "button", "Open menu")]
 
 
@@ -70,7 +69,7 @@ def test_refs_snapshot_shape_discovers_hover_targets() -> None:
             "e17": {"name": "Open menu", "role": "button"},
             "e18": {"name": "Overview", "role": "link"},
         },
-        "snapshot": "- button \"Open menu\" [ref=e17]\\n- link \"Overview\" [ref=e18]",
+        "snapshot": '- button "Open menu" [ref=e17]\\n- link "Overview" [ref=e18]',
     }
 
     targets = discover_hover_targets(snapshot)
@@ -105,9 +104,9 @@ def test_root_shell_same_origin_links_do_not_count_without_all_pages() -> None:
         DiscoverOptions(all_pages=False, same_origin_host="127.0.0.1:3200"),
     )
 
-    assert [
-        (candidate.role, candidate.name) for candidate in plan.candidates
-    ] == [("button", "Open navigation menu")]
+    assert [(candidate.role, candidate.name) for candidate in plan.candidates] == [
+        ("button", "Open navigation menu")
+    ]
 
 
 def test_next_dev_overlay_button_is_ignored() -> None:
@@ -120,9 +119,9 @@ def test_next_dev_overlay_button_is_ignored() -> None:
 
     plan = discover_interactions(snapshot)
 
-    assert [
-        (candidate.uid, candidate.name) for candidate in plan.candidates
-    ] == [(4, "Open navigation menu")]
+    assert [(candidate.uid, candidate.name) for candidate in plan.candidates] == [
+        (4, "Open navigation menu")
+    ]
 
 
 def test_next_dev_overlay_button_is_ignored_for_hover_targets() -> None:

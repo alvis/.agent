@@ -1,8 +1,7 @@
-from __future__ import annotations
-
 import json
 import re
 from pathlib import Path
+from typing import cast
 
 ROOT = Path(__file__).resolve().parents[1]
 MARKETPLACE = ROOT / ".claude-plugin" / "marketplace.json"
@@ -77,8 +76,15 @@ SUPPRESSED_REPORTING = (
         r"(?:report|mention|flag|raise|surface|list|includ)\w*"
         r"|omit|suppress|withhold|exclude)"
         r"[^.!?;\n]*?"
-        r"(?:" + _UNCERTAIN + r"[^.!?;\n]*?" + _FINDING
-        + r"|" + _FINDING + r"[^.!?;\n]*?" + _UNCERTAIN + r")",
+        r"(?:"
+        + _UNCERTAIN
+        + r"[^.!?;\n]*?"
+        + _FINDING
+        + r"|"
+        + _FINDING
+        + r"[^.!?;\n]*?"
+        + _UNCERTAIN
+        + r")",
         re.IGNORECASE,
     ),
     re.compile(
@@ -98,10 +104,10 @@ SUPPRESSED_REPORTING = (
         # clause, and it must fail on its own rather than only when a "be
         # conservative" lead-in happens to precede it.
         r"(?:only report|report only)[^.!?;\n]*?"
-        r"(?:" + _CONFIDENCE + r" " + _FINDING
-        + r"|" + _FINDING + r"[^.!?;\n]*? "
+        r"(?:" + _CONFIDENCE + r" " + _FINDING + r"|" + _FINDING + r"[^.!?;\n]*? "
         r"(?:you can prove|you (?:are|'re) (?:certain|sure|confident)|"
-        + _CONFIDENCE + r"))",
+        + _CONFIDENCE
+        + r"))",
         re.IGNORECASE,
     ),
     re.compile(
@@ -217,12 +223,17 @@ def test_marketplace_plugins_ship_action_instruction_contracts() -> None:
 
 def test_marketplace_and_plugin_versions_use_semver_from_one() -> None:
     marketplace = load_json(MARKETPLACE)
-    versions = [marketplace["metadata"]["version"]]
+    metadata = cast(dict[str, object], marketplace["metadata"])
+    entries = cast(list[dict[str, object]], marketplace["plugins"])
+    versions = [cast(str, metadata["version"])]
     versions.extend(
-        load_json((ROOT / entry["source"]) / ".claude-plugin" / "plugin.json")[
-            "version"
-        ]
-        for entry in marketplace["plugins"]
+        cast(
+            str,
+            load_json(
+                (ROOT / cast(str, entry["source"])) / ".claude-plugin" / "plugin.json"
+            )["version"],
+        )
+        for entry in entries
     )
 
     for version in versions:
@@ -293,7 +304,9 @@ def test_no_shipped_prompt_suppresses_reporting() -> None:
 def test_shipped_prompts_cover_agent_frontmatter_json() -> None:
     labels = [label for label, _ in shipped_prompts()]
 
-    assert any(label.endswith("frontmatter/claude.json:initialPrompt") for label in labels)
+    assert any(
+        label.endswith("frontmatter/claude.json:initialPrompt") for label in labels
+    )
     assert any(label.endswith("frontmatter/meta.json:description") for label in labels)
 
 

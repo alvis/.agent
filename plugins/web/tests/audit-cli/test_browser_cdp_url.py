@@ -1,10 +1,9 @@
 """Verify BrowserDriver ownership semantics for external CDP sessions."""
 
 import subprocess
-from typing import Sequence
+from collections.abc import Sequence
 
 import pytest
-
 from audit_cli.drive.browser import BrowserDriver
 
 

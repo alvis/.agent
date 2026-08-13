@@ -1,12 +1,9 @@
-from __future__ import annotations
-
 import hashlib
 import json
-from pathlib import Path
 import subprocess
+from pathlib import Path
 
 import pytest
-
 
 PLUGIN = Path(__file__).resolve().parents[1]
 VALIDATOR = PLUGIN / "skills/commit/scripts/validate-scoped-save.sh"
@@ -49,25 +46,26 @@ class Harness:
             ["git", "-C", str(self.repo), *args],
             check=check,
             text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
         )
 
-    def git_bytes(self, *args: str, check: bool = True) -> subprocess.CompletedProcess[bytes]:
+    def git_bytes(
+        self, *args: str, check: bool = True
+    ) -> subprocess.CompletedProcess[bytes]:
         return subprocess.run(
             ["git", "-C", str(self.repo), *args],
             check=check,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
         )
 
-    def helper(self, *args: str, check: bool = True) -> tuple[subprocess.CompletedProcess[str], dict[str, object]]:
+    def helper(
+        self, *args: str, check: bool = True
+    ) -> tuple[subprocess.CompletedProcess[str], dict[str, object]]:
         result = subprocess.run(
             ["bash", str(VALIDATOR), *args],
             check=False,
             text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
         )
         if check:
             assert not result.returncode, (
@@ -85,7 +83,9 @@ class Harness:
             path = self.repo / relative
             if path.is_symlink():
                 state = "symlink"
-                content_hash = hashlib.sha256(path.readlink().as_posix().encode()).hexdigest()
+                content_hash = hashlib.sha256(
+                    path.readlink().as_posix().encode()
+                ).hexdigest()
                 mode = "120000"
             elif path.is_file():
                 state = "file"
@@ -208,7 +208,9 @@ def test_real_path_limited_save_preserves_unrelated_index_and_worktree(
     ]
     for relative in selected:
         path = harness.repo / relative
-        path.write_text(path.read_text(encoding="utf-8") + "lifecycle edit\n", encoding="utf-8")
+        path.write_text(
+            path.read_text(encoding="utf-8") + "lifecycle edit\n", encoding="utf-8"
+        )
     (harness.repo / "src.txt").chmod(0o755)
 
     developer = harness.repo / "developer.txt"
@@ -222,14 +224,24 @@ def test_real_path_limited_save_preserves_unrelated_index_and_worktree(
         [(path, f"child-manifest:{path}") for path in selected], selected
     )
     manifest = harness.build(scope)
-    manifest_json = json.loads(Path(str(manifest["manifest_path"])).read_text(encoding="utf-8"))
+    manifest_json = json.loads(
+        Path(str(manifest["manifest_path"])).read_text(encoding="utf-8")
+    )
     assert manifest_json["schema"] == "state-scoped-save/v1"
-    assert set(selected) == {entry["path"] for entry in manifest_json["publication_paths"]}
+    assert set(selected) == {
+        entry["path"] for entry in manifest_json["publication_paths"]
+    }
     assert (
-        next(entry for entry in manifest_json["selected_paths"] if entry["path"] == "src.txt")["mode"]
+        next(
+            entry
+            for entry in manifest_json["selected_paths"]
+            if entry["path"] == "src.txt"
+        )["mode"]
         == "100755"
     )
-    assert {entry["path"] for entry in manifest_json["excluded_dirty_paths"]} == {"developer.txt"}
+    assert {entry["path"] for entry in manifest_json["excluded_dirty_paths"]} == {
+        "developer.txt"
+    }
 
     preflight = harness.preflight(manifest)
     preflight_json = json.loads(
@@ -247,7 +259,10 @@ def test_real_path_limited_save_preserves_unrelated_index_and_worktree(
     assert result_json["schema"] == "state-scoped-save-result/v1"
     assert result["non_selected_preserved"]
     assert result["status"] == "pass"
-    assert result["receipt_path"] == harness.verify(manifest, preflight, saved)["receipt_path"]
+    assert (
+        result["receipt_path"]
+        == harness.verify(manifest, preflight, saved)["receipt_path"]
+    )
 
 
 def test_exact_scoped_rename_records_and_saves_source_and_destination(
@@ -260,8 +275,12 @@ def test_exact_scoped_rename_records_and_saves_source_and_destination(
     ]
     selected = ["src.txt", "renamed-src.txt"]
     manifest = harness.build(harness.scope(publication, selected))
-    manifest_json = json.loads(Path(str(manifest["manifest_path"])).read_text(encoding="utf-8"))
-    selected_entries = {entry["path"]: entry for entry in manifest_json["selected_paths"]}
+    manifest_json = json.loads(
+        Path(str(manifest["manifest_path"])).read_text(encoding="utf-8")
+    )
+    selected_entries = {
+        entry["path"]: entry for entry in manifest_json["selected_paths"]
+    }
     assert selected_entries["src.txt"]["state"] == "deleted"
     assert selected_entries["renamed-src.txt"]["state"] == "file"
     assert "role=source" in selected_entries["src.txt"]["status"]
@@ -275,7 +294,9 @@ def test_exact_scoped_rename_records_and_saves_source_and_destination(
 
 def test_preflight_rejects_stale_selected_bytes(harness: Harness) -> None:
     (harness.repo / "src.txt").write_text("lifecycle edit\n", encoding="utf-8")
-    manifest = harness.build(harness.scope([("src.txt", "child-manifest:source")], ["src.txt"]))
+    manifest = harness.build(
+        harness.scope([("src.txt", "child-manifest:source")], ["src.txt"])
+    )
     (harness.repo / "src.txt").write_text("changed after review\n", encoding="utf-8")
     result, output = harness.helper(
         "preflight",
@@ -296,9 +317,13 @@ def test_preflight_rejects_duplicate_keys_even_with_matching_filename_hash(
     harness: Harness,
 ) -> None:
     (harness.repo / "src.txt").write_text("lifecycle edit\n", encoding="utf-8")
-    manifest = harness.build(harness.scope([("src.txt", "child-manifest:source")], ["src.txt"]))
+    manifest = harness.build(
+        harness.scope([("src.txt", "child-manifest:source")], ["src.txt"])
+    )
     original = Path(str(manifest["manifest_path"])).read_bytes()
-    duplicate = original.replace(b'"base_rev":', b'"base_rev":"duplicate","base_rev":', 1)
+    duplicate = original.replace(
+        b'"base_rev":', b'"base_rev":"duplicate","base_rev":', 1
+    )
     digest = hashlib.sha256(duplicate).hexdigest()
     duplicate_path = Path(str(manifest["manifest_path"])).parent / f"{digest}.json"
     duplicate_path.write_bytes(duplicate)
@@ -319,16 +344,27 @@ def test_preflight_rejects_duplicate_keys_even_with_matching_filename_hash(
 
 def test_preflight_rejects_unknown_manifest_fields(harness: Harness) -> None:
     (harness.repo / "src.txt").write_text("lifecycle edit\n", encoding="utf-8")
-    manifest = harness.build(harness.scope([("src.txt", "child-manifest:source")], ["src.txt"]))
+    manifest = harness.build(
+        harness.scope([("src.txt", "child-manifest:source")], ["src.txt"])
+    )
     value = json.loads(Path(str(manifest["manifest_path"])).read_text(encoding="utf-8"))
     value["unexpected"] = True
-    raw = (json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode()
+    raw = (
+        json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        + "\n"
+    ).encode()
     digest = hashlib.sha256(raw).hexdigest()
     unknown_path = Path(str(manifest["manifest_path"])).parent / f"{digest}.json"
     unknown_path.write_bytes(raw)
     result, output = harness.helper(
-        "preflight", "--repo", str(harness.repo), "--manifest", str(unknown_path),
-        "--manifest-sha256", digest, check=False,
+        "preflight",
+        "--repo",
+        str(harness.repo),
+        "--manifest",
+        str(unknown_path),
+        "--manifest-sha256",
+        digest,
+        check=False,
     )
     assert result.returncode == 2
     assert "unknown=['unexpected']" in str(output["error"])
@@ -336,7 +372,9 @@ def test_preflight_rejects_unknown_manifest_fields(harness: Harness) -> None:
 
 def test_verify_rejects_snapshot_mutation(harness: Harness) -> None:
     (harness.repo / "src.txt").write_text("lifecycle edit\n", encoding="utf-8")
-    manifest = harness.build(harness.scope([("src.txt", "child-manifest:source")], ["src.txt"]))
+    manifest = harness.build(
+        harness.scope([("src.txt", "child-manifest:source")], ["src.txt"])
+    )
     preflight = harness.preflight(manifest)
     saved = harness.commit_selected(preflight, "feat: save source")
     snapshot = Path(str(preflight["snapshot_path"]))
@@ -365,7 +403,9 @@ def test_verify_rejects_snapshot_mutation(harness: Harness) -> None:
 
 def test_verify_rejects_an_intervening_plain_git_commit(harness: Harness) -> None:
     (harness.repo / "src.txt").write_text("lifecycle edit\n", encoding="utf-8")
-    manifest = harness.build(harness.scope([("src.txt", "child-manifest:source")], ["src.txt"]))
+    manifest = harness.build(
+        harness.scope([("src.txt", "child-manifest:source")], ["src.txt"])
+    )
     preflight = harness.preflight(manifest)
     saved = harness.commit_selected(preflight, "feat: save source")
 
@@ -616,7 +656,9 @@ def test_build_rejects_producer_omission_from_publication_scope(
         check=False,
     )
     assert result.returncode == 2
-    assert "generated_files must equal publication scope exactly" in str(output["error"])
+    assert "generated_files must equal publication scope exactly" in str(
+        output["error"]
+    )
     assert "tests.txt" in str(output["error"])
 
 
@@ -708,7 +750,9 @@ def test_preflight_blocks_selected_clean_filter_before_history_mutation(
 ) -> None:
     harness.git("config", "filter.upper.clean", "tr '[:lower:]' '[:upper:]'")
     harness.git("config", "filter.upper.smudge", "cat")
-    (harness.repo / ".gitattributes").write_text("src.txt filter=upper\n", encoding="utf-8")
+    (harness.repo / ".gitattributes").write_text(
+        "src.txt filter=upper\n", encoding="utf-8"
+    )
     harness.git("add", ".gitattributes")
     harness.git("commit", "-q", "-m", "chore: configure clean filter")
     harness.base_rev = harness.git("rev-parse", "HEAD").stdout.strip()

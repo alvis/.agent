@@ -6,7 +6,6 @@ from pathlib import Path
 
 import pytest
 
-
 ROOT = Path(__file__).resolve().parents[3]
 PLUGINS = ROOT / "plugins"
 RUNNER = PLUGINS / "coding/scripts/lint_profile_runner.py"
@@ -40,7 +39,7 @@ def run_runner(
         str(profile),
         *files,
     ]
-    return subprocess.run(command, text=True, capture_output=True)
+    return subprocess.run(command, text=True, capture_output=True, check=False)
 
 
 def test_runs_each_scanner_once_in_order_and_resolves_from_installed_roots(
@@ -57,13 +56,24 @@ def test_runs_each_scanner_once_in_order_and_resolves_from_installed_roots(
     (tmp_path / "react/standards/storybook").mkdir(parents=True)
     write_scanner(scanner, "react")
     profile = profile_dir / "profile.json"
-    profile.write_text(json.dumps({
-        "eligibility": {"extensions": [".tsx", ".jsx"]},
-        "exclusions": ["**/*.generated.tsx", "**/node_modules/**", "**/dist/**", "**/__snapshots__/**"],
-        "scanners": [{"path": "../../scripts/react.py", "needs_coding_scanlib": True}],
-        "standards": ["../../standards/components", "../../standards/hooks"],
-        "report_label": "React lint",
-    }))
+    profile.write_text(
+        json.dumps(
+            {
+                "eligibility": {"extensions": [".tsx", ".jsx"]},
+                "exclusions": [
+                    "**/*.generated.tsx",
+                    "**/node_modules/**",
+                    "**/dist/**",
+                    "**/__snapshots__/**",
+                ],
+                "scanners": [
+                    {"path": "../../scripts/react.py", "needs_coding_scanlib": True}
+                ],
+                "standards": ["../../standards/components", "../../standards/hooks"],
+                "report_label": "React lint",
+            }
+        )
+    )
     result = run_runner(
         tmp_path,
         profile,
@@ -87,8 +97,12 @@ def test_runs_each_scanner_once_in_order_and_resolves_from_installed_roots(
             str((tmp_path / "react/standards/hooks").resolve()),
         )
     )
-    assert report["scanner_runs"][0]["output"]["standard_roots"] == expected_standard_roots
-    assert report["scanner_runs"][1]["output"]["standard_roots"] == expected_standard_roots
+    assert (
+        report["scanner_runs"][0]["output"]["standard_roots"] == expected_standard_roots
+    )
+    assert (
+        report["scanner_runs"][1]["output"]["standard_roots"] == expected_standard_roots
+    )
     react_args = report["scanner_runs"][1]["args"]
     assert str((tmp_path / "coding/scripts/scanlib").resolve()) in react_args
     assert report["report_label"] == "React lint"
@@ -105,13 +119,19 @@ def test_propagates_scanner_failure_with_generic_report_contract(
     scanner.parent.mkdir(parents=True)
     write_scanner(scanner, "react", exit_code=7)
     profile = profile_dir / "profile.json"
-    profile.write_text(json.dumps({
-        "eligibility": {"extensions": [".tsx"]},
-        "exclusions": [],
-        "scanners": [{"path": "../../scripts/react.py", "needs_coding_scanlib": True}],
-        "standards": [],
-        "report_label": "React lint",
-    }))
+    profile.write_text(
+        json.dumps(
+            {
+                "eligibility": {"extensions": [".tsx"]},
+                "exclusions": [],
+                "scanners": [
+                    {"path": "../../scripts/react.py", "needs_coding_scanlib": True}
+                ],
+                "standards": [],
+                "report_label": "React lint",
+            }
+        )
+    )
     result = run_runner(tmp_path, profile, "src/App.tsx")
     assert result.returncode == 7, result.stdout
     report = json.loads(result.stdout)
@@ -143,6 +163,7 @@ def test_rejects_relative_profile_path(tmp_path: Path) -> None:
         cwd=tmp_path,
         text=True,
         capture_output=True,
+        check=False,
     )
     assert result.returncode == 2
     assert "absolute path" in json.loads(result.stdout)["error"]
