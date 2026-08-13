@@ -9,27 +9,25 @@ SOURCE_SUFFIXES = {".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"}
 # Python source files — gated by the `python_files` predicate so the `py-*`
 # rules see `.py` files while TS/JS rules (`source_files`) never match them.
 PY_SUFFIXES = {".py"}
+RUST_SUFFIXES = {".rs"}
 TS_SUFFIXES = {".ts", ".tsx"}
-SPEC_SUFFIXES = (
-    ".spec.ts",
-    ".spec.tsx",
-    ".spec.js",
-    ".spec.jsx",
-    ".int.spec.ts",
-    ".int.spec.tsx",
-    ".e2e.spec.ts",
-    ".e2e.spec.tsx",
-)
+SPEC_PATTERNS = ("*.spec.*",)
+NON_SPEC_TEST_PATTERNS = ("*.test.*",)
+TEST_FILE_PATTERNS = SPEC_PATTERNS + NON_SPEC_TEST_PATTERNS
+PYTHON_TEST_PATTERNS = ("test_*.py", "*_test.py")
 INDEX_NAMES = {"index.ts", "index.tsx"}
 
 
 def is_spec_file(path: Path, /) -> bool:
-    """Return whether ``path`` is a spec file by its compound suffix."""
-    name = path.name
-    for suffix in SPEC_SUFFIXES:
-        if name.endswith(suffix):
-            return True
-    return False
+    """Return whether ``path`` matches a sanctioned JavaScript test pattern."""
+    return any(path.match(pattern) for pattern in SPEC_PATTERNS)
+
+
+def is_test_file(path: Path, /) -> bool:
+    """Return whether ``path`` follows a supported JS/TS or Python test name."""
+    return any(path.match(pattern) for pattern in TEST_FILE_PATTERNS) or any(
+        path.match(pattern) for pattern in PYTHON_TEST_PATTERNS
+    )
 
 
 def source_files(path: Path, /) -> bool:
@@ -38,7 +36,7 @@ def source_files(path: Path, /) -> bool:
 
 
 def spec_files(path: Path, /) -> bool:
-    """Match only spec files (``*.spec.*``, ``*.int.spec.*``, ``*.e2e.spec.*``)."""
+    """Match sanctioned JavaScript test files."""
     return is_spec_file(path)
 
 

@@ -1,20 +1,14 @@
-"""TST-STRU-01 candidate: test files using the `.test.ts` extension."""
+"""TST-STRU-01 candidate: test files using the `*.test.*` pattern."""
 
 from pathlib import Path
 
 from scanlib.core import Match
-from scanlib.predicates import source_files
+from scanlib.predicates import NON_SPEC_TEST_PATTERNS, source_files
 from scanlib.rule import Rule
-
-# TST-STRU-01 — see plugins/coding/standards/testing/rules/tst-stru-01.md
-# the standard mandates `.spec.ts(x)` (and `.int.spec.*` / `.e2e.spec.*`); the
-# legacy `.test.ts(x)` extension is a violation. this is a pure path check.
-TEST_SUFFIXES = (".test.ts", ".test.tsx")
 
 
 def scan(*, path: Path, lines: list[str], matches: list[Match]) -> None:
-    name = path.name
-    if not any(name.endswith(suffix) for suffix in TEST_SUFFIXES):
+    if not any(path.match(pattern) for pattern in NON_SPEC_TEST_PATTERNS):
         return
     # the file name itself is the violation — report it on line 1 so the match
     # has a stable anchor regardless of the file's contents.

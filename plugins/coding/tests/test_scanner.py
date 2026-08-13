@@ -1,4 +1,4 @@
-"""Fixture-driven and loader smoke tests for the coding standard scanner.
+"""Behavior, fixture, and loader tests for the coding standard scanner.
 
 Run directly: `uvx pytest plugins/coding/tests/test_scanner.py`.
 
@@ -35,6 +35,9 @@ from scanlib.rule import Rule
 
 FIXTURES_DIR = TESTS_DIR / "fixtures"
 RULES = tuple(load_rules())
+STATIC_FILE_READ_RULE = next(
+    rule for rule in RULES if rule.id == "test-static-file-read"
+)
 
 
 @pytest.fixture(autouse=True)
@@ -53,7 +56,7 @@ def _own_scanners_package() -> None:
 
 
 # a rule fixture is any `fixtures/<dir>/` carrying an `expected.txt` golden —
-# other directories (legacy ad-hoc fixtures) are ignored.
+# other directories (ad-hoc fixtures) are ignored.
 FIXTURE_DIRS = sorted(
     p for p in FIXTURES_DIR.iterdir() if p.is_dir() and (p / "expected.txt").is_file()
 )
@@ -275,3 +278,215 @@ def test_spec_only_rules_skip_non_spec_files() -> None:
     hooks = _capture_from(CORPUS, ["--category", "test-hooks"])
     assert "not-a-spec.ts" not in hooks
     assert "feature.spec.ts" in hooks
+
+
+@pytest.mark.parametrize(
+    ("name", "source"),
+    (
+        ("feature.spec.ts", 'readFile("guidance.md", "utf8")'),
+        ("feature.test.ts", 'readFileSync("guidance.md", "utf8")'),
+        ("test_feature.py", 'Path("#guidance.md").read_text()'),
+        ("feature_test.py", 'Path("guidance.md").read_text()'),
+    ),
+)
+def test_static_file_read_flags_supported_named_tests(
+    tmp_path: Path,
+    name: str,
+    source: str,
+) -> None:
+    path = tmp_path / name
+    matches = []
+
+    assert STATIC_FILE_READ_RULE.applies_to(path)
+    STATIC_FILE_READ_RULE.scan(path=path, lines=[source], matches=matches)
+
+    assert [match.lineno for match in matches] == [1]
+
+
+@pytest.mark.parametrize(
+    ("relative_path", "lines"),
+    (
+        (Path("tests/reads.rs"), ["std::fs::read_to_string(path).unwrap();"]),
+        (
+            Path("src/lib.rs"),
+            ["#[cfg(test)]", "mod tests {", "fs::read(path).unwrap();", "}"],
+        ),
+    ),
+)
+def test_static_file_read_flags_rust_test_surfaces(
+    tmp_path: Path,
+    relative_path: Path,
+    lines: list[str],
+) -> None:
+    path = tmp_path / relative_path
+    matches = []
+
+    assert STATIC_FILE_READ_RULE.applies_to(path)
+    STATIC_FILE_READ_RULE.scan(path=path, lines=lines, matches=matches)
+
+    assert len(matches) == 1
+
+
+def test_static_file_read_scopes_mixed_rust_source_to_test_items(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "src/lib.rs"
+    matches = []
+
+    STATIC_FILE_READ_RULE.scan(
+        path=path,
+        lines=[
+            "fn production_before() {",
+            "    std::fs::read_to_string(path).unwrap();",
+            "}",
+            "#[cfg(all(test, feature = \"fixtures\"))]",
+            "mod tests {",
+            "    fn reads_fixture() {",
+            "        std::fs::read_to_string(path).unwrap();",
+            "    }",
+            "}",
+            "fn production_after() {",
+            "    std::fs::read_to_string(path).unwrap();",
+            "}",
+        ],
+        matches=matches,
+    )
+
+    assert [match.lineno for match in matches] == [7]
+
+
+def test_static_file_read_closes_braceless_rust_test_items(tmp_path: Path) -> None:
+    path = tmp_path / "src/lib.rs"
+    matches = []
+
+    STATIC_FILE_READ_RULE.scan(
+        path=path,
+        lines=[
+            "#[cfg(test)]",
+            "const FIXTURE: Vec<u8> = std::fs::read(path).unwrap();",
+            "fn production() {",
+            "    std::fs::read(path).unwrap();",
+            "}",
+        ],
+        matches=matches,
+    )
+
+    assert [match.lineno for match in matches] == [2]
+
+
+def test_static_file_read_closes_same_line_rust_test_items(tmp_path: Path) -> None:
+    path = tmp_path / "src/lib.rs"
+    matches = []
+
+    STATIC_FILE_READ_RULE.scan(
+        path=path,
+        lines=[
+            "#[cfg(test)] const FIXTURE: Vec<u8> = std::fs::read(path).unwrap();",
+            "fn production() {",
+            "    std::fs::read(path).unwrap();",
+            "}",
+        ],
+        matches=matches,
+    )
+
+    assert [match.lineno for match in matches] == [1]
+
+
+def test_static_file_read_excludes_same_line_rust_production_items(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "src/lib.rs"
+    matches = []
+
+    STATIC_FILE_READ_RULE.scan(
+        path=path,
+        lines=[
+            (
+                "#[test] fn checks_fixture() {} "
+                "fn production() { std::fs::read(path).unwrap(); }"
+            ),
+        ],
+        matches=matches,
+    )
+
+    assert not matches
+
+
+def test_static_file_read_ignores_cfg_not_test_items(tmp_path: Path) -> None:
+    path = tmp_path / "src/lib.rs"
+    matches = []
+
+    STATIC_FILE_READ_RULE.scan(
+        path=path,
+        lines=[
+            "#[cfg(not(test))]",
+            "fn production() { std::fs::read(path).unwrap(); }",
+        ],
+        matches=matches,
+    )
+
+    assert not matches
+
+
+def test_static_file_read_supports_multiline_rust_test_attributes(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "src/lib.rs"
+    matches = []
+
+    STATIC_FILE_READ_RULE.scan(
+        path=path,
+        lines=[
+            "#[cfg(all(",
+            "    feature = \"fixtures\" ,",
+            "    test,",
+            "))]",
+            "mod tests { std::fs::read(path).unwrap(); }",
+            "fn production() { std::fs::read(path).unwrap(); }",
+        ],
+        matches=matches,
+    )
+
+    assert [match.lineno for match in matches] == [5]
+
+
+def test_static_file_read_ignores_rust_syntax_inside_comments_and_literals(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "src/lib.rs"
+    matches = []
+
+    STATIC_FILE_READ_RULE.scan(
+        path=path,
+        lines=[
+            "#[cfg(test)]",
+            "mod tests {",
+            '    const BRACE: &str = "}";',
+            '    const RAW: &str = r#"fs::read(path); }"#;',
+            "    /* } nested /* { */ } */",
+            "    fn reads_fixture() { std::fs::read(path).unwrap(); }",
+            "}",
+            "fn production() {",
+            "    std::fs::read(path).unwrap();",
+            "}",
+        ],
+        matches=matches,
+    )
+
+    assert [match.lineno for match in matches] == [6]
+
+
+def test_static_file_read_ignores_python_comments_and_strings(tmp_path: Path) -> None:
+    path = tmp_path / "test_feature.py"
+    matches = []
+
+    STATIC_FILE_READ_RULE.scan(
+        path=path,
+        lines=[
+            'example = \'Path("guidance.md").read_text()\'',
+            '# Path("guidance.md").read_text()',
+        ],
+        matches=matches,
+    )
+
+    assert not matches

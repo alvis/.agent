@@ -7,12 +7,12 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from scanlib.loader import load_rules
-from scanlib.predicates import PY_SUFFIXES, SOURCE_SUFFIXES, is_spec_file
+from scanlib.predicates import PY_SUFFIXES, RUST_SUFFIXES, SOURCE_SUFFIXES, is_spec_file
 from scanlib.rule import Rule
 
-# every suffix the engine ingests — TS/JS source plus Python; per-rule
+# every suffix the engine ingests — TS/JS, Python, and Rust; per-rule
 # `applies_to` predicates then narrow each rule to the files it cares about.
-SCANNED_SUFFIXES = SOURCE_SUFFIXES | PY_SUFFIXES
+SCANNED_SUFFIXES = SOURCE_SUFFIXES | PY_SUFFIXES | RUST_SUFFIXES
 
 SKIP_DIRS = {
     "node_modules",
@@ -39,7 +39,7 @@ def iter_files(root: Path, /) -> Iterator[Path]:
     if root.is_file():
         yield root
         return
-    for path in root.rglob("*"):
+    for path in sorted(root.rglob("*")):
         if not path.is_file():
             continue
         if any(part in SKIP_DIRS for part in path.parts):
@@ -86,7 +86,7 @@ def parse_args(argv: list[str], /, *, choices: tuple[str, ...]) -> argparse.Name
     parser.add_argument("--before", type=int, default=5, help="context lines before each match (default 5)")
     parser.add_argument("--after", type=int, default=10, help="context lines after each match (default 10)")
     parser.add_argument("--no-tests", action="store_true",
-                        help="skip *.spec.* files for the `let` category (others unaffected)")
+                        help="skip JS/TS test files for the `let` category (others unaffected)")
     return parser.parse_args(argv)
 
 
