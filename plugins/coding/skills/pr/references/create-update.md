@@ -588,16 +588,18 @@ permission check. Split each exact `title\n\nbody` into that head's `TITLE` and 
 malformed output aborts the whole selection before any ref or remote mutation.
 
 After every per-head `PR_BASE` is resolved, collect one exact
-`BOOKMARK=PR_BASE` entry per selected head in `SELECTED_HEAD_BASES`, then run
-this topology preflight before creating or moving a local ref, invoking the
-restack helper, pushing, or creating/editing a PR. A same-repository push can
-publish a selected predecessor before its dependent PR is created. A fork push
-cannot add that predecessor to the receiving repository, so every selected base
-must already exist there:
+`BOOKMARK=PR_BASE=AUTHOR_BASE_OID` entry per selected head in
+`SELECTED_HEAD_BASES`, then run this topology preflight before creating or
+moving a local ref, invoking the restack helper, pushing, or creating/editing a
+PR. A same-repository push can publish a selected predecessor before its
+dependent PR is created. A fork push cannot add that predecessor to the
+receiving repository, so every selected base must already exist there at its
+intended authoring OID:
 
 ```bash
 preflight_fork_publication_topology() {
-  local head_base head base encoded_base branch_error topology_invalid=0
+  local head_base head base_and_oid base expected_base_oid encoded_base
+  local branch_response receiving_base_oid topology_invalid=0
   if [ -z "${PUSH_REPOSITORY:-}" ]; then
     REMOTE_PUSH_URL=$(git remote get-url --push -- "$REMOTE") || return $?
     PUSH_REPOSITORY=$(gh repo view "$REMOTE_PUSH_URL" \
@@ -606,18 +608,38 @@ preflight_fork_publication_topology() {
   [ "$PUSH_REPOSITORY" != "$REPOSITORY" ] || return 0
   for head_base in "$@"; do
     head=${head_base%%=*}
-    base=${head_base#*=}
-    if [ -z "$head" ] || [ -z "$base" ] || [ "$base" = "$head_base" ]; then
-      printf 'invalid selected head/base topology entry: %s\n' \
+    base_and_oid=${head_base#*=}
+    base=${base_and_oid%%=*}
+    expected_base_oid=${base_and_oid#*=}
+    if [ -z "$head" ] || [ -z "$base" ] || [ -z "$expected_base_oid" ] || \
+      [ "$base_and_oid" = "$head_base" ] || \
+      [ "$expected_base_oid" = "$base_and_oid" ]; then
+      printf 'invalid selected head/base/OID topology entry: %s\n' \
         "$head_base" >&2
       topology_invalid=1
       continue
     fi
     encoded_base=$(jq -rn --arg base "$base" '$base | @uri') || return $?
-    if ! branch_error=$(gh api --method GET --hostname "$REPOSITORY_HOST" \
-      "repos/$REPOSITORY/branches/$encoded_base" 2>&1 >/dev/null); then
+    if ! branch_response=$(gh api --method GET --hostname "$REPOSITORY_HOST" \
+      "repos/$REPOSITORY/branches/$encoded_base" 2>&1); then
       printf '%s\n' \
-        "fork publication topology unavailable: head=$head base=$base push_repository=$PUSH_REPOSITORY receiving_repository=$REPOSITORY: $branch_error" \
+        "fork publication topology unavailable: head=$head base=$base expected_base_oid=$expected_base_oid push_repository=$PUSH_REPOSITORY receiving_repository=$REPOSITORY: $branch_response" \
+        >&2
+      topology_invalid=1
+      continue
+    fi
+    if ! receiving_base_oid=$(jq -er \
+      '.commit.sha | select(type == "string" and length > 0)' \
+      <<<"$branch_response"); then
+      printf '%s\n' \
+        "fork publication topology invalid response: head=$head base=$base expected_base_oid=$expected_base_oid push_repository=$PUSH_REPOSITORY receiving_repository=$REPOSITORY" \
+        >&2
+      topology_invalid=1
+      continue
+    fi
+    if [ "$receiving_base_oid" != "$expected_base_oid" ]; then
+      printf '%s\n' \
+        "fork publication topology mismatch: head=$head base=$base expected_base_oid=$expected_base_oid receiving_base_oid=$receiving_base_oid push_repository=$PUSH_REPOSITORY receiving_repository=$REPOSITORY" \
         >&2
       topology_invalid=1
     fi
@@ -627,11 +649,12 @@ preflight_fork_publication_topology() {
 preflight_fork_publication_topology "${SELECTED_HEAD_BASES[@]}" || exit $?
 ```
 
-The preflight checks every selected pair and aggregates unavailable bases so
-the rejection identifies the exact topology to change. Any branch lookup
-failure, including unavailable authorization or repository state, fails closed
-before mutation. A single-head fork and a fork stack remain valid when each
-selected base branch exists in the receiving repository.
+The preflight checks every selected pair and aggregates unavailable, malformed,
+or wrong-OID bases so the rejection identifies the exact topology to change.
+Any branch lookup failure, including unavailable authorization or repository
+state, fails closed before mutation. A single-head fork and a fork stack remain
+valid when every selected base branch's returned `commit.sha` equals that
+head's `AUTHOR_BASE_OID`.
 
 After every per-head `PR_BASE` is resolved, bind the batch root to the first
 selected affected head's exact base:

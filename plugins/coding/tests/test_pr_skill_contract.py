@@ -1348,9 +1348,9 @@ if [ "$1 $2" = "repo view" ]; then
 elif [ "$1" = api ]; then
   endpoint=${!#}
   printf '%s\n' "$endpoint" >>"$GH_API_LOG"
-  if jq -e --arg endpoint "$endpoint" 'index($endpoint) != null' \
-    <<<"$GH_RECEIVING_BRANCH_ENDPOINTS" >/dev/null; then
-    printf '%s\n' '{"name":"available"}'
+  if base_oid=$(jq -er --arg endpoint "$endpoint" '.[$endpoint]' \
+    <<<"$GH_RECEIVING_BRANCH_OIDS"); then
+    jq -cn --arg base_oid "$base_oid" '{name:"available",commit:{sha:$base_oid}}'
   else
     printf 'HTTP 404: branch not found: %s\n' "$endpoint" >&2
     exit 44
@@ -1384,14 +1384,17 @@ def _write_fork_topology_script(
 
 
 def _build_fork_topology_environment(
-    tmp_path: Path, *, fake_bin: Path, receiving_bases: list[str]
+    tmp_path: Path, *, fake_bin: Path, receiving_base_oids: dict[str, str]
 ) -> dict[str, str]:
     env = os.environ.copy()
     env["PATH"] = f"{fake_bin}:{env['PATH']}"
     env["GH_MUTATION_LOG"] = str(tmp_path / "mutations.log")
     env["GH_API_LOG"] = str(tmp_path / "api.log")
-    env["GH_RECEIVING_BRANCH_ENDPOINTS"] = json.dumps(
-        [f"repos/upstream/project/branches/{base}" for base in receiving_bases]
+    env["GH_RECEIVING_BRANCH_OIDS"] = json.dumps(
+        {
+            f"repos/upstream/project/branches/{base}": base_oid
+            for base, base_oid in receiving_base_oids.items()
+        }
     )
     return env
 
@@ -1400,7 +1403,7 @@ def run_fork_topology_preflight(
     tmp_path: Path,
     *,
     head_bases: list[str],
-    receiving_bases: list[str],
+    receiving_base_oids: dict[str, str],
 ) -> subprocess.CompletedProcess[str]:
     workflow = CREATE_UPDATE.read_text()
     preflight = extract_bash_block_containing(
@@ -1413,7 +1416,7 @@ def run_fork_topology_preflight(
         tmp_path, preflight=preflight, head_bases=head_bases
     )
     env = _build_fork_topology_environment(
-        tmp_path, fake_bin=fake_bin, receiving_bases=receiving_bases
+        tmp_path, fake_bin=fake_bin, receiving_base_oids=receiving_base_oids
     )
 
     return subprocess.run(
@@ -1428,6 +1431,8 @@ def run_fork_topology_preflight(
 def test_fork_stack_rejects_fork_only_base_before_remote_mutation(
     tmp_path: Path,
 ) -> None:
+    main_oid = "a" * 40
+    predecessor_oid = "b" * 40
     workflow = CREATE_UPDATE.read_text()
     preflight_call = workflow.index(
         'preflight_fork_publication_topology "${SELECTED_HEAD_BASES[@]}"'
@@ -1442,8 +1447,11 @@ def test_fork_stack_rejects_fork_only_base_before_remote_mutation(
         assert preflight_call < workflow.index(mutation)
     completed = run_fork_topology_preflight(
         tmp_path,
-        head_bases=["feature/01=main", "feature/02=feature/01"],
-        receiving_bases=["main"],
+        head_bases=[
+            f"feature/01=main={main_oid}",
+            f"feature/02=feature/01={predecessor_oid}",
+        ],
+        receiving_base_oids={"main": main_oid},
     )
 
     assert completed.returncode != 0
@@ -1461,10 +1469,11 @@ def test_fork_stack_rejects_fork_only_base_before_remote_mutation(
 def test_single_head_fork_accepts_base_available_in_receiving_repository(
     tmp_path: Path,
 ) -> None:
+    main_oid = "a" * 40
     completed = run_fork_topology_preflight(
         tmp_path,
-        head_bases=["feature=main"],
-        receiving_bases=["main"],
+        head_bases=[f"feature=main={main_oid}"],
+        receiving_base_oids={"main": main_oid},
     )
 
     assert completed.returncode == 0, completed.stderr
@@ -1475,6 +1484,25 @@ def test_single_head_fork_accepts_base_available_in_receiving_repository(
             "--head contributor:feature"
         ),
     ]
+
+
+def test_single_head_fork_rejects_unrelated_receiving_base_before_mutation(
+    tmp_path: Path,
+) -> None:
+    intended_base_oid = "a" * 40
+    receiving_base_oid = "b" * 40
+    completed = run_fork_topology_preflight(
+        tmp_path,
+        head_bases=[f"feature=main={intended_base_oid}"],
+        receiving_base_oids={"main": receiving_base_oid},
+    )
+
+    assert completed.returncode != 0
+    assert "head=feature" in completed.stderr
+    assert "base=main" in completed.stderr
+    assert f"expected_base_oid={intended_base_oid}" in completed.stderr
+    assert f"receiving_base_oid={receiving_base_oid}" in completed.stderr
+    assert not (tmp_path / "mutations.log").exists()
 
 
 def test_repository_label_selection_is_live_and_independent_of_archetypes() -> None:
