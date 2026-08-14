@@ -1,0 +1,16 @@
+=== Manual mock/stub cleanup in spec file (TST-MOCK-10) ===
+
+input.spec.ts:1  service.mockReset?.();
+  >    1: service.mockReset?.();
+       2: client["mockClear"]();
+       3: client.resetHistory();
+
+  --- next match ---
+
+input.spec.ts:2  client["mockClear"]();
+       1: service.mockReset?.();
+  >    2: client["mockClear"]();
+       3: client.resetHistory();
+
+=== Summary ===
+  test-mock-cleanup: 2 matches in 1 files

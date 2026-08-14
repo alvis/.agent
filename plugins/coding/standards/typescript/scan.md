@@ -7,7 +7,7 @@ If a violation is detected, load the matching rule guide at `./rules/<rule-id>.m
 
 > **During linting**: Only apply a rule's fix if it is a mechanical correction — formatting, naming, documentation, casing, import ordering, or field/function reordering. If the fix would add new logic, change control flow, introduce runtime validation, or alter program behavior, report the violation without fixing it.
 
-> **Scanner-backed rules**: `TYP-CORE-03`, `TYP-CORE-05`, `TYP-IMPT-03`, `TYP-IMPT-07`, `TYP-MODL-04`, and `TYP-TYPE-08` have advisory mechanical scanner support (`plugins/coding/scripts/scanners/`). The scanner surfaces candidates only — always re-verify each hit against the rule guide before flagging.
+> **Scanner-backed rules**: `TYP-CORE-03`, `TYP-CORE-05`, `TYP-IMPT-03`, `TYP-IMPT-07`, `TYP-IMPT-08`, `TYP-MODL-04`, and `TYP-TYPE-08` have advisory mechanical scanner support (`plugins/coding/scripts/scanners/`). The scanner surfaces candidates only — always re-verify each hit against the rule guide before flagging. A confirmed `TYP-IMPT-08` import path is a hard violation in JavaScript or TypeScript.
 
 ## Quick Scan
 
@@ -26,6 +26,7 @@ If a violation is detected, load the matching rule guide at `./rules/<rule-id>.m
 - DO NOT use subpath imports inside the same subpath module, such as `#fastify/error` from another file under `#fastify/*` [`TYP-IMPT-05`]
 - DO NOT use default imports when named imports exist [`TYP-IMPT-06`]
 - DO NOT use `import()` with a static path at runtime OR in type position (e.g. `typeof import('foo')`) — use a static `import` / `import type` statement; `vi.mock`/`vi.hoist` callbacks are exempt [`TYP-IMPT-07`]
+- DO NOT import or re-export through a parent-relative `../src` or `../source` path; this is a hard violation in JavaScript and TypeScript files [`TYP-IMPT-08`]
 - DO NOT break top-level symbol group ordering (imports → re-exports → types → constants → classes → functions), such as `export function run() {} const X = 1` [`TYP-MODL-01`]
 - DO NOT place helper/leaf functions before the public/root functions that call them, such as defining `checkFields()` before `processUser()` that calls it [`TYP-MODL-02`]
 - DO NOT expose default exports from modules where disallowed (unless file is a primary-export module — see rule) [`TYP-MODL-03`]
@@ -61,6 +62,7 @@ If a violation is detected, load the matching rule guide at `./rules/<rule-id>.m
 | `TYP-IMPT-05` | Subpath used inside the same subpath module | `import { e } from "#fastify/error"`; `import { formatResponse } from '#fastify/response';` |
 | `TYP-IMPT-06` | Default import is used when named import exists | `import React from "react"`; `import React from 'react';` |
 | `TYP-IMPT-07` | Dynamic `import()` with a statically-known path, at runtime or in type position (exception: `vi.mock`/`vi.hoist` callbacks) | `const mod = await import('./utils')`; `type X = typeof import('execa')`; `type Y = import('./foo').Bar` |
+| `TYP-IMPT-08` | Parent-relative import or re-export traverses into `src` or `source` | `import { value } from "../../../../src/value"`; `export { value } from "../source/value"` |
 | `TYP-MODL-01` | Symbol group order violated (imports → re-exports → types → constants → classes → functions) | `export function run() {} const X = 1`; `const Y = 1; interface Config {}` |
 | `TYP-MODL-02` | Helper/leaf function appears before the root function that calls it | `function validate(u: User) {} export function createUser(u: User) { validate(u); }` |
 | `TYP-MODL-03` | Module exposes default export (unless primary-export module) | `export default userService` in a multi-export module |

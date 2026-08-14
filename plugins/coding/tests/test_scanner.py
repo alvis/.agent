@@ -30,6 +30,7 @@ for _cached in [m for m in sys.modules if m == "scanners" or m.startswith("scann
 
 from scanlib.core import run
 from scanlib.loader import load_rules
+from scanlib.predicates import spec_files
 from scanlib.prefixes import FALLBACK_PREFIXES, derive_rule_id_prefixes
 from scanlib.rule import Rule
 
@@ -278,6 +279,10 @@ def test_spec_only_rules_skip_non_spec_files() -> None:
     hooks = _capture_from(CORPUS, ["--category", "test-hooks"])
     assert "not-a-spec.ts" not in hooks
     assert "feature.spec.ts" in hooks
+
+
+def test_spec_files_reject_non_javascript_suffix() -> None:
+    assert not spec_files(Path("feature.spec.py"))
 
 
 @pytest.mark.parametrize(

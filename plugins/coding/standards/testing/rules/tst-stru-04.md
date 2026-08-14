@@ -37,7 +37,7 @@ afterAll(() => server.close());
 | Fixture data construction | File / `describe` level (immutable) | `TST-DATA-01`, `TST-DATA-05` |
 | Per-test fixture mutation | Inline inside `it()` | `TST-DATA-05` |
 | System time setup | File / `describe` level | `TST-MOCK-12` |
-| Env stub | `vi.stubEnv` at file / `describe` level | `TST-MOCK-11` |
+| Env/global stub | Beginning of the relevant `it()`, or file scope only when every test needs the same value | `TST-MOCK-11` |
 | Server / DB / external resource lifecycle | Runner global setup or describe-level instance | `TST-STRU-05` |
 
 If a hook does not match a sanctioned case in the table, it is a violation.

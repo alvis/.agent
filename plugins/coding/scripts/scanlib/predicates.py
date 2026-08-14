@@ -18,7 +18,9 @@ INDEX_NAMES = {"index.ts", "index.tsx"}
 
 def is_spec_file(path: Path, /) -> bool:
     """Return whether ``path`` matches a sanctioned JavaScript test pattern."""
-    return any(path.match(pattern) for pattern in SPEC_PATTERNS)
+    return path.suffix.lower() in SOURCE_SUFFIXES and any(
+        path.match(pattern) for pattern in SPEC_PATTERNS
+    )
 
 
 def is_test_file(path: Path, /) -> bool:

@@ -1,0 +1,20 @@
+=== Relative import traverses into src/source (TYP-IMPT-08) ===
+
+input.ts:3  } from "../../../../src/deep-value";
+       1: import {
+       2:   deepValue,
+  >    3: } from "../../../../src/deep-value";
+       4: import("../../packages/core/src/dynamic-value");
+       5: import { helper } from "../helpers";
+
+  --- next match ---
+
+input.ts:4  import("../../packages/core/src/dynamic-value");
+       1: import {
+       2:   deepValue,
+       3: } from "../../../../src/deep-value";
+  >    4: import("../../packages/core/src/dynamic-value");
+       5: import { helper } from "../helpers";
+
+=== Summary ===
+  source-import-path: 2 matches in 1 files
