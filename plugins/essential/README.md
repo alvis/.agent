@@ -74,6 +74,7 @@ semantic authority). Domain plugins own their own semantic templates.
 | `essential:doctor` | Health-checking `.state/`: runs the structural doctor, diagnoses format drift against the current contracts, and offers user-approved migration to the latest structure — judged by reading the contracts, never a version token. |
 | `essential:handoff` | A zero-context cross-domain orchestration plan another agent can execute verbatim. |
 | `essential:install-agents` | Installing/refreshing the stitched specialist agent roster into `~/.claude/agents/`. |
+| `essential:install-output-style` | Installing bundled Claude Code output styles into `~/.claude/output-styles/`. |
 | `essential:install-statusline` | Installing the bundled Bullet Train statusline. |
 
 ## How state stays trustworthy
