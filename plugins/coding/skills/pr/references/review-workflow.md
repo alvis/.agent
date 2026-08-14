@@ -16,7 +16,7 @@ pre-commit review belongs to `coding:review-code`; remediation to `coding:fix`.
   artifacts (`coding:review-code`), fixing findings (`coding:fix`), mechanical
   standards enforcement (`coding:lint`), publishing PRs or driving CI
   (`coding:pr create` or `coding:pr update`), or merging (`coding:pr merge`).
-- One reviewer, one pass. Never fan out per area — a PR is sized so one reader can
+- One reviewer per pass. Never fan out per area — a PR is sized so one reader can
   hold it whole, and split judgement produces split findings.
 
 ## Review directions
@@ -31,6 +31,13 @@ Render anchored findings and chores through
 verdict through [overall-review.md](../templates/overall-review.md). Use the
 size standard to choose reading order and reviewer slots, never to suppress a
 finding.
+
+<IMPORTANT>
+The first pass is exhaustive discovery over the complete pinned review unit:
+identify every independently actionable issue it can reveal. Do not stage a
+known concern for a later pass; later passes verify published fixes and catch
+regressions or newly introduced issues.
+</IMPORTANT>
 
 ## Execution
 

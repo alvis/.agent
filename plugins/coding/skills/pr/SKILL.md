@@ -28,8 +28,8 @@ and the overall verdict through
 ```text
 /coding:pr author [<commit-ref>] [--base <ref>]
 /coding:pr verify --target <git-sha> --base <git-sha> [--kind standalone|stack-tip]
-/coding:pr create [<commit-ref>] [--branch-prefix <name>] [--remote <name>] [--no-review] [--publish-only] [--dry-run]
-/coding:pr update [<pr-number-or-url> | <commit-ref>] [--branch-prefix <name>] [--remote <name>] [--no-review] [--publish-only] [--dry-run]
+/coding:pr create [<commit-ref>] [--branch-prefix <name>] [--remote <name>] [--no-review] [--max-iteration <count>] [--publish-only] [--dry-run]
+/coding:pr update [<pr-number-or-url> | <commit-ref>] [--branch-prefix <name>] [--remote <name>] [--no-review] [--max-iteration <count>] [--publish-only] [--dry-run]
 /coding:pr review [<pr-number-or-url> | <source-tree-path>] [--repo <owner/name>] [--area=<list>] [--dry-run]
 /coding:pr stack list
 /coding:pr stack checkout <stack-number-or-pr-number-or-pr-url-or-local-branch>
