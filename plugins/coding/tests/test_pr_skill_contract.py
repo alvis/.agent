@@ -1448,6 +1448,7 @@ def test_pr_label_attachment_preserves_exact_names(
         "GH_COMMAND_LOG": str(command_log),
         "GH_API_LOG": str(api_log),
         "GH_INPUT_LOG": str(input_log),
+        "REPOSITORY_LABELS": '[{"name":"api,breaking"},{"name":"docs"}]',
     }
 
     subprocess.run(
@@ -1495,8 +1496,8 @@ def test_pr_label_attachment_preserves_exact_names(
 
 @pytest.mark.parametrize(
     "selected_labels",
-    ("{", '{"name":"docs"}', '["docs", null]'),
-    ids=("malformed", "object", "non-string-member"),
+    ("{", '{"name":"docs"}', '["docs", null]', '["unknown"]'),
+    ids=("malformed", "object", "non-string-member", "unknown"),
 )
 def test_invalid_selected_labels_stop_before_publication_mutation(
     tmp_path: Path, selected_labels: str
@@ -1507,6 +1508,7 @@ def test_invalid_selected_labels_stop_before_publication_mutation(
     mutation_log = tmp_path / "mutations"
     environment = os.environ | {
         "MUTATION_LOG": str(mutation_log),
+        "REPOSITORY_LABELS": '[{"name":"docs"}]',
         "SELECTED_LABELS": selected_labels,
     }
 

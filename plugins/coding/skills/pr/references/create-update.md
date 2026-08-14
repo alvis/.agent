@@ -359,7 +359,12 @@ including `[]` when no label is suitable.
 Validate every per-head selection before any ref or remote mutation:
 
 ```bash
-jq -e 'type == "array" and all(.[]; type == "string")' \
+jq -e --argjson repository_labels "$REPOSITORY_LABELS" '
+  type == "array" and all(.[];
+    type == "string" and
+    (. as $selected | any($repository_labels[]; .name == $selected))
+  )
+' \
   >/dev/null <<<"$SELECTED_LABELS" || exit $?
 ```
 
