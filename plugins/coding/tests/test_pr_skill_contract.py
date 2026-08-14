@@ -1341,8 +1341,7 @@ def test_repository_label_selection_is_live_and_independent_of_archetypes() -> N
         assert selection_dimension in normalized_workflow
     assert "caller-provided selection may already be stale" in workflow
     assert (
-        "inventory may change between discovery and publication"
-        in normalized_workflow
+        "inventory may change between discovery and publication" in normalized_workflow
     )
     assert "never use a fixed vocabulary" in workflow
     assert "#discover-and-select-repository-labels" in template
@@ -1383,6 +1382,23 @@ def run_repository_label_workflow(
             "repository_pages": [
                 [{"name": "api,breaking", "description": "Breaking API change"}]
             ],
+        },
+        "create-no-label-permission": {
+            "selected": ["docs"],
+            "attached": [],
+            "repository_pages": [
+                [{"name": "docs", "description": "Documentation only"}]
+            ],
+            "label_permission": False,
+        },
+        "organization-fork": {
+            "selected": [],
+            "attached": [],
+            "repository_pages": [
+                [{"name": "docs", "description": "Documentation only"}]
+            ],
+            "push_owner": "octo-org",
+            "push_owner_type": "Organization",
         },
         "update": {
             "selected": ["docs", "customer-request"],
@@ -1456,6 +1472,16 @@ def run_repository_label_workflow(
                 [{"name": "docs", "description": "Release notes only"}]
             ],
         },
+        "update-final-description-drift": {
+            "selected": ["docs"],
+            "attached": ["docs"],
+            "repository_pages": [
+                [{"name": "docs", "description": "Documentation only"}]
+            ],
+            "repository_pages_final": [
+                [{"name": "docs", "description": "Release notes only"}]
+            ],
+        },
         "unavailable-selection": {
             "selected": ["not-in-repository"],
             "selected_choices": [
@@ -1494,6 +1520,15 @@ def run_repository_label_workflow(
     repository_pages_after.write_text(
         json.dumps(config.get("repository_pages_after", config["repository_pages"]))
     )
+    repository_pages_final = tmp_path / "repository-pages-final.json"
+    repository_pages_final.write_text(
+        json.dumps(
+            config.get(
+                "repository_pages_final",
+                config.get("repository_pages_after", config["repository_pages"]),
+            )
+        )
+    )
     discovered_labels = tmp_path / "discovered-labels.json"
     api_log = tmp_path / "api.log"
     create_log = tmp_path / "create.log"
@@ -1505,7 +1540,7 @@ def run_repository_label_workflow(
         """#!/usr/bin/env bash
 set -eu
 if [ "$*" = "remote get-url --push -- origin" ]; then
-  printf 'git@create.ghe.test:alvis/create-fork.git\n'
+  printf 'git@create.ghe.test:%s/create-fork.git\n' "$GH_PUSH_OWNER"
 else
   exit 69
 fi
@@ -1517,17 +1552,36 @@ fi
         """#!/usr/bin/env bash
 set -eu
 if [ "$1 $2" = "repo view" ]; then
-  [ "$3" = "git@create.ghe.test:alvis/create-fork.git" ] || exit 62
-  printf '%s\n' '{"nameWithOwner":"alvis/create-fork","url":"https://create.ghe.test/alvis/create-fork","parent":{"nameWithOwner":"octo/create-target","url":"https://create.ghe.test/octo/create-target"}}'
+  [ "$3" = "git@create.ghe.test:$GH_PUSH_OWNER/create-fork.git" ] || exit 62
+  jq -cn --arg push_owner "$GH_PUSH_OWNER" '{
+    nameWithOwner: ($push_owner + "/create-fork"),
+    url: ("https://create.ghe.test/" + $push_owner + "/create-fork"),
+    parent: {
+      id: "R_parent",
+      name: "create-target",
+      owner: {id: "O_parent", login: "octo"}
+    }
+  }'
 elif [ "$1" = api ]; then
   printf '%s\n' "$*" >>"$GH_API_LOG"
   [[ " $* " == *" --hostname $GH_EXPECTED_HOST "* ]] || exit 63
-  if [[ " $* " == *" repos/$GH_EXPECTED_REPOSITORY/labels?per_page=100 "* ]]; then
+  endpoint=${!#}
+  if [ "$endpoint" = "users/$GH_PUSH_OWNER" ]; then
+    jq -cn --arg type "$GH_PUSH_OWNER_TYPE" '{type: $type}'
+  elif [ "$endpoint" = "repos/$GH_EXPECTED_REPOSITORY" ]; then
+    if [ "$GH_LABEL_PERMISSION" = 1 ]; then
+      printf '%s\n' '{"permissions":{"admin":false,"maintain":false,"push":false,"triage":true,"pull":true}}'
+    else
+      printf '%s\n' '{"permissions":{"admin":false,"maintain":false,"push":false,"triage":false,"pull":true}}'
+    fi
+  elif [[ " $* " == *" repos/$GH_EXPECTED_REPOSITORY/labels?per_page=100 "* ]]; then
     [[ " $* " == *" --paginate "* && " $* " == *" --slurp "* ]] || exit 64
     count=$(cat "$GH_REPOSITORY_READS")
     count=$((count + 1))
     printf '%s' "$count" >"$GH_REPOSITORY_READS"
-    if [ "$count" -ge 2 ] && [ -n "${GH_REPOSITORY_PAGES_AFTER:-}" ]; then
+    if [ "$count" -ge 3 ] && [ -n "${GH_REPOSITORY_PAGES_FINAL:-}" ]; then
+      cat "$GH_REPOSITORY_PAGES_FINAL"
+    elif [ "$count" -ge 2 ] && [ -n "${GH_REPOSITORY_PAGES_AFTER:-}" ]; then
       cat "$GH_REPOSITORY_PAGES_AFTER"
     else
       cat "$GH_REPOSITORY_PAGES"
@@ -1588,7 +1642,7 @@ elif [ "$1 $2" = "pr create" ]; then
   printf '%s\n' "$*" >"$GH_CREATE_LOG"
   [[ " $* " != *" --label "* ]] || exit 67
   [[ " $* " == *" --repo $GH_EXPECTED_HOST/$GH_EXPECTED_REPOSITORY "* ]] || exit 76
-  [[ " $* " == *" --head alvis:feature "* ]] || exit 77
+  [[ " $* " == *" --head $GH_PUSH_OWNER:feature "* ]] || exit 77
   printf 'https://create.ghe.test/octo/create-target/pull/17\n'
 elif [ "$1 $2" = "pr view" ]; then
   exit 74
@@ -1618,7 +1672,7 @@ fi
     script.write_text(
         "set -eu\n"
         f'ACTION={action}\nREMOTE=origin\nTITLE="title"\nBODY="body"\n'
-        'PR_BASE=main\nBOOKMARK=feature\n'
+        "PR_BASE=main\nBOOKMARK=feature\n"
         f'PR_URL={pr_url}\nPR="$PR_URL"\n'
         f'{discovery}\nprintf "%s" "$REPOSITORY_LABELS" '
         f'>"$GH_DISCOVERED_LABELS"\n{publication}\n{verification}\n'
@@ -1628,6 +1682,7 @@ fi
     env["GH_ATTACHED_LABELS"] = str(attached_labels)
     env["GH_REPOSITORY_PAGES"] = str(repository_pages)
     env["GH_REPOSITORY_PAGES_AFTER"] = str(repository_pages_after)
+    env["GH_REPOSITORY_PAGES_FINAL"] = str(repository_pages_final)
     env["GH_DISCOVERED_LABELS"] = str(discovered_labels)
     env["GH_API_LOG"] = str(api_log)
     env["GH_CREATE_LOG"] = str(create_log)
@@ -1636,6 +1691,9 @@ fi
     env["GH_CONCURRENT_MARKER"] = str(concurrent_marker)
     env["GH_EXPECTED_REPOSITORY"] = repository
     env["GH_EXPECTED_HOST"] = host
+    env["GH_PUSH_OWNER"] = str(config.get("push_owner", "alvis"))
+    env["GH_PUSH_OWNER_TYPE"] = str(config.get("push_owner_type", "User"))
+    env["GH_LABEL_PERMISSION"] = "1" if config.get("label_permission", True) else "0"
     env["SELECTED_LABELS"] = json.dumps(config["selected"])
     selected_choices = config.get("selected_choices")
     if selected_choices is None:
@@ -1714,7 +1772,9 @@ def test_repository_label_discovery_binds_target_and_preserves_descriptions(
     api_calls = (tmp_path / "api.log").read_text().splitlines()
     assert api_calls
     assert all(f"--hostname {host}" in call for call in api_calls)
-    assert all(f"repos/{repository}/" in call for call in api_calls)
+    repository_calls = [call for call in api_calls if " repos/" in call]
+    assert repository_calls
+    assert all(f"repos/{repository}" in call for call in repository_calls)
 
 
 def test_repository_label_create_binds_the_resolved_target(tmp_path: Path) -> None:
@@ -1726,6 +1786,28 @@ def test_repository_label_create_binds_the_resolved_target(tmp_path: Path) -> No
     assert "--head alvis:feature" in create_args
 
 
+def test_repository_label_create_rejects_organization_fork_before_publication(
+    tmp_path: Path,
+) -> None:
+    completed = run_repository_label_workflow(tmp_path, "organization-fork")
+
+    assert completed.returncode != 0
+    assert "organization-owned fork" in completed.stderr
+    assert not (tmp_path / "create.log").exists()
+
+
+def test_repository_label_create_preflights_selected_label_permission(
+    tmp_path: Path,
+) -> None:
+    completed = run_repository_label_workflow(tmp_path, "create-no-label-permission")
+
+    assert completed.returncode != 0
+    assert "selected labels require repository label permission" in completed.stderr
+    assert not (tmp_path / "create.log").exists()
+    api_calls = (tmp_path / "api.log").read_text().splitlines()
+    assert not any("--method POST" in call for call in api_calls)
+
+
 def test_repository_label_rejects_description_drift_before_mutation(
     tmp_path: Path,
 ) -> None:
@@ -1733,7 +1815,20 @@ def test_repository_label_rejects_description_drift_before_mutation(
 
     assert completed.returncode != 0
     api_calls = (tmp_path / "api.log").read_text().splitlines()
-    assert not any("--method POST" in call or "--method DELETE" in call for call in api_calls)
+    assert not any(
+        "--method POST" in call or "--method DELETE" in call for call in api_calls
+    )
+
+
+def test_repository_label_rejects_description_drift_during_final_verification(
+    tmp_path: Path,
+) -> None:
+    completed = run_repository_label_workflow(
+        tmp_path, "update-final-description-drift"
+    )
+
+    assert completed.returncode != 0
+    assert "selected label descriptions changed" in completed.stderr
 
 
 def test_repository_label_propagates_non_404_delete_failures(tmp_path: Path) -> None:

@@ -415,17 +415,26 @@ else
     *) printf 'invalid push repository URL: %s\n' "$PUSH_REPOSITORY_URL" >&2; exit 1 ;;
   esac
   PUSH_OWNER=${PUSH_REPOSITORY%%/*}
-  REPOSITORY_JSON=$(jq -ce '.parent // .' <<<"$PUSH_REPOSITORY_JSON") || exit $?
-  REPOSITORY=$(jq -er '.nameWithOwner' <<<"$REPOSITORY_JSON") || exit $?
-  REPOSITORY_URL=$(jq -er '.url' <<<"$REPOSITORY_JSON") || exit $?
-  case "$REPOSITORY_URL" in
-    https://*/*/*) ;;
-    *) printf 'invalid target repository URL: %s\n' "$REPOSITORY_URL" >&2; exit 1 ;;
-  esac
-  REPOSITORY_HOST=${REPOSITORY_URL#https://}
+  REPOSITORY_HOST=${PUSH_REPOSITORY_URL#https://}
   REPOSITORY_HOST=${REPOSITORY_HOST%%/*}
+  REPOSITORY=$PUSH_REPOSITORY
   PR_HEAD=$BOOKMARK
-  if [ "$PUSH_REPOSITORY" != "$REPOSITORY" ]; then
+  if jq -e '.parent != null' <<<"$PUSH_REPOSITORY_JSON" >/dev/null; then
+    REPOSITORY=$(jq -er '
+      .parent
+      | select(
+          (.owner.login | type == "string" and length > 0) and
+          (.name | type == "string" and length > 0)
+        )
+      | .owner.login + "/" + .name
+    ' <<<"$PUSH_REPOSITORY_JSON") || exit $?
+    PUSH_OWNER_TYPE=$(gh api --hostname "$REPOSITORY_HOST" \
+      "users/$PUSH_OWNER" | jq -er '.type') || exit $?
+    if [ "$PUSH_OWNER_TYPE" != User ]; then
+      printf 'organization-owned fork heads are unsupported by gh pr create: %s\n' \
+        "$PUSH_OWNER" >&2
+      exit 1
+    fi
     PR_HEAD=$PUSH_OWNER:$BOOKMARK
   fi
   test -n "$REPOSITORY_HOST" || exit 1
@@ -474,6 +483,28 @@ validate_selected_labels() {
     return 1
   fi
 }
+preflight_label_mutation_permission() {
+  local permissions
+  if [ -z "${PR_URL:-}" ] && \
+    jq -e 'length == 0' <<<"$SELECTED_LABELS" >/dev/null; then
+    return 0
+  fi
+  permissions=$(gh api --hostname "$REPOSITORY_HOST" \
+    "repos/$REPOSITORY" | jq -ce '.permissions') || return $?
+  if jq -e '
+    (.admin == true) or (.maintain == true) or (.push == true) or
+    (.triage == true)
+  ' <<<"$permissions" >/dev/null; then
+    return 0
+  fi
+  if jq -e 'length > 0' <<<"$SELECTED_LABELS" >/dev/null; then
+    printf 'selected labels require repository label permission\n' >&2
+  else
+    printf 'repository-only label reconciliation requires repository label permission\n' \
+      >&2
+  fi
+  return 1
+}
 reconcile_pr_labels() {
   local pr_number=$1 attached=$2 available=$3 removals additions
   local label_json encoded_label delete_error
@@ -520,13 +551,20 @@ jq -ne --argjson selected "$SELECTED_LABELS" \
   '$selected | unique | sort == ([$choices[] | .name] | unique | sort)' \
   >/dev/null || exit $?
 validate_selected_labels "$REPOSITORY_LABELS" || exit $?
+preflight_label_mutation_permission || exit $?
 ```
 
 Validation is deliberately fail-closed even though selection uses live
 repository data: caller-provided selection may already be stale, and the
 repository inventory may change between discovery and publication. Rejection
 preserves the repository-only invariant by stopping instead of substituting a
-different label. Split each exact `title\n\nbody` into that head's `TITLE` and `BODY`;
+different label. A fork target is reconstructed from the actual nested
+`parent.owner.login` and `parent.name` fields while retaining the push
+repository's host. Reject an organization-owned fork before the batch push
+because `gh pr create --head OWNER:BRANCH` supports only user-owned forks.
+Preflight repository label permission before publication whenever selected
+labels or an existing PR can require reconciliation; a new PR with no selected
+labels needs no label mutation permission. Split each exact `title\n\nbody` into that head's `TITLE` and `BODY`;
 malformed output aborts the whole selection before any ref or remote mutation.
 
 After every per-head `PR_BASE` is resolved, bind the batch root to the first
@@ -639,6 +677,7 @@ if either check fails:
 
 ```bash
 POST_REPOSITORY_LABELS=$(discover_repository_labels) || exit $?
+validate_selected_labels "$POST_REPOSITORY_LABELS" || exit $?
 POST_REPOSITORY_LABEL_NAMES=$(repository_label_names \
   "$POST_REPOSITORY_LABELS") || exit $?
 ATTACHED_LABELS=$(attached_issue_labels "$PR_NUMBER") || exit $?
