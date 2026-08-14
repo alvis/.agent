@@ -690,17 +690,17 @@ reconcile_pr_labels "$PR_NUMBER" "$CURRENT_LABELS" \
 gh pr ready "$PR" --undo # skip only when already draft
 ```
 
-After either create or update, refresh the available repository names and prove
-that every selected label is attached and every attached label is currently
-repository-available. Evaluate both conditions independently and exit nonzero
-if either check fails:
+After either create or update, capture the attached labels, refresh the available
+repository names, and prove that every selected label is attached and every
+attached label is currently repository-available. Evaluate both conditions
+independently and exit nonzero if either check fails:
 
 ```bash
+ATTACHED_LABELS=$(attached_issue_labels "$PR_NUMBER") || exit $?
 POST_REPOSITORY_LABELS=$(discover_repository_labels) || exit $?
 validate_selected_labels "$POST_REPOSITORY_LABELS" || exit $?
 POST_REPOSITORY_LABEL_NAMES=$(repository_label_names \
   "$POST_REPOSITORY_LABELS") || exit $?
-ATTACHED_LABELS=$(attached_issue_labels "$PR_NUMBER") || exit $?
 MISSING_SELECTED_LABELS=$(jq -cn --argjson selected "$SELECTED_LABELS" \
   --argjson attached "$ATTACHED_LABELS" '$selected - $attached')
 UNAVAILABLE_ATTACHED_LABELS=$(jq -cn --argjson attached "$ATTACHED_LABELS" \

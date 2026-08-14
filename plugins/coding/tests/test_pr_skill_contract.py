@@ -1483,6 +1483,15 @@ def run_repository_label_workflow(
                 [{"name": "docs", "description": "Release notes only"}]
             ],
         },
+        "update-inventory-attachment-race": {
+            "selected": [],
+            "attached": [],
+            "repository_pages": [[]],
+            "verification_inventory_race": {
+                "name": "automation",
+                "description": "Added during verification",
+            },
+        },
         "unavailable-selection": {
             "selected": ["not-in-repository"],
             "selected_choices": [
@@ -1592,6 +1601,19 @@ elif [ "$1" = api ]; then
     count=$(cat "$GH_ATTACHED_READS")
     count=$((count + 1))
     printf '%s' "$count" >"$GH_ATTACHED_READS"
+    if [ "$count" -ge 3 ] && \
+       [ -n "${GH_VERIFICATION_INVENTORY_RACE:-}" ] && \
+       [ ! -e "$GH_CONCURRENT_MARKER" ]; then
+      jq -ce --argjson label "$GH_VERIFICATION_INVENTORY_RACE" \
+        '.[0] += [$label]' "$GH_REPOSITORY_PAGES_FINAL" \
+        >"$GH_REPOSITORY_PAGES_FINAL.next"
+      mv "$GH_REPOSITORY_PAGES_FINAL.next" "$GH_REPOSITORY_PAGES_FINAL"
+      jq -ce --argjson label "$GH_VERIFICATION_INVENTORY_RACE" \
+        '. + [$label.name] | unique' "$GH_ATTACHED_LABELS" \
+        >"$GH_ATTACHED_LABELS.next"
+      mv "$GH_ATTACHED_LABELS.next" "$GH_ATTACHED_LABELS"
+      : >"$GH_CONCURRENT_MARKER"
+    fi
     if [ "$count" -ge 2 ] && [ -n "${GH_FINAL_OVERRIDE:-}" ]; then
       printf '%s' "$GH_FINAL_OVERRIDE" >"$GH_ATTACHED_LABELS"
     fi
@@ -1720,6 +1742,8 @@ fi
     env["GH_DELETE_FAILURE"] = "1" if config.get("delete_failure") else "0"
     if isinstance(concurrent := config.get("concurrent"), str):
         env["GH_CONCURRENT_LABEL"] = concurrent
+    if verification_inventory_race := config.get("verification_inventory_race"):
+        env["GH_VERIFICATION_INVENTORY_RACE"] = json.dumps(verification_inventory_race)
     if final_override := config.get("final_override"):
         env["GH_FINAL_OVERRIDE"] = json.dumps(final_override)
 
@@ -1830,6 +1854,17 @@ def test_repository_label_rejects_description_drift_during_final_verification(
 
     assert completed.returncode != 0
     assert "selected label descriptions changed" in completed.stderr
+
+
+def test_repository_label_verification_refreshes_inventory_after_attached_snapshot(
+    tmp_path: Path,
+) -> None:
+    completed = run_repository_label_workflow(
+        tmp_path, "update-inventory-attachment-race"
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert json.loads((tmp_path / "attached-labels.json").read_text()) == ["automation"]
 
 
 def test_repository_label_propagates_non_404_delete_failures(tmp_path: Path) -> None:
