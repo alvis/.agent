@@ -548,19 +548,78 @@ def test_restack_requires_explicit_root_base_and_reports_partial_progress() -> N
     assert post_verify.index("restacked[") < post_verify.index('gh pr edit "$bookmark"')
 
 
-def test_create_update_binds_remote_before_publication_and_reuses_it() -> None:
-    workflow = (WRITE_PR / "references" / "create-update.md").read_text()
-    normalized = " ".join(workflow.split())
+@pytest.mark.parametrize(
+    ("push_repository", "expected_head"),
+    (("octo/widgets", "octo:fix/labels"), ("fork-owner/widgets", "fork-owner:fix/labels")),
+    ids=("same-repository", "fork"),
+)
+def test_pr_create_qualifies_head_with_selected_push_remote_owner(
+    tmp_path: Path, push_repository: str, expected_head: str
+) -> None:
+    workflow = CREATE_UPDATE.read_text()
+    binding = workflow.split("#### Bind the push remote", 1)[1]
+    binding = binding.split("```bash\n", 1)[1].split("\n```", 1)[0]
+    creation = workflow.split("When the head has no open PR", 1)[1]
+    creation = creation.split("```bash\n", 1)[1].split("\n```", 1)[0]
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    argument_log = tmp_path / "pr-create-arguments"
+    git = fake_bin / "git"
+    git.write_text(
+        "#!/usr/bin/env bash\n"
+        'if [ "$1 $2" = "branch --show-current" ]; then\n'
+        "  printf 'fix/labels\\n'\n"
+        'elif [ "$1 $2 $3 $4 $5" = "remote get-url --push -- push" ]; then\n'
+        "  printf 'https://github.example/push/widgets.git\\n'\n"
+        "else\n"
+        "  exit 1\n"
+        "fi\n"
+    )
+    git.chmod(0o755)
+    gh = fake_bin / "gh"
+    gh.write_text(
+        "#!/usr/bin/env bash\n"
+        'if [ "$#" -eq 7 ] &&\n'
+        '  [ "$*" = "repo view https://github.example/push/widgets.git '
+        '--json nameWithOwner --jq .nameWithOwner" ]; then\n'
+        "  printf '%s\\n' \"$PUSH_REPOSITORY\"\n"
+        'elif [ "$1 $2" = "pr create" ]; then\n'
+        "  printf '%s\\n' \"$@\" >\"$ARGUMENT_LOG\"\n"
+        "  printf 'https://github.example/octo/widgets/pull/41\\n'\n"
+        "else\n"
+        "  exit 1\n"
+        "fi\n"
+    )
+    gh.chmod(0o755)
+    environment = os.environ | {
+        "PATH": f"{fake_bin}:{os.environ['PATH']}",
+        "ARGUMENT_LOG": str(argument_log),
+        "PUSH_REPOSITORY": push_repository,
+    }
 
-    binding = workflow.index("REMOTE=${CALLER_REMOTE:-}")
-    first_restack = workflow.index("scripts/restack.sh")
-    assert binding < first_restack
-    assert 'git remote get-url --push -- "$REMOTE"' in workflow
-    assert 'git remote get-url --push -- "$CANDIDATE"' in workflow
-    assert "sole remote whose push URL resolves through GitHub" in normalized
-    assert "Record `REMOTE`" in workflow
-    assert 'jj git fetch --remote "$REMOTE"' in workflow
-    assert 'git fetch -- "$REMOTE"' in workflow
+    subprocess.run(
+        [
+            "bash",
+            "-c",
+            (
+                "set -euo pipefail\n"
+                "CALLER_REMOTE=push\n"
+                "HOST=github.example\n"
+                "REPOSITORY=octo/widgets\n"
+                'TITLE="fix: preserve labels"\n'
+                'BODY="body"\n'
+                "PR_BASE=main\n"
+                "BOOKMARK=fix/labels\n"
+                f"{binding}\n"
+                f"{creation}"
+            ),
+        ],
+        check=True,
+        env=environment,
+    )
+
+    arguments = argument_log.read_text().splitlines()
+    assert arguments[arguments.index("--head") + 1] == expected_head
 
 
 def test_stack_publication_and_inspection_have_no_implicit_origin() -> None:
@@ -1464,6 +1523,7 @@ def test_pr_label_attachment_preserves_exact_names(
                     'BODY="body"',
                     "PR_BASE=main",
                     "BOOKMARK=fix/labels",
+                    "PUSH_OWNER=octo",
                     f"SELECTED_LABELS='{selected_labels}'",
                     operation_setup,
                     preflight,

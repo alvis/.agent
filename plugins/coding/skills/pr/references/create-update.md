@@ -143,9 +143,7 @@ fi
 if [ -z "$REMOTE" ]; then
   REMOTE=$(git config --get -- remote.pushDefault) || REMOTE=
 fi
-if [ -n "$REMOTE" ]; then
-  git remote get-url --push -- "$REMOTE" >/dev/null || exit $?
-else
+if [ -z "$REMOTE" ]; then
   GITHUB_REMOTES=()
   while IFS= read -r CANDIDATE; do
     PUSH_URL=$(git remote get-url --push -- "$CANDIDATE") || exit $?
@@ -160,11 +158,17 @@ else
   }
   REMOTE=${GITHUB_REMOTES[0]}
 fi
-printf 'REMOTE=%s\n' "$REMOTE"
+PUSH_URL=$(git remote get-url --push -- "$REMOTE") || exit $?
+PUSH_REPOSITORY=$(
+  gh repo view "$PUSH_URL" --json nameWithOwner --jq .nameWithOwner
+) || exit $?
+PUSH_OWNER=${PUSH_REPOSITORY%%/*}
+printf 'REMOTE=%s\nPUSH_OWNER=%s\n' "$REMOTE" "$PUSH_OWNER"
 ```
 
-Record `REMOTE` in the publication plan. On zero or ambiguous GitHub candidates,
-preserve the candidate evidence and stop rather than selecting one.
+Record `REMOTE` and `PUSH_OWNER` in the publication plan. On zero or ambiguous
+GitHub candidates, preserve the candidate evidence and stop rather than selecting
+one.
 
 Inspect the selected tool's working state — `jj status`, `jj log`, and
 `jj bookmark list`, or `git status --short`, `git log --oneline`, and
@@ -430,7 +434,7 @@ When the head has no open PR, create a draft:
 
 ```bash
 PR=$(gh pr create --repo "$HOST/$REPOSITORY" --draft --title "$TITLE" --body-file - \
-  --base "$PR_BASE" --head "$BOOKMARK" <<<"$BODY")
+  --base "$PR_BASE" --head "$PUSH_OWNER:$BOOKMARK" <<<"$BODY")
 ```
 
 When the head has one open PR, edit it and retain draft state:
