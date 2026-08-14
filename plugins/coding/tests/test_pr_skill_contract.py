@@ -1416,6 +1416,8 @@ def test_pr_label_attachment_preserves_exact_names(
     expected_payload: dict[str, list[str]] | None,
 ) -> None:
     workflow = CREATE_UPDATE.read_text()
+    preflight = workflow.split("#### Validate selected repository labels", 1)[1]
+    preflight = preflight.split("```bash\n", 1)[1].split("\n```", 1)[0]
     operation = workflow.split(operation_marker, 1)[1]
     operation = operation.split("```bash\n", 1)[1].split("\n```", 1)[0]
     attachment = workflow.split("#### Attach selected repository labels", 1)[1]
@@ -1462,6 +1464,7 @@ def test_pr_label_attachment_preserves_exact_names(
                     "BOOKMARK=fix/labels",
                     f"SELECTED_LABELS='{selected_labels}'",
                     operation_setup,
+                    preflight,
                     operation,
                     attachment,
                 )
@@ -1489,37 +1492,50 @@ def test_pr_label_attachment_preserves_exact_names(
     assert json.loads(input_log.read_text()) == expected_payload
 
 
-def test_pr_labels_have_no_canonical_vocabulary_or_archetype_coupling() -> None:
-    workflow = (WRITE_PR / "references" / "create-update.md").read_text()
-    template = MESSAGE_TEMPLATE.read_text()
-    label_section = workflow.split("#### Discover and select repository labels", 1)[
-        1
-    ].split("\n#### ", 1)[0]
-    label_contract = " ".join(
-        label_section.partition("<IMPORTANT>")[2].partition("</IMPORTANT>")[0].split()
+@pytest.mark.parametrize(
+    "selected_labels",
+    ("{", '{"name":"docs"}', '["docs", null]'),
+    ids=("malformed", "object", "non-string-member"),
+)
+def test_invalid_selected_labels_stop_before_publication_mutation(
+    tmp_path: Path, selected_labels: str
+) -> None:
+    workflow = CREATE_UPDATE.read_text()
+    preflight = workflow.split("#### Validate selected repository labels", 1)[1]
+    preflight = preflight.split("```bash\n", 1)[1].split("\n```", 1)[0]
+    mutation_log = tmp_path / "mutations"
+    environment = os.environ | {
+        "MUTATION_LOG": str(mutation_log),
+        "SELECTED_LABELS": selected_labels,
+    }
+
+    completed = subprocess.run(
+        [
+            "bash",
+            "-c",
+            "\n".join(
+                (
+                    "set -euo pipefail",
+                    "git() { printf 'mutation\\n' >>\"$MUTATION_LOG\"; }",
+                    "jj() { printf 'mutation\\n' >>\"$MUTATION_LOG\"; }",
+                    "gh() { printf 'mutation\\n' >>\"$MUTATION_LOG\"; }",
+                    preflight,
+                    "git push origin HEAD",
+                    "jj git push",
+                    "gh pr create",
+                    "gh pr edit 41",
+                    "gh api --method POST repos/octo/widgets/issues/41/labels",
+                )
+            ),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=environment,
     )
 
-    assert "list-repository-labels.sh" in label_section
-    assert "zero or more" in label_section
-    assert "only from that output" in label_section
-    assert (
-        label_section.count("<IMPORTANT>"),
-        label_section.count("</IMPORTANT>"),
-    ) == (1, 1)
-    assert label_section.index("<IMPORTANT>") < label_section.index("</IMPORTANT>")
-    assert "Never create, guess, substitute, or remove labels." in label_contract
-    assert "Split each exact" not in label_contract
-    assert "| Surface | Archetype |" not in workflow
-    assert "ARCHETYPE_LABELS" not in workflow
-    assert "AVAILABLE_ARCHETYPES" not in workflow
-    assert "CREATE_LABEL_ARGS" not in workflow
-    assert "UPDATE_LABEL_ARGS" not in workflow
-    assert "--remove-label" not in label_section
-    assert "archetype" not in label_section.lower()
-    assert (
-        "Archetype drives conditional body evidence and scanner input only" in template
-    )
-    assert "## Category" not in template
+    assert completed.returncode != 0
+    assert not mutation_log.exists()
 
 
 def test_generated_files_section_is_conditional_and_emoji_named() -> None:

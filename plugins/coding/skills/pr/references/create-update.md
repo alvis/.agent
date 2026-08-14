@@ -354,6 +354,15 @@ remove labels. Set `SELECTED_LABELS` to a JSON array of those exact choices,
 including `[]` when no label is suitable.
 </IMPORTANT>
 
+#### Validate selected repository labels
+
+Validate every per-head selection before any ref or remote mutation:
+
+```bash
+jq -e 'type == "array" and all(.[]; type == "string")' \
+  >/dev/null <<<"$SELECTED_LABELS" || exit $?
+```
+
 Split each exact `title\n\nbody` into that head's `TITLE` and `BODY`; malformed
 output aborts the whole selection before any ref or remote mutation.
 
