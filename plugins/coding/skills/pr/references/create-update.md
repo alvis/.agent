@@ -37,8 +37,7 @@ the bundled body shape.
 
 Select the one archetype that best describes the implementation surface.
 Archetype classification is independent of labels: it drives conditional PR-body
-evidence and scanner behavior only. Publication may attach zero or more suitable
-labels discovered from the target repository.
+evidence and scanner behavior only.
 
 | Surface | Archetype |
 |---|---|
@@ -350,38 +349,71 @@ commit as `AUTHOR_BASE_OID`. New-stack bookmarks do not yet exist, so author
 each head against `AUTHOR_BASE_OID`, never `PR_BASE`.
 
 Select one archetype for each head using the
-[archetype table](#select-the-pr-archetype). Before submitting each PR, resolve
-the target repository and discover its complete label set through the paginated
-repository API before any push or PR create/edit. Select zero or more suitable
-labels only from those exact names; an empty selection is valid. Never create or
-substitute a label. Never remove an existing label because it is absent from
-`SELECTED_LABELS` or the archetype table. Bind the available names before either
-publication branch and reject any selected name absent from the repository:
+[classification table](#select-the-pr-archetype); this remains body and scanner
+metadata only.
+
+#### Discover and select repository labels
+
+Before submitting each PR, resolve the target repository and its host, then
+discover the complete live label inventory through the paginated repository API
+before any push or PR create/edit. The discovery command returns each label's
+exact `name` and API `description`; use both to judge the closest suitable
+repository labels, then derive the exact-name array used for validation and
+reconciliation. Selection may include every suitable exact repository label,
+including the closest available labels for PR type, risk, attention required,
+merge intent, and PR structure. Zero labels is valid when none is suitable.
+Never create, guess, or substitute a label, and never use a fixed vocabulary.
 
 ```bash
 set -o pipefail
-REPOSITORY=$(gh repo view --json nameWithOwner --jq '.nameWithOwner') || exit $?
+REPOSITORY_JSON=$(gh repo view --json nameWithOwner,url) || exit $?
+REPOSITORY=$(jq -er '.nameWithOwner' <<<"$REPOSITORY_JSON") || exit $?
+REPOSITORY_URL=$(jq -er '.url' <<<"$REPOSITORY_JSON") || exit $?
+case "$REPOSITORY_URL" in
+  *://*/*) ;;
+  *) printf 'invalid repository URL: %s\n' "$REPOSITORY_URL" >&2; exit 1 ;;
+esac
+REPOSITORY_HOST=${REPOSITORY_URL#*://}
+REPOSITORY_HOST=${REPOSITORY_HOST%%/*}
+test -n "$REPOSITORY_HOST" || exit 1
 discover_repository_labels() {
-  gh api --paginate --slurp "repos/$REPOSITORY/labels?per_page=100" |
-    jq -ce '[.[][] | .name]'
+  gh api --hostname "$REPOSITORY_HOST" --paginate --slurp \
+    "repos/$REPOSITORY/labels?per_page=100" |
+    jq -ce '[.[][] | {name, description}]'
+}
+repository_label_names() {
+  jq -ce '[.[].name]' <<<"$1"
+}
+validate_selected_labels() {
+  local available=$1 unavailable
+  unavailable=$(jq -cn --argjson selected "$SELECTED_LABELS" \
+    --argjson available "$available" '$selected - $available') || return $?
+  if ! jq -e 'length == 0' <<<"$unavailable" >/dev/null; then
+    printf 'selected labels unavailable in repository: %s\n' \
+      "$unavailable" >&2
+    return 1
+  fi
+}
+set_pr_labels() {
+  local pr_number=$1 labels=$2
+  jq -cn --argjson labels "$labels" '{labels: $labels}' |
+    gh api --method PUT --hostname "$REPOSITORY_HOST" \
+      "repos/$REPOSITORY/issues/$pr_number/labels" --input - >/dev/null
 }
 REPOSITORY_LABELS=$(discover_repository_labels) || exit $?
+REPOSITORY_LABEL_NAMES=$(repository_label_names "$REPOSITORY_LABELS") || exit $?
 SELECTED_LABELS=${SELECTED_LABELS:-'[]'}
 jq -e 'type == "array" and all(.[]; type == "string")' \
   <<<"$SELECTED_LABELS" >/dev/null || exit $?
-UNAVAILABLE_SELECTED_LABELS=$(jq -cn --argjson selected "$SELECTED_LABELS" \
-  --argjson available "$REPOSITORY_LABELS" '$selected - $available')
-test "$(jq 'length' <<<"$UNAVAILABLE_SELECTED_LABELS")" -eq 0 || {
-  printf 'selected labels unavailable in repository: %s\n' \
-    "$UNAVAILABLE_SELECTED_LABELS" >&2
-  exit 1
-}
+validate_selected_labels "$REPOSITORY_LABEL_NAMES" || exit $?
 ```
 
-Choose `SELECTED_LABELS` from the discovered names, never from the archetype
-table or another predefined vocabulary. Split each exact `title\n\nbody` into
-that head's `TITLE` and `BODY`; malformed output aborts the whole selection
-before any ref or remote mutation.
+Validation is deliberately fail-closed even though selection uses live
+repository data: caller-provided selection may already be stale, and the
+repository inventory may change between discovery and publication. Rejection
+preserves the repository-only invariant by stopping instead of substituting a
+different label. Split each exact `title\n\nbody` into that head's `TITLE` and `BODY`;
+malformed output aborts the whole selection before any ref or remote mutation.
 
 After every per-head `PR_BASE` is resolved, bind the batch root to the first
 selected affected head's exact base:
@@ -438,43 +470,49 @@ publication. Do not follow a jj batch with gh-stack rebase, sync, push, or
 submit. Preserve stderr and the helper's `restacked` and `errors` arrays so a
 failure reports verified partial state rather than implying an all-or-nothing
 result.
-When the head has no open PR, create a draft with every selected label. The
-argument array is empty when no suitable repository label was selected:
+When the head has no open PR, create the draft without label flags, refresh the
+repository inventory, and replace its label set through the API's JSON array.
+This preserves commas and every other character in each exact label name:
 
 ```bash
-LABEL_ARGS=()
-while IFS= read -r label; do
-  LABEL_ARGS+=(--label "$label")
-done < <(jq -r '.[]' <<<"$SELECTED_LABELS")
 PR=$(gh pr create --draft --title "$TITLE" --body-file - \
-  --base "$PR_BASE" --head "$BOOKMARK" "${LABEL_ARGS[@]}" <<<"$BODY")
+  --base "$PR_BASE" --head "$BOOKMARK" <<<"$BODY")
+PR_NUMBER=$(gh pr view "$PR" --json number --jq '.number') || exit $?
+CREATED_LABELS=$(gh pr view "$PR" --json labels --jq '[.labels[].name]') || exit $?
+REFRESHED_REPOSITORY_LABELS=$(discover_repository_labels) || exit $?
+REFRESHED_REPOSITORY_LABEL_NAMES=$(repository_label_names \
+  "$REFRESHED_REPOSITORY_LABELS") || exit $?
+validate_selected_labels "$REFRESHED_REPOSITORY_LABEL_NAMES" || exit $?
+DESIRED_LABELS=$(jq -cn --argjson current "$CREATED_LABELS" \
+  --argjson available "$REFRESHED_REPOSITORY_LABEL_NAMES" \
+  --argjson selected "$SELECTED_LABELS" \
+  '[($current[] | select(. as $label | $available | index($label))),
+    $selected[]] | unique') || exit $?
+set_pr_labels "$PR_NUMBER" "$DESIRED_LABELS" || exit $?
 ```
 
 When the head has one open PR, edit it and retain draft state. Refresh the
 repository labels, then reconcile the PR against that source of truth. Remove
 only attached labels absent from the refreshed repository label list. Preserve
 every attached label still available, then add each selected available label
-not already attached:
+not already attached. Use the same JSON-array API operation rather than
+`gh pr edit --add-label` or `--remove-label`, whose comma-separated arguments
+cannot preserve every exact repository label name:
 
 ```bash
 gh pr edit "$PR" --title "$TITLE" --body-file - --base "$PR_BASE" <<<"$BODY"
-CURRENT_LABELS=$(gh pr view "$PR" --json labels --jq '[.labels[].name]')
+PR_NUMBER=$(gh pr view "$PR" --json number --jq '.number') || exit $?
+CURRENT_LABELS=$(gh pr view "$PR" --json labels --jq '[.labels[].name]') || exit $?
 REFRESHED_REPOSITORY_LABELS=$(discover_repository_labels) || exit $?
-UNAVAILABLE_CURRENT_LABELS=$(jq -cn --argjson current "$CURRENT_LABELS" \
-  --argjson available "$REFRESHED_REPOSITORY_LABELS" '$current - $available')
-while IFS= read -r label; do
-  gh pr edit "$PR" --remove-label "$label"
-done < <(jq -r '.[]' <<<"$UNAVAILABLE_CURRENT_LABELS")
-VALID_CURRENT_LABELS=$(jq -cn --argjson current "$CURRENT_LABELS" \
-  --argjson unavailable "$UNAVAILABLE_CURRENT_LABELS" '$current - $unavailable')
-while IFS= read -r label; do
-  if jq -e --arg label "$label" 'index($label) != null' \
-    <<<"$REFRESHED_REPOSITORY_LABELS" >/dev/null &&
-    ! jq -e --arg label "$label" 'index($label) != null' \
-      <<<"$VALID_CURRENT_LABELS" >/dev/null; then
-    gh pr edit "$PR" --add-label "$label"
-  fi
-done < <(jq -r '.[]' <<<"$SELECTED_LABELS")
+REFRESHED_REPOSITORY_LABEL_NAMES=$(repository_label_names \
+  "$REFRESHED_REPOSITORY_LABELS") || exit $?
+validate_selected_labels "$REFRESHED_REPOSITORY_LABEL_NAMES" || exit $?
+DESIRED_LABELS=$(jq -cn --argjson current "$CURRENT_LABELS" \
+  --argjson available "$REFRESHED_REPOSITORY_LABEL_NAMES" \
+  --argjson selected "$SELECTED_LABELS" \
+  '[($current[] | select(. as $label | $available | index($label))),
+    $selected[]] | unique') || exit $?
+set_pr_labels "$PR_NUMBER" "$DESIRED_LABELS" || exit $?
 gh pr ready "$PR" --undo # skip only when already draft
 ```
 
@@ -485,11 +523,13 @@ if either check fails:
 
 ```bash
 POST_REPOSITORY_LABELS=$(discover_repository_labels) || exit $?
+POST_REPOSITORY_LABEL_NAMES=$(repository_label_names \
+  "$POST_REPOSITORY_LABELS") || exit $?
 ATTACHED_LABELS=$(gh pr view "$PR" --json labels --jq '[.labels[].name]')
 MISSING_SELECTED_LABELS=$(jq -cn --argjson selected "$SELECTED_LABELS" \
   --argjson attached "$ATTACHED_LABELS" '$selected - $attached')
 UNAVAILABLE_ATTACHED_LABELS=$(jq -cn --argjson attached "$ATTACHED_LABELS" \
-  --argjson available "$POST_REPOSITORY_LABELS" '$attached - $available')
+  --argjson available "$POST_REPOSITORY_LABEL_NAMES" '$attached - $available')
 if ! jq -e 'length == 0' <<<"$MISSING_SELECTED_LABELS" >/dev/null; then
   printf 'selected labels missing after publication: %s\n' \
     "$MISSING_SELECTED_LABELS" >&2
