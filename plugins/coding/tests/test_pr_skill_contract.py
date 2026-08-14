@@ -1493,10 +1493,20 @@ def test_pr_labels_have_no_canonical_vocabulary_or_archetype_coupling() -> None:
     label_section = workflow.split("#### Discover and select repository labels", 1)[
         1
     ].split("\n#### ", 1)[0]
+    label_contract = " ".join(
+        label_section.partition("<IMPORTANT>")[2].partition("</IMPORTANT>")[0].split()
+    )
 
     assert "list-repository-labels.sh" in label_section
     assert "zero or more" in label_section
     assert "only from that output" in label_section
+    assert (
+        label_section.count("<IMPORTANT>"),
+        label_section.count("</IMPORTANT>"),
+    ) == (1, 1)
+    assert label_section.index("<IMPORTANT>") < label_section.index("</IMPORTANT>")
+    assert "Never create, guess, substitute, or remove labels." in label_contract
+    assert "Split each exact" not in label_contract
     assert "| Surface | Archetype |" not in workflow
     assert "ARCHETYPE_LABELS" not in workflow
     assert "AVAILABLE_ARCHETYPES" not in workflow

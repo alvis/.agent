@@ -346,13 +346,16 @@ REPOSITORY_LABELS=$(bash \
   "$HOST" "$REPOSITORY")
 ```
 
+<IMPORTANT>
 The helper returns deterministic JSON containing every exact label `name` and
 `description` from every API page. Inspect both fields and choose zero or more
 suitable names only from that output. Never create, guess, substitute, or
 remove labels. Set `SELECTED_LABELS` to a JSON array of those exact choices,
-including `[]` when no label is suitable. Split each exact
-`title\n\nbody` into that head's `TITLE` and `BODY`; malformed output aborts
-the whole selection before any ref or remote mutation.
+including `[]` when no label is suitable.
+</IMPORTANT>
+
+Split each exact `title\n\nbody` into that head's `TITLE` and `BODY`; malformed
+output aborts the whole selection before any ref or remote mutation.
 
 After every per-head `PR_BASE` is resolved, bind the batch root to the first
 selected affected head's exact base:
