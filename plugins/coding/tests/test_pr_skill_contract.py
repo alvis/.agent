@@ -17,6 +17,12 @@ COMMIT_SKILL = PLUGIN / "skills" / "commit" / "SKILL.md"
 COMMIT_DIRECTIONS = (
     PLUGIN / "skills" / "commit" / "references" / "conventional-commits.md"
 )
+PARTIAL_TO_BRANCH = (
+    PLUGIN / "skills" / "commit" / "references" / "workflow-partial-to-branch.md"
+)
+CORRECT_MERGED = (
+    PLUGIN / "skills" / "commit" / "references" / "workflow-correct-merged.md"
+)
 CREATE_UPDATE = WRITE_PR / "references" / "create-update.md"
 STACKED_PRS = WRITE_PR / "references" / "stacked-prs.md"
 REVIEW_WORKFLOW = WRITE_PR / "references" / "review-workflow.md"
@@ -381,6 +387,7 @@ def test_correct_merged_monitoring_stays_read_only() -> None:
 
 def test_owned_trees_bind_outputs_and_keep_cleanup_in_parent() -> None:
     create_update = (WRITE_PR / "references" / "create-update.md").read_text()
+    normalized_create_update = " ".join(create_update.split())
     extraction = (WRITE_PR / "references" / "review-extraction.md").read_text()
     helper = (WRITE_PR / "scripts" / "temp-tree.sh").read_text()
 
@@ -390,8 +397,11 @@ def test_owned_trees_bind_outputs_and_keep_cleanup_in_parent() -> None:
         "neither removes the worktree nor closes or reports on the parent-owned"
         in create_update
     )
-    assert "After consuming each batch report" in create_update
-    assert "never transfers cleanup ownership" in create_update
+    assert "Create one detached disposable worktree at `TARGET_SHA`" in create_update
+    assert "After consuming the report" in create_update
+    assert "the parent closes the retained lease" in create_update
+    assert "proof that both the lease file and VCS" in create_update
+    assert "never transfers cleanup ownership" in normalized_create_update
     assert (
         'open-clone "https://$HOST/$OWNER/$REPO" "$PR_NUMBER" "$HEAD_OID"' in extraction
     )
@@ -523,19 +533,80 @@ def test_reviewer_receives_the_pinned_mission_capsule() -> None:
     assert "A stack never receives a second lease" in review
 
 
-def test_stacked_local_checks_are_batched_and_cleanup_every_lease() -> None:
+def test_local_checks_bind_one_standalone_or_stack_tip_sha_and_cleanup_lease() -> None:
     workflow = (WRITE_PR / "references" / "create-update.md").read_text()
+    normalized_workflow = " ".join(workflow.split())
 
-    assert "batches of at most ten" in workflow
-    assert "one fresh small-model" in workflow
-    assert "retain every returned lease/tree" in workflow
-    assert "closes only a completed batch's leases" in workflow
-    assert "retains" in workflow
-    assert "undispatched batches" in workflow
-    assert "recreate the affected" in workflow
+    assert "For a standalone PR it is" in workflow
+    assert "for a selected stack it is the tip" in workflow
+    assert "`TARGET_BASE` and `TARGET_SHA`" in workflow
+    assert "Create one detached disposable worktree at `TARGET_SHA`" in workflow
+    assert 'rev-parse HEAD)" = "$TARGET_SHA"' in workflow
+    assert "one fresh small-model" in normalized_workflow
+    assert "invalidates all local evidence and restarts this step" in normalized_workflow
+    assert "restarts this step at its new exact SHA" in workflow
+    assert "the parent closes the retained lease" in workflow
+    assert "On cancellation or terminal failure, close the lease" in normalized_workflow
     assert "neither removes the worktree nor closes or reports on" in workflow
     report = workflow.split("<report>", 1)[1].split("</report>", 1)[0]
+    assert "kind: standalone | stack-tip" in report
+    assert "sha: <TARGET_SHA>" in report
     assert "temporary_worktree_cleanup" not in report
+
+
+def test_pre_push_ci_parity_gate_is_important_fail_closed_and_not_bypassable() -> None:
+    pr_skill = (WRITE_PR / "SKILL.md").read_text()
+    workflow = CREATE_UPDATE.read_text()
+    commit_skill = COMMIT_SKILL.read_text()
+    commit_examples = (
+        PLUGIN / "skills" / "commit" / "references" / "examples.md"
+    ).read_text()
+    normalized_workflow = " ".join(workflow.split())
+    important = workflow.split("<IMPORTANT>", 1)[1].split("</IMPORTANT>", 1)[0]
+    normalized_important = " ".join(important.split())
+
+    assert "Before every push" in normalized_important
+    assert "standalone selected head or the selected stack's tip" in normalized_important
+    assert "test and lint commands" in normalized_important
+    assert "applicable `pull_request` GitHub Actions workflows" in normalized_important
+    assert "missing required secret is the only exception" in normalized_important
+    assert "approve pushing that exact SHA without the local run" in normalized_important
+    assert "Read `.github/workflows/*.yml`" in workflow
+    assert "only from `TEST_WORKTREE`" in normalized_workflow
+    assert "exact test and lint `run:` commands" in normalized_workflow
+    assert "On local failure, diagnose captured output before editing" in workflow
+    assert "restarts this step at its new exact SHA" in workflow
+    assert "Every applicable test and lint command must exit zero" in normalized_workflow
+    assert "Never forward `--no-verify`" in commit_skill
+    assert "--no-verify is not forwarded" in commit_examples
+    for artifact in (pr_skill, workflow, commit_skill, commit_examples):
+        assert "--skip-local-test" not in artifact
+
+
+def test_direct_sync_pushes_follow_exact_revision_gate_without_pr_publication() -> None:
+    partial = PARTIAL_TO_BRANCH.read_text()
+    correct_merged = CORRECT_MERGED.read_text()
+
+    partial_sync = partial.split("### 6. Synchronize the chosen bookmark", 1)[1]
+    correct_sync = correct_merged.split(
+        "After the local rewrite and integrity guard pass", 1
+    )[1]
+    cases = (
+        (partial_sync, "jj git push --bookmark <target>"),
+        (correct_sync, "jj git push --bookmark <affected-bookmark>"),
+    )
+
+    for workflow, push_command in cases:
+        normalized = " ".join(workflow.split())
+        assert workflow.index("Before any push") < workflow.index(push_command)
+        assert "TARGET_SHA=$(jj log" in workflow
+        assert "TARGET_BASE" in workflow
+        assert "#2-verify-exact-local-ci-parity-before-publication" in workflow
+        assert "applicable `pull_request` test and lint commands" in normalized
+        assert "detached tree at `TARGET_SHA`" in normalized
+        assert "exact-SHA receipt or SHA-bound missing-secret approval" in normalized
+        assert "`--no-verify`" in workflow
+        assert "not PR publication" in normalized
 
 
 def test_pr_metadata_stays_internal_and_template_owns_rationale() -> None:

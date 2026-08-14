@@ -86,11 +86,31 @@ jj bookmark set <target> --revision <new-change-id>
 
 ### 6. Synchronize the chosen bookmark
 
-After the local bookmark operation and integrity check, fetch and push the exact
-target directly. Choose one push based on whether `<target>@origin` exists:
+After the local bookmark operation and integrity check, fetch remote state:
 
 ```bash
 jj git fetch
+```
+
+Before any push, bind `TARGET_SHA` to the new bookmark's exact Git commit and
+`TARGET_BASE` to the fetched `<target>@origin` commit when it exists, otherwise
+to the recorded commit from which the new target was created:
+
+```bash
+TARGET_SHA=$(jj log -r <new-change-id> --no-graph -T 'commit_id')
+```
+
+Treat this one bookmark as a standalone target and follow only
+[Verify exact local CI parity before publication](../../pr/references/create-update.md#2-verify-exact-local-ci-parity-before-publication).
+Discover the applicable `pull_request` test and lint commands from the detached
+tree at `TARGET_SHA`, using `TARGET_BASE..TARGET_SHA` as the changed surface,
+and require its exact-SHA receipt or SHA-bound missing-secret approval before
+continuing. `--no-verify` does not skip this gate. This is a direct bookmark
+sync, not PR publication; do not enter the PR workflow's publication phase.
+
+Choose one push based on whether `<target>@origin` exists:
+
+```bash
 jj git push --bookmark <target>             # existing remote target
 jj git push --bookmark <target> --allow-new # new remote target
 ```
@@ -119,13 +139,16 @@ The unstaged hunks remain on `@` untouched — verify they match the user's expe
 
 The PostToolUse hook fires `verify.sh` after the rewrite ops. Read the `── Integrity Check ──` block per [SKILL.md](../SKILL.md) Verification. `GIT_TREE_MATCH` reflects the new HEAD on the target branch, not `@`.
 
-Run project scripts (unless `--no-verify`):
+Run ordinary project scripts (unless `--no-verify`):
 
 ```bash
 npm run lint
 npm run test
 npm run build
 ```
+
+These checks do not replace the exact-revision publication gate in Step 6,
+which `--no-verify` cannot skip.
 
 ## Hard rules carve-out
 

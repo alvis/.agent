@@ -318,7 +318,8 @@ final green state in its report.
 /coding:commit --no-verify
 # Default save runs. git commit --no-verify skips pre-commit hooks.
 # Local `npm run lint/test/build` verification is skipped.
-# With --create-pr, --no-verify maps to coding:pr create --skip-local-test.
+# With --create-pr, --no-verify is not forwarded; coding:pr create runs its
+# independent exact-revision test and lint gate.
 # PostToolUse integrity hook STILL fires (independent of --no-verify).
 ```
 

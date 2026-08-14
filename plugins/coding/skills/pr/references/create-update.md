@@ -80,8 +80,14 @@ remains.
   batch push, restack, and PR-base mechanics. The parent alone accepts
   fixer edits and performs commit, push, and restack mutations; the poller may
   dispatch exactly one scoped fixer when the red branch requires it.
-- `--skip-local-test` skips only local command execution. It never skips CI
-  discovery, publication, hosted monitoring, evidence, repair, or convergence.
+- Before every push, verify the standalone selected head or the selected
+  stack's tip locally at its exact Git SHA with the test and lint commands from
+  the applicable `pull_request` GitHub Actions workflows at that revision. A
+  missing required secret is the only exception: stop and ask the user either
+  to supply it from an explicit source or to approve pushing that exact SHA
+  without the local run. Never infer approval from another flag or caller,
+  guess a secret source, pass an empty value, or push after any other local
+  failure.
 - `--no-review` skips only remote PR review dispatch and comment convergence.
   It never skips local checks or hosted CI.
 - `--publish-only` returns after leased pushes, metadata updates, and head/base
@@ -106,7 +112,6 @@ remains.
 | `<commit-ref>` | Publish a resolvable jj change ID/revset/bookmark or git branch/SHA and its selected stack. Any jj revset (`@`, `@-`, a change id) or git ref (`HEAD`, `HEAD~1`, a SHA) also selects the commit to author from; behavior is deterministic given the ref. |
 | `--branch-prefix <name>` | Override the derived stack bookmark prefix. A prefix other than a resolved stream's `<type>/<work-id>` publishes a branch that will not resolve back to its work state — expected for a branch predating that convention, deliberate otherwise. |
 | `--remote <name>` | Select the named push remote explicitly; remote names are treated as values even when they begin with `-`. |
-| `--skip-local-test` | Skip only the local tester dispatch and commands. |
 | `--no-review` | Skip the post-push `coding:pr review` convergence loop. It never skips local checks, publication, or hosted CI. |
 | `--publish-only` | Stop after the verified core publication phase so an existing review or repair caller can continue its convergence loop. |
 | `--dry-run` | Print the test, publication, and monitoring plan without agents or local/remote mutations. |
@@ -196,7 +201,13 @@ when an over-green surface has independent domain-coherent slices. A declined
 optional suggestion or atomic change proceeds as one PR. With `--dry-run`,
 print the exact plan and stop.
 
-### 2. Discover local CI parity and run it unless skipped
+### 2. Verify exact local CI parity before publication
+
+Bind one publication target after stack discovery. For a standalone PR it is
+the selected head; for a selected stack it is the tip. Record its intended PR
+base and exact Git SHA as `TARGET_BASE` and `TARGET_SHA`. A rewrite that changes
+`TARGET_SHA`, the intended base, or the applicable workflow inputs invalidates
+all local evidence and restarts this step.
 
 Resolve the target repository's main source checkout first:
 
@@ -204,15 +215,14 @@ Resolve the target repository's main source checkout first:
 SOURCE_REPO_ROOT=$(git rev-parse --show-toplevel)
 ```
 
-Use that main checkout for read-only discovery of local environment sources and
-command-level references. Inspect `.github/workflows/*`, `package.json`,
-workspace manifests, Makefiles, and task files there, plus `.env`, `.env.local`,
-and `.env.test` when present. These local files may be ignored and therefore
-absent from a disposable worktree. Do not execute repository commands from the
-main checkout or copy secret values into a report.
+Use that main checkout only for read-only discovery of local environment
+sources such as `.env`, `.env.local`, and `.env.test`; these may be ignored and
+absent from a disposable worktree. Command definitions from the main checkout
+are not CI-parity evidence. Do not execute repository commands there or copy
+secret values into a report.
 
-For each selected head bottom-up, create a detached disposable worktree at its
-exact SHA through the bundled helper and bind its distinct JSON result:
+Create one detached disposable worktree at `TARGET_SHA` through the bundled
+helper and bind its JSON result:
 
 ```bash
 TREE_JSON=$(bash "${CODING_PR_SKILL_DIR}/scripts/temp-tree.sh" \
@@ -222,87 +232,99 @@ TEST_WORKTREE=$(jq -er .tree <<<"$TREE_JSON")
 test "$(git -C "$TEST_WORKTREE" rev-parse HEAD)" = "$TARGET_SHA"
 ```
 
-Repeat the binding with per-head variables and retain every returned lease/tree
-pair. The context-owning parent passes only the selected `TEST_WORKTREE` paths
-to testers; it never transfers cleanup ownership. Before dispatch, a
-cancellation, skipped run, or blocked discovery closes every lease. After
-dispatch begins, the parent closes only a completed batch's leases and retains
-undispatched batches. It verifies each closed lease and registration are gone.
+The context-owning parent passes only `TEST_WORKTREE` to the tester and never
+transfers cleanup ownership. On cancellation or blocked discovery it closes
+the lease and verifies that its file and VCS registration are gone.
 
-Read the workflow and script definitions from each returned `tree` to confirm
-the exact commands at that SHA, and inspect workflow `env`, `secrets.*`,
-`vars.*`, and command-level environment references for revision drift. List
-the compile, type, lint, test, and build commands that reproduce CI without
-hosted services. Record variable names and source presence only; never copy
-secret values into a report. For every required variable, verify that the
-isolated tester can receive it from a user-approved source in the main checkout
-or another explicitly approved location; an env file need not be copied.
-Record hosted-only checks and unavailable services or credentials. If a
-required variable is missing without `--skip-local-test`, ask for its intended
-source; if unavailable, ask whether to skip local tests and publish. With the
-flag, record the hosted-only gap and run no local commands. Never guess a
-secret source or silently use an empty value.
-For each selected change, record expected hosted PR check/job names from
-`pull_request`-triggered jobs at that ref and required branch status
-checks/rulesets when accessible through `gh api`; record inaccessible sources
-instead of assuming they are empty.
+Read `.github/workflows/*.yml` and `.github/workflows/*.yaml` only from
+`TEST_WORKTREE`. Select workflows triggered by `pull_request` that apply to the
+planned create or update event, `TARGET_BASE`, and changed paths. Follow their
+repo-local reusable workflows, composite actions, package scripts, workspace
+manifests, Makefiles, and task files at `TARGET_SHA`. Record the exact test and
+lint `run:` commands, in workflow order, plus only the setup needed to execute
+them; preserve each command's shell, working directory, matrix values, and
+environment. Do not substitute a nearby project command or add a check absent
+from the applicable workflow. When no applicable workflow defines a test or
+lint command, record that exact absence rather than inventing one. If an
+applicable test or lint command cannot be reproduced locally for a reason other
+than a missing secret, stop before publication with that evidence.
 
-Unless `--skip-local-test` is present, partition the ordered heads into
-sequential bottom-up batches of at most ten. Dispatch one fresh small-model
-read-only tester per batch; never reuse its context for another batch. It MUST
-NOT edit, format, commit, or push. For its batch it runs every runnable command
-against every head in CI order, continues through independent commands after
-failure, and returns under 1000 tokens. Finish and consume one batch before
-dispatching the next.
+Inspect the selected workflows and command chain for `env`, `secrets.*`,
+`vars.*`, and command-level environment references. Record names and source
+presence only; never copy values into a report. Verify that the isolated tester
+can receive each required value from a user-approved source in the main
+checkout or another explicitly approved location. If a required secret is
+missing, close the lease and stop to ask the user either to supply the secret
+from an explicit source or to approve pushing `TARGET_SHA` without local test
+or lint execution. Scope and record approval to that SHA and the named missing
+secrets; a changed SHA requires a new decision. Without either choice, do not
+push. Supplying an approved source restarts this step. Never guess a source,
+pass an empty value, treat an unavailable secret as optional, or derive
+approval from `--no-review`, `--publish-only`, or another workflow's skip flag.
+
+Record expected hosted PR check/job names from `pull_request`-triggered jobs at
+`TARGET_SHA` and required branch status checks or rulesets when accessible
+through `gh api`; record inaccessible sources instead of assuming they are
+empty.
+
+When the user has not approved the missing-secret exception, dispatch one fresh
+small-model read-only tester. It MUST NOT edit, format, commit, or push. It runs
+the exact discovered test and lint commands in CI order at `TARGET_SHA`,
+continues through independent commands after failure, and returns under 1000
+tokens.
 
 Treat repository workflows and scripts as untrusted code. The tester runs the
 allowlisted commands from `TEST_WORKTREE` and returns command results; it
 neither removes the worktree nor closes or reports on the parent-owned
-`TREE_LEASE`. The parent closes each exact lease after consuming a completed
-batch, and closes all retained leases on skipped, cancelled, or blocked paths.
+`TREE_LEASE`. The parent closes that exact lease after consuming the report and
+on cancelled or blocked paths.
 Limit filesystem writes to that worktree and a temporary directory, deny network
 by default, and remove ambient tokens, credential helpers, SSH agent sockets,
 cloud credentials, and unrelated environment variables. Pass only the minimal
 allowlisted toolchain environment. If this isolation is unavailable, or a
-command genuinely needs network access or a credential, classify it as
-hosted-only or ask the user for that specific
-authority; never expose the parent session's credentials to a local CI command.
+command genuinely needs network access or a non-secret credential, ask the user
+for that specific authority and stop before publication when it is unavailable.
+A missing secret follows the SHA-bound decision above. Never expose the parent
+session's credentials to a local CI command.
 
 <report>
 
 ```yaml
 sources_read: [<workflow-or-script-path>]
+target:
+  kind: standalone | stack-tip
+  sha: <TARGET_SHA>
+  base: <TARGET_BASE>
 required_environment:
   - name: <variable name>
     declared_source: <workflow/package/.env source>
-    worktree_status: present | missing | hosted-only
+    worktree_status: present | missing
 runnable_commands:
-  - ref: <selected head SHA>
+  - ref: <TARGET_SHA>
+    kind: test | lint
     command: <exact command>
     source: <path and job/script>
     status: <integer exit status>
     duration_seconds: <elapsed seconds>
     failure_evidence: <bounded stderr/stdout excerpt or null>
-hosted_only:
-  - check: <job or step>
-    unavailable_requirement: <service, secret, runner, or credential>
 expected_hosted_checks:
-  - ref: <change-id or head SHA>
+  - ref: <TARGET_SHA>
     names: [<workflow job or required status name>]
     sources: [<workflow path/job, branch protection, or ruleset>]
     inaccessible_sources: [<source and access error>]
-overall: pass | fail | blocked | skipped
+missing_secret_approval:
+  sha: <approved TARGET_SHA or null>
+  names: [<missing secret name>]
+  approved: true | false
+overall: pass | fail | blocked | approved_without_local_run
 ```
 
 </report>
 
-After consuming each batch report, the parent closes that batch's retained
-leases and records the exact lease, tree, close status, and proof that both the
-lease file and VCS registration are gone. A tester result cannot claim parent
-cleanup. When a fixer changes a selected SHA, close every lease whose target
-was superseded, retain unchanged undispatched leases, and recreate the affected
-worktrees at their new exact SHAs before rerunning or continuing. On
-cancellation or a terminal failure, close every lease still retained.
+After consuming the report, the parent closes the retained lease and records
+the exact lease, tree, close status, and proof that both the lease file and VCS
+registration are gone. A tester result cannot claim parent cleanup. On
+cancellation or terminal failure, close the lease before stopping.
 
 On local failure, diagnose captured output before editing and dispatch one
 relevant fixer scoped to the root cause and affected files. It may edit and
@@ -324,12 +346,17 @@ unresolved: [<blocker>]
 </report>
 
 The parent reviews and accepts the diff, invokes
-`coding:commit --retrospective`, then sends the tester to rerun affected
-commands and the full runnable set. Publish only when every runnable command
-exits zero. Any separate review is read-only. With `--skip-local-test`, retain
-discovery and expected-check evidence but do not dispatch the tester.
+`coding:commit --retrospective`, then re-resolves the standalone head or stack
+tip and restarts this step at its new exact SHA. Every applicable test and lint
+command must exit zero before publication; an unresolved diagnosis or nonzero
+rerun stops without pushing. Any separate review is read-only.
 
 ### 3. Publish bottom-up
+
+Before every entry or re-entry to this phase, require a local CI-parity receipt
+whose `TARGET_SHA` equals the current standalone head or selected stack tip.
+The only alternative is the user's recorded missing-secret approval for that
+same SHA. Any mismatch returns to step 2 before a remote mutation.
 
 Require a saved, clean, linear chain to the selected `ROOT_BASE`/`DESTINATION`
 at authoritative `$REMOTE`, standalone green changes, conventional descriptions per
@@ -580,8 +607,8 @@ verifies each authorization at the moment it would submit `APPROVE`.
 
 ### 5. Schedule and consume the initial poll
 
-Immediately after every initial publication, including `--skip-local-test`, run
-this command with actual bottom-to-top PR URLs substituted:
+Immediately after every initial publication, run this command with actual
+bottom-to-top PR URLs substituted:
 
 ```text
 /loop 5m Dispatch ONE small read-oriented polling subagent for <stack PR URLs> in bottom-up order. Pass it the stack and discovered expected hosted checks, and require it to load and follow the Poll contract in coding:pr references/create-update.md; only when it classifies a red check, require it to load references/repair-red-ci.md. Consume its bounded <report>, then take the parent action it requests. The scheduled parent MUST NOT run gh polling itself.
@@ -868,8 +895,11 @@ passes its base; text-only callers default to the first parent. Never invoke `gh
   bundled default has no placeholder or dropped-section stub. The same
   head OID, base/empty-tree OID, template, thresholds, and placeholder map yield
   byte-identical `title\n\nbody` without timestamps or random IDs.
-- Local checks passed with every command/result recorded, or command execution
-  was explicitly skipped; hosted-only gaps and expected checks are named.
+- The applicable `pull_request` test and lint commands passed locally at the
+  exact standalone head or selected stack-tip SHA, with their revision-bound
+  sources and results recorded. The sole exception records the user's explicit
+  approval to push that same SHA without the local run because the named
+  required secrets were missing.
 - Every head was pushed under a lease — one explicit affected-bookmark
   `jj git push` on the jj path,
   `git push --force-with-lease` on the git path; every PR is draft, uses the

@@ -88,11 +88,32 @@ jj new <merged_change_parent>
 jj rebase -s <merged_change> -d @
 ```
 
-After the local rewrite and integrity guard pass, synchronize only the existing
-bookmark whose rewrite the user authorized:
+After the local rewrite and integrity guard pass, fetch remote state:
 
 ```bash
 jj git fetch
+```
+
+Bind `TARGET_SHA` to the rewritten bookmark's exact Git commit and
+`TARGET_BASE` to the fetched pre-push `<affected-bookmark>@origin` commit:
+
+```bash
+TARGET_SHA=$(jj log -r <affected-bookmark> --no-graph -T 'commit_id')
+TARGET_BASE=$(jj log -r '<affected-bookmark>@origin' --no-graph -T 'commit_id')
+```
+
+Before any push, treat the affected bookmark as a standalone target and follow
+only [Verify exact local CI parity before publication](../../pr/references/create-update.md#2-verify-exact-local-ci-parity-before-publication).
+Discover the applicable `pull_request` test and lint commands from the detached
+tree at `TARGET_SHA`, using `TARGET_BASE..TARGET_SHA` as the changed surface,
+and require its exact-SHA receipt or SHA-bound missing-secret approval before
+continuing. Neither `--no-verify` nor `--allow-rewrite-merged` skips this gate.
+This is direct synchronization of the already-authorized bookmark, not PR
+publication; do not enter the PR workflow's publication phase.
+
+Synchronize only the existing bookmark whose rewrite the user authorized:
+
+```bash
 jj git push --bookmark <affected-bookmark>
 ```
 
@@ -123,15 +144,16 @@ Notify reviewers and downstream consumers:
 ## Hard rules
 
 - Default route is ALWAYS the corrective PR. Only deviate on explicit user choice or `--allow-rewrite-merged`.
-- `--allow-rewrite-merged` skips the `AskUserQuestion` prompt but does NOT skip the integrity guard.
+- `--allow-rewrite-merged` skips the `AskUserQuestion` prompt but does NOT skip the integrity or exact-revision publication gate.
 - Conventional regex enforced on any new change introduced.
 - A rewrite that touches main@origin's tip itself is forbidden — surface and abort regardless of consent.
 
 ## Mandatory follow-ups
 
 - Option 1: normal save follow-ups ([workflow-save-local.md](./workflow-save-local.md)).
-- Option 2: integrity check and project scripts, direct force-with-lease sync
-  of the affected bookmark only, then read-only `gh pr checks` for relevant
+- Option 2: integrity check, ordinary project scripts unless `--no-verify`,
+  mandatory exact-revision publication gate, direct force-with-lease sync of
+  the affected bookmark only, then read-only `gh pr checks` for relevant
   downstream PRs. Updating or restacking them needs separate explicit consent.
 - Always: report the chosen route per [SKILL.md](../SKILL.md) Completion.
 
