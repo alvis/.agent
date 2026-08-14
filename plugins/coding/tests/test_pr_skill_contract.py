@@ -5,6 +5,7 @@ import runpy
 import shlex
 import shutil
 import subprocess
+from dataclasses import dataclass
 from itertools import pairwise
 from pathlib import Path
 
@@ -1320,21 +1321,14 @@ def extract_bash_block_containing(markdown: str, marker: str) -> str:
     return next(block for block in blocks if marker in block)
 
 
-def run_fork_topology_preflight(
-    tmp_path: Path,
-    head_bases: list[str],
-    receiving_bases: list[str],
-) -> subprocess.CompletedProcess[str]:
-    workflow = CREATE_UPDATE.read_text()
-    preflight = extract_bash_block_containing(
-        workflow, "preflight_fork_publication_topology"
-    )
-    fake_bin = tmp_path / "bin"
-    fake_bin.mkdir()
-    mutation_log = tmp_path / "mutations.log"
-    api_log = tmp_path / "api.log"
-    git = fake_bin / "git"
-    git.write_text(
+def _write_executable_fixture(path: Path, contents: str) -> None:
+    path.write_text(contents)
+    path.chmod(0o755)
+
+
+def _install_fork_topology_commands(fake_bin: Path) -> None:
+    _write_executable_fixture(
+        fake_bin / "git",
         """#!/usr/bin/env bash
 set -eu
 if [ "$*" = "remote get-url --push -- origin" ]; then
@@ -1342,11 +1336,10 @@ if [ "$*" = "remote get-url --push -- origin" ]; then
 else
   printf 'push %s\n' "$*" >>"$GH_MUTATION_LOG"
 fi
-"""
+""",
     )
-    git.chmod(0o755)
-    gh = fake_bin / "gh"
-    gh.write_text(
+    _write_executable_fixture(
+        fake_bin / "gh",
         """#!/usr/bin/env bash
 set -eu
 if [ "$1 $2" = "repo view" ]; then
@@ -1367,9 +1360,13 @@ elif [ "$1 $2" = "pr create" ]; then
 else
   exit 45
 fi
-"""
+""",
     )
-    gh.chmod(0o755)
+
+
+def _write_fork_topology_script(
+    tmp_path: Path, *, preflight: str, head_bases: list[str]
+) -> Path:
     quoted_head_bases = " ".join(map(shlex.quote, head_bases))
     script = tmp_path / "fork-topology.sh"
     script.write_text(
@@ -1383,12 +1380,40 @@ fi
         "gh pr create --repo github.example/upstream/project --base main "
         "--head contributor:feature\n"
     )
+    return script
+
+
+def _build_fork_topology_environment(
+    tmp_path: Path, *, fake_bin: Path, receiving_bases: list[str]
+) -> dict[str, str]:
     env = os.environ.copy()
     env["PATH"] = f"{fake_bin}:{env['PATH']}"
-    env["GH_MUTATION_LOG"] = str(mutation_log)
-    env["GH_API_LOG"] = str(api_log)
+    env["GH_MUTATION_LOG"] = str(tmp_path / "mutations.log")
+    env["GH_API_LOG"] = str(tmp_path / "api.log")
     env["GH_RECEIVING_BRANCH_ENDPOINTS"] = json.dumps(
         [f"repos/upstream/project/branches/{base}" for base in receiving_bases]
+    )
+    return env
+
+
+def run_fork_topology_preflight(
+    tmp_path: Path,
+    *,
+    head_bases: list[str],
+    receiving_bases: list[str],
+) -> subprocess.CompletedProcess[str]:
+    workflow = CREATE_UPDATE.read_text()
+    preflight = extract_bash_block_containing(
+        workflow, "preflight_fork_publication_topology"
+    )
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    _install_fork_topology_commands(fake_bin)
+    script = _write_fork_topology_script(
+        tmp_path, preflight=preflight, head_bases=head_bases
+    )
+    env = _build_fork_topology_environment(
+        tmp_path, fake_bin=fake_bin, receiving_bases=receiving_bases
     )
 
     return subprocess.run(
@@ -1417,8 +1442,8 @@ def test_fork_stack_rejects_fork_only_base_before_remote_mutation(
         assert preflight_call < workflow.index(mutation)
     completed = run_fork_topology_preflight(
         tmp_path,
-        ["feature/01=main", "feature/02=feature/01"],
-        ["main"],
+        head_bases=["feature/01=main", "feature/02=feature/01"],
+        receiving_bases=["main"],
     )
 
     assert completed.returncode != 0
@@ -1438,8 +1463,8 @@ def test_single_head_fork_accepts_base_available_in_receiving_repository(
 ) -> None:
     completed = run_fork_topology_preflight(
         tmp_path,
-        ["feature=main"],
-        ["main"],
+        head_bases=["feature=main"],
+        receiving_bases=["main"],
     )
 
     assert completed.returncode == 0, completed.stderr
@@ -1455,247 +1480,359 @@ def test_single_head_fork_accepts_base_available_in_receiving_repository(
 def test_repository_label_selection_is_live_and_independent_of_archetypes() -> None:
     workflow = CREATE_UPDATE.read_text()
     template = MESSAGE_TEMPLATE.read_text()
-    normalized_workflow = " ".join(workflow.split())
+    discovery = extract_bash_block_containing(workflow, "REPOSITORY_LABELS=")
 
-    assert "Archetype classification is independent of labels" in workflow
-    assert "body and scanner metadata only" in normalized_workflow
-    assert "exact `name` and API `description`" in normalized_workflow
-    assert (
-        "Selection may include every suitable exact repository label"
-        in normalized_workflow
-    )
-    for selection_dimension in (
-        "PR type",
-        "risk",
-        "attention required",
-        "merge intent",
-        "PR structure",
-    ):
-        assert selection_dimension in normalized_workflow
-    assert "caller-provided selection may already be stale" in workflow
-    assert (
-        "inventory may change between discovery and publication" in normalized_workflow
-    )
-    assert "never use a fixed vocabulary" in workflow
+    assert '"repos/$REPOSITORY/labels?per_page=100"' in discovery
+    assert "--paginate --slurp" in discovery
+    assert "$selected - [$available[] | .name]" in discovery
+    assert 'validate_selected_labels "$REPOSITORY_LABELS"' in discovery
     assert "#discover-and-select-repository-labels" in template
-    assert "ARCHETYPE_LABELS" not in workflow
-    assert "AVAILABLE_ARCHETYPES" not in workflow
+    assert re.findall(r"\b[A-Z_]*ARCHETYPE[A-Z_]*\b", discovery) == []
 
 
-def run_repository_label_workflow(
-    tmp_path: Path, scenario: str
-) -> subprocess.CompletedProcess[str]:
+type _RepositoryLabel = dict[str, str]
+type _RepositoryLabelPages = tuple[tuple[_RepositoryLabel, ...], ...]
+
+
+@dataclass(frozen=True, slots=True)
+class _RepositoryLabelScenario:
+    selected: tuple[str, ...]
+    attached: tuple[str, ...]
+    repository_pages: _RepositoryLabelPages
+    selected_choices: tuple[_RepositoryLabel, ...] | None = None
+    repository_pages_after: _RepositoryLabelPages | None = None
+    repository_pages_final: _RepositoryLabelPages | None = None
+    label_permission: bool = True
+    push_owner: str = "alvis"
+    push_owner_type: str = "User"
+    concurrent: str | None = None
+    post_noop: bool = False
+    delete_race: bool = False
+    delete_failure: bool = False
+    verification_inventory_race: _RepositoryLabel | None = None
+    verification_deleted_label: str | None = None
+    verification_inventory_churn: bool = False
+    final_override: tuple[str, ...] | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class _RepositoryLabelFixture:
+    fake_bin: Path
+    attached_labels: Path
+    repository_pages: Path
+    repository_pages_after: Path
+    repository_pages_final: Path
+    discovered_labels: Path
+    api_log: Path
+    create_log: Path
+    repository_reads: Path
+    attached_reads: Path
+    concurrent_marker: Path
+    script: Path
+
+
+@dataclass(frozen=True, slots=True)
+class _RepositoryLabelTarget:
+    action: str
+    repository: str
+    host: str
+    pr_url: str
+
+
+def _repository_label(name: str, description: str, /) -> _RepositoryLabel:
+    return {"name": name, "description": description}
+
+
+def _get_repository_label_scenario(name: str, /) -> _RepositoryLabelScenario:
+    scenarios = {
+        "create-empty": _RepositoryLabelScenario(
+            selected=(),
+            attached=(),
+            repository_pages=(
+                (_repository_label("bug", "Something is broken"),),
+                (_repository_label("docs", "Documentation only"),),
+            ),
+        ),
+        "create-paginated": _RepositoryLabelScenario(
+            selected=("docs", "bug"),
+            attached=(),
+            repository_pages=(
+                (_repository_label("bug", "Something is broken"),),
+                (_repository_label("docs", "Documentation only"),),
+            ),
+        ),
+        "create-comma": _RepositoryLabelScenario(
+            selected=("api,breaking",),
+            attached=(),
+            repository_pages=(
+                (_repository_label("api,breaking", "Breaking API change"),),
+            ),
+        ),
+        "create-no-label-permission": _RepositoryLabelScenario(
+            selected=("docs",),
+            attached=(),
+            repository_pages=((_repository_label("docs", "Documentation only"),),),
+            label_permission=False,
+        ),
+        "organization-fork": _RepositoryLabelScenario(
+            selected=(),
+            attached=(),
+            repository_pages=((_repository_label("docs", "Documentation only"),),),
+            push_owner="octo-org",
+            push_owner_type="Organization",
+        ),
+        "update": _RepositoryLabelScenario(
+            selected=("docs", "customer-request"),
+            attached=("keep", "retired"),
+            repository_pages=(
+                (
+                    _repository_label("keep", "Keep this label"),
+                    _repository_label("docs", "Documentation only"),
+                ),
+                (_repository_label("customer-request", "Requested by a customer"),),
+            ),
+        ),
+        "update-concurrent": _RepositoryLabelScenario(
+            selected=("docs",),
+            attached=("keep",),
+            repository_pages=(
+                (
+                    _repository_label("keep", "Keep this label"),
+                    _repository_label("docs", "Documentation only"),
+                    _repository_label("concurrent", "Added concurrently"),
+                ),
+            ),
+            concurrent="concurrent",
+        ),
+        "update-comma": _RepositoryLabelScenario(
+            selected=("api,breaking",),
+            attached=("keep", "retired,old"),
+            repository_pages=(
+                (
+                    _repository_label("keep", "Keep this label"),
+                    _repository_label("api,breaking", "Breaking API change"),
+                ),
+            ),
+        ),
+        "update-fork-no-op": _RepositoryLabelScenario(
+            selected=("docs",),
+            attached=("docs",),
+            repository_pages=(
+                (_repository_label("bug", "Something is broken"),),
+                (_repository_label("docs", "Documentation only"),),
+            ),
+            label_permission=False,
+        ),
+        "update-delete-race": _RepositoryLabelScenario(
+            selected=("docs",),
+            attached=("retired",),
+            repository_pages=((_repository_label("docs", "Documentation only"),),),
+            delete_race=True,
+        ),
+        "update-delete-failure": _RepositoryLabelScenario(
+            selected=("docs",),
+            attached=("retired",),
+            repository_pages=((_repository_label("docs", "Documentation only"),),),
+            delete_failure=True,
+        ),
+        "update-description-drift": _RepositoryLabelScenario(
+            selected=("docs",),
+            attached=(),
+            repository_pages=((_repository_label("docs", "Documentation only"),),),
+            repository_pages_after=(
+                (_repository_label("docs", "Release notes only"),),
+            ),
+        ),
+        "update-final-description-drift": _RepositoryLabelScenario(
+            selected=("docs",),
+            attached=("docs",),
+            repository_pages=((_repository_label("docs", "Documentation only"),),),
+            repository_pages_final=(
+                (_repository_label("docs", "Release notes only"),),
+            ),
+        ),
+        "update-inventory-attachment-race": _RepositoryLabelScenario(
+            selected=(),
+            attached=(),
+            repository_pages=((),),
+            verification_inventory_race=_repository_label(
+                "automation", "Added during verification"
+            ),
+        ),
+        "update-verification-delete-race": _RepositoryLabelScenario(
+            selected=(),
+            attached=("retired",),
+            repository_pages=(
+                (_repository_label("retired", "Removed during verification"),),
+            ),
+            verification_deleted_label="retired",
+        ),
+        "update-verification-churn": _RepositoryLabelScenario(
+            selected=(),
+            attached=(),
+            repository_pages=((_repository_label("churn", "Initial description"),),),
+            verification_inventory_churn=True,
+        ),
+        "unavailable-selection": _RepositoryLabelScenario(
+            selected=("not-in-repository",),
+            selected_choices=(_repository_label("not-in-repository", "Stale choice"),),
+            attached=(),
+            repository_pages=((_repository_label("bug", "Something is broken"),),),
+        ),
+        "missing-selected": _RepositoryLabelScenario(
+            selected=("bug",),
+            attached=(),
+            repository_pages=((_repository_label("bug", "Something is broken"),),),
+            post_noop=True,
+        ),
+        "unavailable-attached": _RepositoryLabelScenario(
+            selected=(),
+            attached=(),
+            repository_pages=((_repository_label("bug", "Something is broken"),),),
+            final_override=("retired",),
+        ),
+    }
+    return scenarios[name]
+
+
+def _get_repository_label_target(scenario_name: str, /) -> _RepositoryLabelTarget:
+    if scenario_name.startswith("update"):
+        return _RepositoryLabelTarget(
+            action="update",
+            repository="octo/update-target",
+            host="update.ghe.test",
+            pr_url="https://update.ghe.test/octo/update-target/pull/17",
+        )
+    return _RepositoryLabelTarget(
+        action="create",
+        repository="octo/create-target",
+        host="create.ghe.test",
+        pr_url="",
+    )
+
+
+def _create_repository_label_fixture(
+    tmp_path: Path, scenario: _RepositoryLabelScenario, /
+) -> _RepositoryLabelFixture:
+    repository_pages_after = (
+        scenario.repository_pages_after
+        if scenario.repository_pages_after is not None
+        else scenario.repository_pages
+    )
+    repository_pages_final = (
+        scenario.repository_pages_final
+        if scenario.repository_pages_final is not None
+        else repository_pages_after
+    )
+    fixture = _RepositoryLabelFixture(
+        fake_bin=tmp_path / "bin",
+        attached_labels=tmp_path / "attached-labels.json",
+        repository_pages=tmp_path / "repository-pages.json",
+        repository_pages_after=tmp_path / "repository-pages-after.json",
+        repository_pages_final=tmp_path / "repository-pages-final.json",
+        discovered_labels=tmp_path / "discovered-labels.json",
+        api_log=tmp_path / "api.log",
+        create_log=tmp_path / "create.log",
+        repository_reads=tmp_path / "repository-reads",
+        attached_reads=tmp_path / "attached-reads",
+        concurrent_marker=tmp_path / "concurrent-marker",
+        script=tmp_path / "label-workflow.sh",
+    )
+    fixture.fake_bin.mkdir()
+    fixture.attached_labels.write_text(json.dumps(scenario.attached))
+    fixture.repository_pages.write_text(json.dumps(scenario.repository_pages))
+    fixture.repository_pages_after.write_text(json.dumps(repository_pages_after))
+    fixture.repository_pages_final.write_text(json.dumps(repository_pages_final))
+    fixture.repository_reads.write_text("0")
+    fixture.attached_reads.write_text("0")
+    return fixture
+
+
+def _write_repository_label_script(
+    fixture: _RepositoryLabelFixture, target: _RepositoryLabelTarget, /
+) -> None:
     workflow = CREATE_UPDATE.read_text()
     discovery = extract_bash_block_containing(workflow, "REPOSITORY_LABELS=")
     publication = extract_bash_block_containing(
         workflow,
-        "gh pr edit" if scenario.startswith("update") else "PR=$(gh pr create",
+        "gh pr edit" if target.action == "update" else "PR=$(gh pr create",
     )
     verification = extract_bash_block_containing(workflow, "POST_REPOSITORY_LABELS=")
-    scenarios = {
-        "create-empty": {
-            "selected": [],
-            "attached": [],
-            "repository_pages": [
-                [{"name": "bug", "description": "Something is broken"}],
-                [{"name": "docs", "description": "Documentation only"}],
-            ],
-        },
-        "create-paginated": {
-            "selected": ["docs", "bug"],
-            "attached": [],
-            "repository_pages": [
-                [{"name": "bug", "description": "Something is broken"}],
-                [{"name": "docs", "description": "Documentation only"}],
-            ],
-        },
-        "create-comma": {
-            "selected": ["api,breaking"],
-            "attached": [],
-            "repository_pages": [
-                [{"name": "api,breaking", "description": "Breaking API change"}]
-            ],
-        },
-        "create-no-label-permission": {
-            "selected": ["docs"],
-            "attached": [],
-            "repository_pages": [
-                [{"name": "docs", "description": "Documentation only"}]
-            ],
-            "label_permission": False,
-        },
-        "organization-fork": {
-            "selected": [],
-            "attached": [],
-            "repository_pages": [
-                [{"name": "docs", "description": "Documentation only"}]
-            ],
-            "push_owner": "octo-org",
-            "push_owner_type": "Organization",
-        },
-        "update": {
-            "selected": ["docs", "customer-request"],
-            "attached": ["keep", "retired"],
-            "repository_pages": [
-                [
-                    {"name": "keep", "description": "Keep this label"},
-                    {"name": "docs", "description": "Documentation only"},
-                ],
-                [
-                    {
-                        "name": "customer-request",
-                        "description": "Requested by a customer",
-                    }
-                ],
-            ],
-        },
-        "update-concurrent": {
-            "selected": ["docs"],
-            "attached": ["keep"],
-            "repository_pages": [
-                [
-                    {"name": "keep", "description": "Keep this label"},
-                    {"name": "docs", "description": "Documentation only"},
-                    {"name": "concurrent", "description": "Added concurrently"},
-                ]
-            ],
-            "concurrent": "concurrent",
-        },
-        "update-comma": {
-            "selected": ["api,breaking"],
-            "attached": ["keep", "retired,old"],
-            "repository_pages": [
-                [
-                    {"name": "keep", "description": "Keep this label"},
-                    {"name": "api,breaking", "description": "Breaking API change"},
-                ]
-            ],
-        },
-        "update-fork-no-op": {
-            "selected": ["docs"],
-            "attached": ["docs"],
-            "repository_pages": [
-                [{"name": "bug", "description": "Something is broken"}],
-                [{"name": "docs", "description": "Documentation only"}],
-            ],
-            "label_permission": False,
-        },
-        "update-delete-race": {
-            "selected": ["docs"],
-            "attached": ["retired"],
-            "repository_pages": [
-                [{"name": "docs", "description": "Documentation only"}]
-            ],
-            "delete_race": True,
-        },
-        "update-delete-failure": {
-            "selected": ["docs"],
-            "attached": ["retired"],
-            "repository_pages": [
-                [{"name": "docs", "description": "Documentation only"}]
-            ],
-            "delete_failure": True,
-        },
-        "update-description-drift": {
-            "selected": ["docs"],
-            "attached": [],
-            "repository_pages": [
-                [{"name": "docs", "description": "Documentation only"}]
-            ],
-            "repository_pages_after": [
-                [{"name": "docs", "description": "Release notes only"}]
-            ],
-        },
-        "update-final-description-drift": {
-            "selected": ["docs"],
-            "attached": ["docs"],
-            "repository_pages": [
-                [{"name": "docs", "description": "Documentation only"}]
-            ],
-            "repository_pages_final": [
-                [{"name": "docs", "description": "Release notes only"}]
-            ],
-        },
-        "update-inventory-attachment-race": {
-            "selected": [],
-            "attached": [],
-            "repository_pages": [[]],
-            "verification_inventory_race": {
-                "name": "automation",
-                "description": "Added during verification",
-            },
-        },
-        "update-verification-delete-race": {
-            "selected": [],
-            "attached": ["retired"],
-            "repository_pages": [
-                [{"name": "retired", "description": "Removed during verification"}]
-            ],
-            "verification_deleted_label": "retired",
-        },
-        "update-verification-churn": {
-            "selected": [],
-            "attached": [],
-            "repository_pages": [
-                [{"name": "churn", "description": "Initial description"}]
-            ],
-            "verification_inventory_churn": True,
-        },
-        "unavailable-selection": {
-            "selected": ["not-in-repository"],
-            "selected_choices": [
-                {"name": "not-in-repository", "description": "Stale choice"}
-            ],
-            "attached": [],
-            "repository_pages": [
-                [{"name": "bug", "description": "Something is broken"}]
-            ],
-        },
-        "missing-selected": {
-            "selected": ["bug"],
-            "attached": [],
-            "repository_pages": [
-                [{"name": "bug", "description": "Something is broken"}]
-            ],
-            "post_noop": True,
-        },
-        "unavailable-attached": {
-            "selected": [],
-            "attached": [],
-            "repository_pages": [
-                [{"name": "bug", "description": "Something is broken"}]
-            ],
-            "final_override": ["retired"],
-        },
-    }
-    config = scenarios[scenario]
-    fake_bin = tmp_path / "bin"
-    fake_bin.mkdir()
-    attached_labels = tmp_path / "attached-labels.json"
-    attached_labels.write_text(json.dumps(config["attached"]))
-    repository_pages = tmp_path / "repository-pages.json"
-    repository_pages.write_text(json.dumps(config["repository_pages"]))
-    repository_pages_after = tmp_path / "repository-pages-after.json"
-    repository_pages_after.write_text(
-        json.dumps(config.get("repository_pages_after", config["repository_pages"]))
+    fixture.script.write_text(
+        "set -eu\n"
+        f'ACTION={target.action}\nREMOTE=origin\nTITLE="title"\nBODY="body"\n'
+        "PR_BASE=main\nBOOKMARK=feature\n"
+        f'PR_URL={target.pr_url}\nPR="$PR_URL"\n'
+        f'{discovery}\nprintf "%s" "$REPOSITORY_LABELS" '
+        f'>"$GH_DISCOVERED_LABELS"\n{publication}\n{verification}\n'
     )
-    repository_pages_final = tmp_path / "repository-pages-final.json"
-    repository_pages_final.write_text(
-        json.dumps(
-            config.get(
-                "repository_pages_final",
-                config.get("repository_pages_after", config["repository_pages"]),
-            )
+
+
+def _selected_label_choices(
+    scenario: _RepositoryLabelScenario, /
+) -> tuple[_RepositoryLabel, ...]:
+    if scenario.selected_choices is not None:
+        return scenario.selected_choices
+    selected_names = set(scenario.selected)
+    return tuple(
+        label
+        for page in scenario.repository_pages
+        for label in page
+        if label["name"] in selected_names
+    )
+
+
+def _build_repository_label_environment(
+    fixture: _RepositoryLabelFixture,
+    scenario: _RepositoryLabelScenario,
+    target: _RepositoryLabelTarget,
+    /,
+) -> dict[str, str]:
+    env = os.environ.copy()
+    env.update(
+        {
+            "PATH": f"{fixture.fake_bin}:{env['PATH']}",
+            "GH_ATTACHED_LABELS": str(fixture.attached_labels),
+            "GH_REPOSITORY_PAGES": str(fixture.repository_pages),
+            "GH_REPOSITORY_PAGES_AFTER": str(fixture.repository_pages_after),
+            "GH_REPOSITORY_PAGES_FINAL": str(fixture.repository_pages_final),
+            "GH_DISCOVERED_LABELS": str(fixture.discovered_labels),
+            "GH_API_LOG": str(fixture.api_log),
+            "GH_CREATE_LOG": str(fixture.create_log),
+            "GH_REPOSITORY_READS": str(fixture.repository_reads),
+            "GH_ATTACHED_READS": str(fixture.attached_reads),
+            "GH_CONCURRENT_MARKER": str(fixture.concurrent_marker),
+            "GH_EXPECTED_REPOSITORY": target.repository,
+            "GH_EXPECTED_HOST": target.host,
+            "GH_PUSH_OWNER": scenario.push_owner,
+            "GH_PUSH_OWNER_TYPE": scenario.push_owner_type,
+            "GH_LABEL_PERMISSION": "1" if scenario.label_permission else "0",
+            "SELECTED_LABELS": json.dumps(scenario.selected),
+            "SELECTED_LABEL_CHOICES": json.dumps(_selected_label_choices(scenario)),
+            "GH_POST_NOOP": "1" if scenario.post_noop else "0",
+            "GH_DELETE_RACE": "1" if scenario.delete_race else "0",
+            "GH_DELETE_FAILURE": "1" if scenario.delete_failure else "0",
+            "GH_VERIFICATION_INVENTORY_CHURN": (
+                "1" if scenario.verification_inventory_churn else "0"
+            ),
+        }
+    )
+    if scenario.concurrent is not None:
+        env["GH_CONCURRENT_LABEL"] = scenario.concurrent
+    if scenario.verification_inventory_race is not None:
+        env["GH_VERIFICATION_INVENTORY_RACE"] = json.dumps(
+            scenario.verification_inventory_race
         )
-    )
-    discovered_labels = tmp_path / "discovered-labels.json"
-    api_log = tmp_path / "api.log"
-    create_log = tmp_path / "create.log"
-    repository_reads = tmp_path / "repository-reads"
-    attached_reads = tmp_path / "attached-reads"
-    concurrent_marker = tmp_path / "concurrent-marker"
-    git = fake_bin / "git"
-    git.write_text(
+    if scenario.verification_deleted_label is not None:
+        env["GH_VERIFICATION_DELETED_LABEL"] = scenario.verification_deleted_label
+    if scenario.final_override:
+        env["GH_FINAL_OVERRIDE"] = json.dumps(scenario.final_override)
+    return env
+
+
+def _install_repository_label_commands(fake_bin: Path, /) -> None:
+    _write_executable_fixture(
+        fake_bin / "git",
         """#!/usr/bin/env bash
 set -eu
 if [ "$*" = "remote get-url --push -- origin" ]; then
@@ -1703,11 +1840,10 @@ if [ "$*" = "remote get-url --push -- origin" ]; then
 else
   exit 69
 fi
-"""
+""",
     )
-    git.chmod(0o755)
-    gh = fake_bin / "gh"
-    gh.write_text(
+    _write_executable_fixture(
+        fake_bin / "gh",
         """#!/usr/bin/env bash
 set -eu
 if [ "$1 $2" = "repo view" ]; then
@@ -1846,84 +1982,22 @@ elif [ "$1 $2" = "pr ready" ]; then
 else
   exit 66
 fi
-"""
+""",
     )
-    gh.chmod(0o755)
-    action = "update" if scenario.startswith("update") else "create"
-    repository = "octo/update-target" if action == "update" else "octo/create-target"
-    host = "update.ghe.test" if action == "update" else "create.ghe.test"
-    repository_reads.write_text("0")
-    attached_reads.write_text("0")
-    script = tmp_path / "label-workflow.sh"
-    pr_url = (
-        "https://update.ghe.test/octo/update-target/pull/17"
-        if action == "update"
-        else ""
-    )
-    script.write_text(
-        "set -eu\n"
-        f'ACTION={action}\nREMOTE=origin\nTITLE="title"\nBODY="body"\n'
-        "PR_BASE=main\nBOOKMARK=feature\n"
-        f'PR_URL={pr_url}\nPR="$PR_URL"\n'
-        f'{discovery}\nprintf "%s" "$REPOSITORY_LABELS" '
-        f'>"$GH_DISCOVERED_LABELS"\n{publication}\n{verification}\n'
-    )
-    env = os.environ.copy()
-    env["PATH"] = f"{fake_bin}:{env['PATH']}"
-    env["GH_ATTACHED_LABELS"] = str(attached_labels)
-    env["GH_REPOSITORY_PAGES"] = str(repository_pages)
-    env["GH_REPOSITORY_PAGES_AFTER"] = str(repository_pages_after)
-    env["GH_REPOSITORY_PAGES_FINAL"] = str(repository_pages_final)
-    env["GH_DISCOVERED_LABELS"] = str(discovered_labels)
-    env["GH_API_LOG"] = str(api_log)
-    env["GH_CREATE_LOG"] = str(create_log)
-    env["GH_REPOSITORY_READS"] = str(repository_reads)
-    env["GH_ATTACHED_READS"] = str(attached_reads)
-    env["GH_CONCURRENT_MARKER"] = str(concurrent_marker)
-    env["GH_EXPECTED_REPOSITORY"] = repository
-    env["GH_EXPECTED_HOST"] = host
-    env["GH_PUSH_OWNER"] = str(config.get("push_owner", "alvis"))
-    env["GH_PUSH_OWNER_TYPE"] = str(config.get("push_owner_type", "User"))
-    env["GH_LABEL_PERMISSION"] = "1" if config.get("label_permission", True) else "0"
-    env["SELECTED_LABELS"] = json.dumps(config["selected"])
-    selected_choices = config.get("selected_choices")
-    if selected_choices is None:
-        selected_values = config.get("selected")
-        repository_page_values = config.get("repository_pages")
-        if not isinstance(selected_values, list) or not all(
-            isinstance(value, str) for value in selected_values
-        ):
-            raise AssertionError("selected fixture values must be label names")
-        if not isinstance(repository_page_values, list):
-            raise AssertionError("repository page fixture must be a list")
-        selected_names = set(selected_values)
-        selected_choices = [
-            label
-            for page in repository_page_values
-            if isinstance(page, list)
-            for label in page
-            if isinstance(label, dict) and label.get("name") in selected_names
-        ]
-    env["SELECTED_LABEL_CHOICES"] = json.dumps(selected_choices)
-    env["GH_POST_NOOP"] = "1" if config.get("post_noop") else "0"
-    env["GH_DELETE_RACE"] = "1" if config.get("delete_race") else "0"
-    env["GH_DELETE_FAILURE"] = "1" if config.get("delete_failure") else "0"
-    if isinstance(concurrent := config.get("concurrent"), str):
-        env["GH_CONCURRENT_LABEL"] = concurrent
-    if verification_inventory_race := config.get("verification_inventory_race"):
-        env["GH_VERIFICATION_INVENTORY_RACE"] = json.dumps(verification_inventory_race)
-    if isinstance(
-        verification_deleted_label := config.get("verification_deleted_label"), str
-    ):
-        env["GH_VERIFICATION_DELETED_LABEL"] = verification_deleted_label
-    env["GH_VERIFICATION_INVENTORY_CHURN"] = (
-        "1" if config.get("verification_inventory_churn") else "0"
-    )
-    if final_override := config.get("final_override"):
-        env["GH_FINAL_OVERRIDE"] = json.dumps(final_override)
+
+
+def run_repository_label_workflow(
+    tmp_path: Path, scenario: str
+) -> subprocess.CompletedProcess[str]:
+    config = _get_repository_label_scenario(scenario)
+    target = _get_repository_label_target(scenario)
+    fixture = _create_repository_label_fixture(tmp_path, config)
+    _install_repository_label_commands(fixture.fake_bin)
+    _write_repository_label_script(fixture, target)
+    env = _build_repository_label_environment(fixture, config, target)
 
     return subprocess.run(
-        ["bash", str(script)],
+        ["bash", str(fixture.script)],
         check=False,
         capture_output=True,
         text=True,
