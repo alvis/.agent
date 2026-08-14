@@ -2,6 +2,7 @@ import json
 import os
 import re
 import runpy
+import shlex
 import shutil
 import subprocess
 from itertools import pairwise
@@ -1317,6 +1318,138 @@ def extract_bash_block_containing(markdown: str, marker: str) -> str:
     blocks = re.findall(r"```bash\n(.*?)\n```", markdown, flags=re.DOTALL)
 
     return next(block for block in blocks if marker in block)
+
+
+def run_fork_topology_preflight(
+    tmp_path: Path,
+    head_bases: list[str],
+    receiving_bases: list[str],
+) -> subprocess.CompletedProcess[str]:
+    workflow = CREATE_UPDATE.read_text()
+    preflight = extract_bash_block_containing(
+        workflow, "preflight_fork_publication_topology"
+    )
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    mutation_log = tmp_path / "mutations.log"
+    api_log = tmp_path / "api.log"
+    git = fake_bin / "git"
+    git.write_text(
+        """#!/usr/bin/env bash
+set -eu
+if [ "$*" = "remote get-url --push -- origin" ]; then
+  printf '%s\n' 'git@github.example:contributor/project.git'
+else
+  printf 'push %s\n' "$*" >>"$GH_MUTATION_LOG"
+fi
+"""
+    )
+    git.chmod(0o755)
+    gh = fake_bin / "gh"
+    gh.write_text(
+        """#!/usr/bin/env bash
+set -eu
+if [ "$1 $2" = "repo view" ]; then
+  [ "$3" = "git@github.example:contributor/project.git" ] || exit 43
+  printf '%s\n' 'contributor/project'
+elif [ "$1" = api ]; then
+  endpoint=${!#}
+  printf '%s\n' "$endpoint" >>"$GH_API_LOG"
+  if jq -e --arg endpoint "$endpoint" 'index($endpoint) != null' \
+    <<<"$GH_RECEIVING_BRANCH_ENDPOINTS" >/dev/null; then
+    printf '%s\n' '{"name":"available"}'
+  else
+    printf 'HTTP 404: branch not found: %s\n' "$endpoint" >&2
+    exit 44
+  fi
+elif [ "$1 $2" = "pr create" ]; then
+  printf 'create %s\n' "$*" >>"$GH_MUTATION_LOG"
+else
+  exit 45
+fi
+"""
+    )
+    gh.chmod(0o755)
+    quoted_head_bases = " ".join(map(shlex.quote, head_bases))
+    script = tmp_path / "fork-topology.sh"
+    script.write_text(
+        "set -eu\n"
+        f"SELECTED_HEAD_BASES=({quoted_head_bases})\n"
+        "REMOTE=origin\n"
+        "REPOSITORY=upstream/project\n"
+        "REPOSITORY_HOST=github.example\n"
+        f"{preflight}\n"
+        "git push origin feature\n"
+        "gh pr create --repo github.example/upstream/project --base main "
+        "--head contributor:feature\n"
+    )
+    env = os.environ.copy()
+    env["PATH"] = f"{fake_bin}:{env['PATH']}"
+    env["GH_MUTATION_LOG"] = str(mutation_log)
+    env["GH_API_LOG"] = str(api_log)
+    env["GH_RECEIVING_BRANCH_ENDPOINTS"] = json.dumps(
+        [f"repos/upstream/project/branches/{base}" for base in receiving_bases]
+    )
+
+    return subprocess.run(
+        ["bash", str(script)],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+
+
+def test_fork_stack_rejects_fork_only_base_before_remote_mutation(
+    tmp_path: Path,
+) -> None:
+    workflow = CREATE_UPDATE.read_text()
+    preflight_call = workflow.index(
+        'preflight_fork_publication_topology "${SELECTED_HEAD_BASES[@]}"'
+    )
+    for mutation in (
+        "ROOT_BASE=$PR_BASE_01",
+        'jj bookmark create "$BOOKMARK"',
+        'git branch --force "$BOOKMARK"',
+        "scripts/restack.sh",
+        "PR=$(gh pr create",
+    ):
+        assert preflight_call < workflow.index(mutation)
+    completed = run_fork_topology_preflight(
+        tmp_path,
+        ["feature/01=main", "feature/02=feature/01"],
+        ["main"],
+    )
+
+    assert completed.returncode != 0
+    assert "head=feature/02" in completed.stderr
+    assert "base=feature/01" in completed.stderr
+    assert "push_repository=contributor/project" in completed.stderr
+    assert "receiving_repository=upstream/project" in completed.stderr
+    assert not (tmp_path / "mutations.log").exists()
+    assert (tmp_path / "api.log").read_text().splitlines() == [
+        "repos/upstream/project/branches/main",
+        "repos/upstream/project/branches/feature%2F01",
+    ]
+
+
+def test_single_head_fork_accepts_base_available_in_receiving_repository(
+    tmp_path: Path,
+) -> None:
+    completed = run_fork_topology_preflight(
+        tmp_path,
+        ["feature=main"],
+        ["main"],
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert (tmp_path / "mutations.log").read_text().splitlines() == [
+        "push push origin feature",
+        (
+            "create pr create --repo github.example/upstream/project --base main "
+            "--head contributor:feature"
+        ),
+    ]
 
 
 def test_repository_label_selection_is_live_and_independent_of_archetypes() -> None:
