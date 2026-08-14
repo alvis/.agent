@@ -382,7 +382,8 @@ guess, or substitute a label, and never use a fixed vocabulary.
 ```bash
 set -o pipefail
 bind_pr_url_target() {
-  local pr_url=$1 authority path owner repository_name pull_number
+  local pr_url=$1 authority path owner repository_name pull_selector
+  local pull_number pull_suffix
   case "$pr_url" in
     https://*/*/*/pull/*) ;;
     *) printf 'invalid PR URL: %s\n' "$pr_url" >&2; return 1 ;;
@@ -397,11 +398,13 @@ bind_pr_url_target() {
   repository_name=${path%%/*}
   path=${path#*/}
   test "${path%%/*}" = pull || return 1
-  pull_number=${path#*/}
-  case "$pull_number" in
-    */) pull_number=${pull_number%/} ;;
+  pull_selector=${path#*/}
+  pull_number=${pull_selector%%/*}
+  pull_suffix=${pull_selector#"$pull_number"}
+  case "$pull_suffix" in
+    ''|'/'|'/files'|'/files/'|'/commits'|'/commits/'|'/checks'|'/checks/'|'/activity'|'/activity/') ;;
+    *) return 1 ;;
   esac
-  test "$pull_number" = "${pull_number%%/*}" || return 1
   case "$pull_number" in
     ''|*[!0-9]*) return 1 ;;
   esac
@@ -595,8 +598,18 @@ label_reconciliation_plan() {
   jq -cn --argjson removals "$removals" --argjson additions "$additions" \
     '{removals: $removals, additions: $additions}'
 }
+print_label_permission_denial() {
+  local plan=$1
+  if jq -e '.additions | length > 0' <<<"$plan" >/dev/null; then
+    printf 'selected labels require repository label permission\n' >&2
+  else
+    printf 'repository-only label reconciliation requires repository label permission\n' \
+      >&2
+  fi
+}
 preflight_label_mutation_permission() {
-  local plan=$1 permissions
+  local plan=$1 quiet=${2:-false} permissions
+  LABEL_PERMISSION_DENIED=false
   if jq -e '
     (.removals | length == 0) and (.additions | length == 0)
   ' <<<"$plan" >/dev/null; then
@@ -610,25 +623,47 @@ preflight_label_mutation_permission() {
   ' <<<"$permissions" >/dev/null; then
     return 0
   fi
-  if jq -e '.additions | length > 0' <<<"$plan" >/dev/null; then
-    printf 'selected labels require repository label permission\n' >&2
-  else
-    printf 'repository-only label reconciliation requires repository label permission\n' \
-      >&2
+  if [ "$quiet" != true ]; then
+    print_label_permission_denial "$plan"
   fi
+  LABEL_PERMISSION_DENIED=true
   return 1
 }
-reconcile_pr_labels() {
-  local pr_number=$1 snapshots attached available plan removals additions
-  local label_json encoded_label delete_error delete_status_line
-  local delete_protocol delete_status delete_rest
+stable_label_reconciliation_plan() {
+  local pr_number=$1 snapshots attached available
   snapshots=$(stable_label_snapshots "$pr_number") || return $?
   attached=$(jq -ce '.attached' <<<"$snapshots") || return $?
   validate_selected_labels "$(jq -ce '.available' <<<"$snapshots")" || return $?
   available=$(repository_label_names \
     "$(jq -ce '.available' <<<"$snapshots")") || return $?
-  plan=$(label_reconciliation_plan "$attached" "$available") || return $?
-  preflight_label_mutation_permission "$plan" || return $?
+  label_reconciliation_plan "$attached" "$available"
+}
+preflight_existing_pr_label_plan() {
+  local pr_number=$1 original_plan=$2 plan permission_status
+  plan=$original_plan
+  if preflight_label_mutation_permission "$plan" true; then
+    printf '%s\n' "$plan"
+    return 0
+  else
+    permission_status=$?
+  fi
+  [ "${LABEL_PERMISSION_DENIED:-false}" = true ] || return "$permission_status"
+  plan=$(stable_label_reconciliation_plan "$pr_number") || return $?
+  if jq -e '
+    (.removals | length == 0) and (.additions | length == 0)
+  ' <<<"$plan" >/dev/null; then
+    printf '%s\n' "$plan"
+    return 0
+  fi
+  print_label_permission_denial "$original_plan"
+  return 1
+}
+reconcile_pr_labels() {
+  local pr_number=$1 plan removals additions
+  local label_json encoded_label delete_error delete_status_line
+  local delete_protocol delete_status delete_rest
+  plan=$(stable_label_reconciliation_plan "$pr_number") || return $?
+  plan=$(preflight_existing_pr_label_plan "$pr_number" "$plan") || return $?
   removals=$(jq -ce '.removals' <<<"$plan") || return $?
   additions=$(jq -ce '.additions' <<<"$plan") || return $?
   while IFS= read -r label_json; do
@@ -690,7 +725,12 @@ PREFLIGHT_REPOSITORY_LABEL_NAMES=$(repository_label_names \
   "$PREFLIGHT_REPOSITORY_LABELS") || exit $?
 PREFLIGHT_LABEL_PLAN=$(label_reconciliation_plan \
   "$PREFLIGHT_ATTACHED_LABELS" "$PREFLIGHT_REPOSITORY_LABEL_NAMES") || exit $?
-preflight_label_mutation_permission "$PREFLIGHT_LABEL_PLAN" || exit $?
+if [ -n "${PR_URL:-}" ]; then
+  PREFLIGHT_LABEL_PLAN=$(preflight_existing_pr_label_plan \
+    "$PR_NUMBER" "$PREFLIGHT_LABEL_PLAN") || exit $?
+else
+  preflight_label_mutation_permission "$PREFLIGHT_LABEL_PLAN" || exit $?
+fi
 ```
 
 Validation is deliberately fail-closed even though selection uses live
@@ -704,10 +744,11 @@ because `gh pr create --head OWNER:BRANCH` supports only user-owned forks.
 Stabilize consecutive attachment and inventory pairs before computing exact
 additions and removals or preflighting repository label permission. Existing
 PRs whose selected and attached repository labels already reconcile need no
-label-write permission, including when a formerly attached label disappears
-while the pair is refreshed. Recompute from another stable pair and preflight
-immediately before reconciliation so a concurrent change cannot reach a label
-write without the permission check. Split each exact `title\n\nbody` into that head's `TITLE` and `BODY`;
+label-write permission. When permission is denied for a planned mutation,
+refresh and replan once: proceed only if the refreshed plan needs no mutation,
+otherwise preserve the denial. Recompute and preflight again immediately before
+reconciliation so a concurrent change cannot reach a label write without the
+permission check. Split each exact `title\n\nbody` into that head's `TITLE` and `BODY`;
 malformed output aborts the whole selection before any ref or remote mutation.
 
 After every per-head `PR_BASE` is resolved, collect one exact

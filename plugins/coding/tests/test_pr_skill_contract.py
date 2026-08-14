@@ -1631,15 +1631,30 @@ def test_existing_pr_rejects_resolved_repository_identity_mismatch_before_mutati
     assert not (tmp_path / "mutations.log").exists()
 
 
-def test_existing_pr_canonicalizes_a_trailing_slash_before_mutation(
-    tmp_path: Path,
+@pytest.mark.parametrize(
+    "suffix",
+    (
+        "/",
+        "/files",
+        "/files/",
+        "/files?diff=split#discussion_r1",
+        "/commits",
+        "/commits/",
+        "/checks",
+        "/checks/",
+        "/activity",
+        "/activity/",
+    ),
+)
+def test_existing_pr_canonicalizes_supported_pr_url_suffixes_before_mutation(
+    tmp_path: Path, suffix: str
 ) -> None:
     completed = run_existing_pr_push_target_preflight(
         tmp_path,
         head_repository="contributor/project",
         push_repository="contributor/project",
         push_host="receiving.example",
-        pr_url="https://receiving.example/upstream/project/pull/140/",
+        pr_url=f"https://receiving.example/upstream/project/pull/140{suffix}",
     )
 
     assert completed.returncode == 0, completed.stderr
@@ -1649,15 +1664,16 @@ def test_existing_pr_canonicalizes_a_trailing_slash_before_mutation(
     )
 
 
-def test_existing_pr_trailing_slash_support_rejects_an_extra_path_segment(
-    tmp_path: Path,
+@pytest.mark.parametrize("suffix", ("//", "/files/extra", "/unknown", "/pull/141"))
+def test_existing_pr_rejects_unrelated_or_ambiguous_pr_url_suffixes(
+    tmp_path: Path, suffix: str
 ) -> None:
     completed = run_existing_pr_push_target_preflight(
         tmp_path,
         head_repository="contributor/project",
         push_repository="contributor/project",
         push_host="receiving.example",
-        pr_url="https://receiving.example/upstream/project/pull/140//",
+        pr_url=f"https://receiving.example/upstream/project/pull/140{suffix}",
     )
 
     assert completed.returncode != 0
@@ -1820,12 +1836,14 @@ class _RepositoryLabelScenario:
     repository_pages_after: _RepositoryLabelPages | None = None
     repository_pages_final: _RepositoryLabelPages | None = None
     label_permission: bool = True
+    should_grant_permission_after_denial: bool = False
+    should_fail_permission_request: bool = False
     push_owner: str = "alvis"
     push_owner_type: str = "User"
     concurrent: str | None = None
     post_noop: bool = False
     post_failure_label: str | None = None
-    planning_deleted_label: str | None = None
+    permission_deleted_label: str | None = None
     delete_race: bool = False
     delete_failure: bool = False
     delete_unrelated_404_failure: bool = False
@@ -1944,14 +1962,25 @@ def _get_repository_label_scenario(name: str, /) -> _RepositoryLabelScenario:
             ),
             label_permission=False,
         ),
+        "update-permission-denied-then-granted": _RepositoryLabelScenario(
+            selected=("docs",),
+            attached=(),
+            repository_pages=((_repository_label("docs", "Documentation only"),),),
+            label_permission=False,
+            should_grant_permission_after_denial=True,
+        ),
+        "update-permission-api-failure": _RepositoryLabelScenario(
+            selected=("docs",),
+            attached=(),
+            repository_pages=((_repository_label("docs", "Documentation only"),),),
+            should_fail_permission_request=True,
+        ),
         "update-permission-delete-race": _RepositoryLabelScenario(
             selected=(),
             attached=("retired",),
-            repository_pages=(
-                (_repository_label("retired", "Removed during planning"),),
-            ),
+            repository_pages=((),),
             label_permission=False,
-            planning_deleted_label="retired",
+            permission_deleted_label="retired",
         ),
         "update-delete-race": _RepositoryLabelScenario(
             selected=("docs",),
@@ -2160,6 +2189,12 @@ def _build_repository_label_environment(
             "GH_PUSH_OWNER": scenario.push_owner,
             "GH_PUSH_OWNER_TYPE": scenario.push_owner_type,
             "GH_LABEL_PERMISSION": "1" if scenario.label_permission else "0",
+            "GH_GRANT_PERMISSION_AFTER_DENIAL": (
+                "1" if scenario.should_grant_permission_after_denial else "0"
+            ),
+            "GH_FAIL_PERMISSION_REQUEST": (
+                "1" if scenario.should_fail_permission_request else "0"
+            ),
             "SELECTED_LABELS": json.dumps(scenario.selected),
             "SELECTED_LABEL_CHOICES": json.dumps(_selected_label_choices(scenario)),
             "GH_POST_NOOP": "1" if scenario.post_noop else "0",
@@ -2177,8 +2212,8 @@ def _build_repository_label_environment(
         env["GH_CONCURRENT_LABEL"] = scenario.concurrent
     if scenario.post_failure_label is not None:
         env["GH_POST_FAILURE_LABEL"] = scenario.post_failure_label
-    if scenario.planning_deleted_label is not None:
-        env["GH_PLANNING_DELETED_LABEL"] = scenario.planning_deleted_label
+    if scenario.permission_deleted_label is not None:
+        env["GH_PERMISSION_DELETED_LABEL"] = scenario.permission_deleted_label
     if scenario.verification_inventory_race is not None:
         env["GH_VERIFICATION_INVENTORY_RACE"] = json.dumps(
             scenario.verification_inventory_race
@@ -2236,7 +2271,28 @@ elif [ "$1" = api ]; then
   if [ "$endpoint" = "users/$GH_PUSH_OWNER" ]; then
     jq -cn --arg type "$GH_PUSH_OWNER_TYPE" '{type: $type}'
   elif [ "$endpoint" = "repos/$GH_EXPECTED_REPOSITORY" ]; then
-    if [ "$GH_LABEL_PERMISSION" = 1 ]; then
+    if [ -n "${GH_PERMISSION_DELETED_LABEL:-}" ] && \
+       [ ! -e "$GH_CONCURRENT_MARKER" ]; then
+      jq -ce --arg label "$GH_PERMISSION_DELETED_LABEL" \
+        'map(map(select(.name != $label)))' "$GH_REPOSITORY_PAGES_AFTER" \
+        >"$GH_REPOSITORY_PAGES_AFTER.next"
+      mv "$GH_REPOSITORY_PAGES_AFTER.next" "$GH_REPOSITORY_PAGES_AFTER"
+      cp "$GH_REPOSITORY_PAGES_AFTER" "$GH_REPOSITORY_PAGES_FINAL"
+      jq -ce --arg label "$GH_PERMISSION_DELETED_LABEL" \
+        'map(select(. != $label))' "$GH_ATTACHED_LABELS" \
+        >"$GH_ATTACHED_LABELS.next"
+      mv "$GH_ATTACHED_LABELS.next" "$GH_ATTACHED_LABELS"
+      : >"$GH_CONCURRENT_MARKER"
+    fi
+    permission_request_count=$(grep -c \
+      "repos/$GH_EXPECTED_REPOSITORY$" "$GH_API_LOG")
+    if [ "$GH_FAIL_PERMISSION_REQUEST" = 1 ]; then
+      printf 'permission API transport failure\n' >&2
+      exit 71
+    fi
+    if [ "$GH_LABEL_PERMISSION" = 1 ] || \
+       { [ "$GH_GRANT_PERMISSION_AFTER_DENIAL" = 1 ] && \
+         [ "$permission_request_count" -gt 1 ]; }; then
       printf '%s\n' '{"permissions":{"admin":false,"maintain":false,"push":false,"triage":true,"pull":true}}'
     else
       printf '%s\n' '{"permissions":{"admin":false,"maintain":false,"push":false,"triage":false,"pull":true}}'
@@ -2247,21 +2303,6 @@ elif [ "$1" = api ]; then
     count=$((count + 1))
     printf '%s' "$count" >"$GH_REPOSITORY_READS"
     attached_count=$(cat "$GH_ATTACHED_READS")
-    if [ -n "${GH_PLANNING_DELETED_LABEL:-}" ] && \
-       [ "$attached_count" -ge 1 ] && \
-       [ ! -e "$GH_PUBLICATION_COMPLETE" ] && \
-       [ ! -e "$GH_CONCURRENT_MARKER" ]; then
-      jq -ce --arg label "$GH_PLANNING_DELETED_LABEL" \
-        'map(map(select(.name != $label)))' "$GH_REPOSITORY_PAGES_AFTER" \
-        >"$GH_REPOSITORY_PAGES_AFTER.next"
-      mv "$GH_REPOSITORY_PAGES_AFTER.next" "$GH_REPOSITORY_PAGES_AFTER"
-      cp "$GH_REPOSITORY_PAGES_AFTER" "$GH_REPOSITORY_PAGES_FINAL"
-      jq -ce --arg label "$GH_PLANNING_DELETED_LABEL" \
-        'map(select(. != $label))' "$GH_ATTACHED_LABELS" \
-        >"$GH_ATTACHED_LABELS.next"
-      mv "$GH_ATTACHED_LABELS.next" "$GH_ATTACHED_LABELS"
-      : >"$GH_CONCURRENT_MARKER"
-    fi
     if [ -e "$GH_PUBLICATION_COMPLETE" ] && \
        [ "${GH_VERIFICATION_INVENTORY_CHURN:-0}" = 1 ]; then
       jq -ce --arg description "Description $count" \
@@ -2611,7 +2652,7 @@ def test_repository_label_fork_update_skips_permission_preflight_for_no_op(
     assert not any("--method DELETE" in call for call in api_calls)
 
 
-def test_repository_label_update_skips_permission_after_planning_deletion(
+def test_repository_label_update_replans_after_post_snapshot_permission_denial(
     tmp_path: Path,
 ) -> None:
     completed = run_repository_label_workflow(tmp_path, "update-permission-delete-race")
@@ -2619,7 +2660,38 @@ def test_repository_label_update_skips_permission_after_planning_deletion(
     assert completed.returncode == 0, completed.stderr
     assert json.loads((tmp_path / "attached-labels.json").read_text()) == []
     api_calls = (tmp_path / "api.log").read_text().splitlines()
-    assert not any(call.endswith("repos/octo/update-target") for call in api_calls)
+    assert sum(call.endswith("repos/octo/update-target") for call in api_calls) == 1
+    assert not any("--method POST" in call for call in api_calls)
+    assert not any("--method DELETE" in call for call in api_calls)
+
+
+def test_repository_label_update_preserves_initial_denial_if_permission_is_later_granted(
+    tmp_path: Path,
+) -> None:
+    completed = run_repository_label_workflow(
+        tmp_path, "update-permission-denied-then-granted"
+    )
+
+    assert completed.returncode != 0
+    assert "selected labels require repository label permission" in completed.stderr
+    assert not (tmp_path / "publication-complete").exists()
+    api_calls = (tmp_path / "api.log").read_text().splitlines()
+    assert sum(call.endswith("repos/octo/update-target") for call in api_calls) == 1
+    assert not any("--method POST" in call for call in api_calls)
+    assert not any("--method DELETE" in call for call in api_calls)
+
+
+def test_repository_label_update_preserves_permission_api_failure(
+    tmp_path: Path,
+) -> None:
+    completed = run_repository_label_workflow(tmp_path, "update-permission-api-failure")
+
+    assert completed.returncode != 0
+    assert "permission API transport failure" in completed.stderr
+    assert "require repository label permission" not in completed.stderr
+    assert not (tmp_path / "publication-complete").exists()
+    api_calls = (tmp_path / "api.log").read_text().splitlines()
+    assert sum(call.endswith("repos/octo/update-target") for call in api_calls) == 1
     assert not any("--method POST" in call for call in api_calls)
     assert not any("--method DELETE" in call for call in api_calls)
 
