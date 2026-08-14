@@ -412,7 +412,7 @@ result.
 When the head has no open PR, create a draft:
 
 ```bash
-PR=$(gh pr create --draft --title "$TITLE" --body-file - \
+PR=$(gh pr create --repo "$HOST/$REPOSITORY" --draft --title "$TITLE" --body-file - \
   --base "$PR_BASE" --head "$BOOKMARK" <<<"$BODY")
 ```
 

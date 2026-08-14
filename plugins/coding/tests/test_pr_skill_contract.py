@@ -1428,6 +1428,7 @@ def test_pr_label_attachment_preserves_exact_names(
         "#!/usr/bin/env bash\n"
         'printf \'%s %s\\n\' "$1" "${2:-}" >>"$GH_COMMAND_LOG"\n'
         'if [ "$1 $2" = "pr create" ]; then\n'
+        '  [[ " $* " == *" --repo github.example/octo/widgets "* ]] || exit 1\n'
         "  printf '%s\\n' 'https://github.example/octo/widgets/pull/41'\n"
         'elif [ "$1 $2" = "pr view" ]; then\n'
         "  printf '41\\n'\n"
