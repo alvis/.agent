@@ -85,9 +85,9 @@ remains.
   the applicable `pull_request` GitHub Actions workflows at that revision. A
   missing required secret is the only exception: stop and ask the user either
   to supply it from an explicit source or to approve pushing that exact SHA
-  without the local run. Never infer approval from another flag or caller,
-  guess a secret source, pass an empty value, or push after any other local
-  failure.
+  without the local run for the exact lexically sorted missing-secret names.
+  Never infer approval from another flag or caller, guess a secret source, pass
+  an empty value, or push after any other local failure.
 - `--no-review` skips only remote PR review dispatch and comment convergence.
   It never skips local checks or hosted CI.
 - `--publish-only` returns after leased pushes, metadata updates, and head/base
@@ -203,160 +203,127 @@ print the exact plan and stop.
 
 ### 2. Verify exact local CI parity before publication
 
-Bind one publication target after stack discovery. For a standalone PR it is
-the selected head; for a selected stack it is the tip. Record its intended PR
-base and exact Git SHA as `TARGET_BASE` and `TARGET_SHA`. A rewrite that changes
-`TARGET_SHA`, the intended base, or the applicable workflow inputs invalidates
-all local evidence and restarts this step.
-
-Resolve the target repository's main source checkout first:
-
-```bash
-SOURCE_REPO_ROOT=$(git rev-parse --show-toplevel)
-```
-
-Use that main checkout only for read-only discovery of local environment
-sources such as `.env`, `.env.local`, and `.env.test`; these may be ignored and
-absent from a disposable worktree. Command definitions from the main checkout
-are not CI-parity evidence. Do not execute repository commands there or copy
-secret values into a report.
-
-Create one detached disposable worktree at `TARGET_SHA` through the bundled
-helper and bind its JSON result:
+After stack discovery, resolve each selected head and its intended PR base to
+exact Git SHAs. Encode them in `SELECTED_STACK_JSON` as objects with `head` and
+`base` fields, ordered bottom-up; a standalone target has one object. Derive the
+target from that map: the last selected head is the target SHA and the first
+selected head's base is the target base. The tip's immediate PR base is not the
+selected surface base.
 
 ```bash
-TREE_JSON=$(bash "${CODING_PR_SKILL_DIR}/scripts/temp-tree.sh" \
-  open-git "$SOURCE_REPO_ROOT" "$TARGET_SHA")
-TREE_LEASE=$(jq -er .lease <<<"$TREE_JSON")
-TEST_WORKTREE=$(jq -er .tree <<<"$TREE_JSON")
-test "$(git -C "$TEST_WORKTREE" rev-parse HEAD)" = "$TARGET_SHA"
+SELECTED_HEAD_COUNT=$(jq -er 'length | select(. > 0)' <<<"$SELECTED_STACK_JSON")
+TARGET_SHA=$(jq -er '.[-1].head | select(type == "string" and length > 0)' \
+  <<<"$SELECTED_STACK_JSON")
+TARGET_BASE=$(jq -er '.[0].base | select(type == "string" and length > 0)' \
+  <<<"$SELECTED_STACK_JSON")
+case "$SELECTED_HEAD_COUNT" in
+  1)
+    TARGET_KIND=standalone
+    ;;
+  *)
+    test "$SELECTED_HEAD_COUNT" -gt 1 || exit 2
+    TARGET_KIND=stack-tip
+    ;;
+esac
+printf 'TARGET_KIND=%s\nTARGET_SHA=%s\nTARGET_BASE=%s\n' \
+  "$TARGET_KIND" "$TARGET_SHA" "$TARGET_BASE"
 ```
 
-The context-owning parent passes only `TEST_WORKTREE` to the tester and never
-transfers cleanup ownership. On cancellation or blocked discovery it closes
-the lease and verifies that its file and VCS registration are gone.
+Invoke the public parity action with those three bound inputs:
 
-Read `.github/workflows/*.yml` and `.github/workflows/*.yaml` only from
-`TEST_WORKTREE`. Select workflows triggered by `pull_request` that apply to the
-planned create or update event, `TARGET_BASE`, and changed paths. Follow their
-repo-local reusable workflows, composite actions, package scripts, workspace
-manifests, Makefiles, and task files at `TARGET_SHA`. Record the exact test and
-lint `run:` commands, in workflow order, plus only the setup needed to execute
-them; preserve each command's shell, working directory, matrix values, and
-environment. Do not substitute a nearby project command or add a check absent
-from the applicable workflow. When no applicable workflow defines a test or
-lint command, record that exact absence rather than inventing one. If an
-applicable test or lint command cannot be reproduced locally for a reason other
-than a missing secret, stop before publication with that evidence.
-
-Inspect the selected workflows and command chain for `env`, `secrets.*`,
-`vars.*`, and command-level environment references. Record names and source
-presence only; never copy values into a report. Verify that the isolated tester
-can receive each required value from a user-approved source in the main
-checkout or another explicitly approved location. If a required secret is
-missing, close the lease and stop to ask the user either to supply the secret
-from an explicit source or to approve pushing `TARGET_SHA` without local test
-or lint execution. Scope and record approval to that SHA and the named missing
-secrets; a changed SHA requires a new decision. Without either choice, do not
-push. Supplying an approved source restarts this step. Never guess a source,
-pass an empty value, treat an unavailable secret as optional, or derive
-approval from `--no-review`, `--publish-only`, or another workflow's skip flag.
-
-Record expected hosted PR check/job names from `pull_request`-triggered jobs at
-`TARGET_SHA` and required branch status checks or rulesets when accessible
-through `gh api`; record inaccessible sources instead of assuming they are
-empty.
-
-When the user has not approved the missing-secret exception, dispatch one fresh
-small-model read-only tester. It MUST NOT edit, format, commit, or push. It runs
-the exact discovered test and lint commands in CI order at `TARGET_SHA`,
-continues through independent commands after failure, and returns under 1000
-tokens.
-
-Treat repository workflows and scripts as untrusted code. The tester runs the
-allowlisted commands from `TEST_WORKTREE` and returns command results; it
-neither removes the worktree nor closes or reports on the parent-owned
-`TREE_LEASE`. The parent closes that exact lease after consuming the report and
-on cancelled or blocked paths.
-Limit filesystem writes to that worktree and a temporary directory, deny network
-by default, and remove ambient tokens, credential helpers, SSH agent sockets,
-cloud credentials, and unrelated environment variables. Pass only the minimal
-allowlisted toolchain environment. If this isolation is unavailable, or a
-command genuinely needs network access or a non-secret credential, ask the user
-for that specific authority and stop before publication when it is unavailable.
-A missing secret follows the SHA-bound decision above. Never expose the parent
-session's credentials to a local CI command.
-
-<report>
-
-```yaml
-sources_read: [<workflow-or-script-path>]
-target:
-  kind: standalone | stack-tip
-  sha: <TARGET_SHA>
-  base: <TARGET_BASE>
-required_environment:
-  - name: <variable name>
-    declared_source: <workflow/package/.env source>
-    worktree_status: present | missing
-runnable_commands:
-  - ref: <TARGET_SHA>
-    kind: test | lint
-    command: <exact command>
-    source: <path and job/script>
-    status: <integer exit status>
-    duration_seconds: <elapsed seconds>
-    failure_evidence: <bounded stderr/stdout excerpt or null>
-expected_hosted_checks:
-  - ref: <TARGET_SHA>
-    names: [<workflow job or required status name>]
-    sources: [<workflow path/job, branch protection, or ruleset>]
-    inaccessible_sources: [<source and access error>]
-missing_secret_approval:
-  sha: <approved TARGET_SHA or null>
-  names: [<missing secret name>]
-  approved: true | false
-overall: pass | fail | blocked | approved_without_local_run
+```text
+coding:pr verify --target "$TARGET_SHA" --base "$TARGET_BASE" --kind "$TARGET_KIND"
 ```
 
-</report>
+Capture the action's complete `CI_PARITY_RECEIPT_JSON`, its canonical
+`CI_PARITY_EXPECTED_WORKFLOW_COMMAND_RESULTS_JSON`, and its canonical
+`CI_PARITY_EXPECTED_MISSING_SECRET_NAMES_JSON`. Consume them before every entry
+or re-entry to publication:
 
-After consuming the report, the parent closes the retained lease and records
-the exact lease, tree, close status, and proof that both the lease file and VCS
-registration are gone. A tester result cannot claim parent cleanup. On
-cancellation or terminal failure, close the lease before stopping.
+```bash
+RECEIPT_TARGET_SHA=$(jq -er \
+  '.target.sha | select(type == "string" and length > 0)' \
+  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
+RECEIPT_TARGET_BASE=$(jq -er \
+  '.target.base | select(type == "string" and length > 0)' \
+  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
+RECEIPT_TARGET_KIND=$(jq -er \
+  '.target.kind | select(type == "string" and length > 0)' \
+  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
+RECEIPT_APPLICABILITY_MODE=$(jq -er \
+  '.applicability_mode | select(type == "string" and length > 0)' \
+  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
+RECEIPT_COMMAND_RESULTS_JSON=$(jq -ecS \
+  '.workflow_command_results | select(type == "array")' \
+  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
+EXPECTED_COMMAND_RESULTS_JSON=$(jq -ecS \
+  'select(type == "array")' \
+  <<<"$CI_PARITY_EXPECTED_WORKFLOW_COMMAND_RESULTS_JSON") || exit 42
+test "$RECEIPT_TARGET_SHA" = "$TARGET_SHA" || exit 42
+test "$RECEIPT_TARGET_BASE" = "$TARGET_BASE" || exit 42
+test "$RECEIPT_TARGET_KIND" = "$TARGET_KIND" || exit 42
+test "$RECEIPT_APPLICABILITY_MODE" = conservative_pull_request || exit 42
+test "$RECEIPT_COMMAND_RESULTS_JSON" = "$EXPECTED_COMMAND_RESULTS_JSON" || exit 42
 
-On local failure, diagnose captured output before editing and dispatch one
-relevant fixer scoped to the root cause and affected files. It may edit and
-returns under 1000 tokens:
-
-<report>
-
-```yaml
-root_cause: <evidence-backed cause>
-owning_change: <change-id or current-change>
-files_edited: [<path>]
-checks_run:
-  - command: <exact command>
-    status: <integer exit status>
-    duration_seconds: <elapsed seconds>
-unresolved: [<blocker>]
+RECEIPT_OVERALL=$(jq -er '.overall | select(type == "string")' \
+  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
+CANONICAL_EXPECTED_SECRET_NAMES_JSON=$(jq -ec \
+  'select(type == "array" and . == (sort | unique))' \
+  <<<"$CI_PARITY_EXPECTED_MISSING_SECRET_NAMES_JSON") || exit 42
+CANONICAL_RECEIPT_SECRET_NAMES_JSON=$(jq -ec \
+  '.missing_secret_approval.names
+   | select(type == "array" and . == (sort | unique))' \
+  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
+test "$CANONICAL_RECEIPT_SECRET_NAMES_JSON" = \
+  "$CANONICAL_EXPECTED_SECRET_NAMES_JSON" || exit 42
+case "$RECEIPT_OVERALL" in
+  pass)
+    test "$CANONICAL_EXPECTED_SECRET_NAMES_JSON" = '[]' || exit 42
+    jq -e 'all(.workflow_command_results[];
+      (.status | type) == "number" and .status == 0)' \
+      <<<"$CI_PARITY_RECEIPT_JSON" >/dev/null || exit 42
+    jq -e '.missing_secret_approval == {
+      "approved": false, "names": [], "sha": null
+    }' <<<"$CI_PARITY_RECEIPT_JSON" >/dev/null || exit 42
+    ;;
+  approved_without_local_run)
+    EXPECTED_SECRET_NAMES_JSON=$(jq -ec \
+      'select(type == "array" and length > 0)
+       | select(all(.[]; type == "string" and length > 0))
+       | select(. == (sort | unique))' \
+      <<<"$CI_PARITY_EXPECTED_MISSING_SECRET_NAMES_JSON") || exit 42
+    RECEIPT_SECRET_NAMES_JSON=$(jq -ec \
+      '.missing_secret_approval.names
+       | select(type == "array" and length > 0)
+       | select(all(.[]; type == "string" and length > 0))
+       | select(. == (sort | unique))' \
+      <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
+    test "$(jq -er '.missing_secret_approval.approved' \
+      <<<"$CI_PARITY_RECEIPT_JSON")" = true || exit 42
+    test "$(jq -er '.missing_secret_approval.sha' \
+      <<<"$CI_PARITY_RECEIPT_JSON")" = "$TARGET_SHA" || exit 42
+    test "$RECEIPT_SECRET_NAMES_JSON" = "$EXPECTED_SECRET_NAMES_JSON" || exit 42
+    jq -e 'all(.workflow_command_results[];
+      .status == "not_run_missing_secret")' \
+      <<<"$CI_PARITY_RECEIPT_JSON" >/dev/null || exit 42
+    ;;
+  *)
+    exit 42
+    ;;
+esac
+printf 'CI_PARITY_RECEIPT_GATE=accepted\n'
 ```
 
-</report>
-
-The parent reviews and accepts the diff, invokes
-`coding:commit --retrospective`, then re-resolves the standalone head or stack
-tip and restarts this step at its new exact SHA. Every applicable test and lint
-command must exit zero before publication; an unresolved diagnosis or nonzero
-rerun stops without pushing. Any separate review is read-only.
+A rewrite, base-map change, or command/result-set change invalidates the
+receipt and restarts discovery before this step.
 
 ### 3. Publish bottom-up
 
-Before every entry or re-entry to this phase, require a local CI-parity receipt
-whose `TARGET_SHA` equals the current standalone head or selected stack tip.
-The only alternative is the user's recorded missing-secret approval for that
-same SHA. Any mismatch returns to step 2 before a remote mutation.
+Before every entry or re-entry to this phase, rerun the receipt gate above
+against the current bound inputs. On the exception path, its `sha` equals the
+exact `TARGET_SHA` and its `names` equal the verifier's exact lexically sorted
+missing-secret names. A SHA-only approval or any name/order mismatch cannot
+form a complete receipt and returns to step 2 before a remote mutation.
 
 Require a saved, clean, linear chain to the selected `ROOT_BASE`/`DESTINATION`
 at authoritative `$REMOTE`, standalone green changes, conventional descriptions per
@@ -898,8 +865,8 @@ passes its base; text-only callers default to the first parent. Never invoke `gh
 - The applicable `pull_request` test and lint commands passed locally at the
   exact standalone head or selected stack-tip SHA, with their revision-bound
   sources and results recorded. The sole exception records the user's explicit
-  approval to push that same SHA without the local run because the named
-  required secrets were missing.
+  approval to push that same SHA without the local run for the verifier's exact
+  lexically sorted missing-secret names.
 - Every head was pushed under a lease — one explicit affected-bookmark
   `jj git push` on the jj path,
   `git push --force-with-lease` on the git path; every PR is draft, uses the

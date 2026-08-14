@@ -100,16 +100,100 @@ Bind `TARGET_SHA` to the rewritten bookmark's exact Git commit and
 ```bash
 TARGET_SHA=$(jj log -r <affected-bookmark> --no-graph -T 'commit_id')
 TARGET_BASE=$(jj log -r '<affected-bookmark>@origin' --no-graph -T 'commit_id')
+TARGET_KIND=standalone
 ```
 
-Before any push, treat the affected bookmark as a standalone target and follow
-only [Verify exact local CI parity before publication](../../pr/references/create-update.md#2-verify-exact-local-ci-parity-before-publication).
-Discover the applicable `pull_request` test and lint commands from the detached
-tree at `TARGET_SHA`, using `TARGET_BASE..TARGET_SHA` as the changed surface,
-and require its exact-SHA receipt or SHA-bound missing-secret approval before
-continuing. Neither `--no-verify` nor `--allow-rewrite-merged` skips this gate.
-This is direct synchronization of the already-authorized bookmark, not PR
-publication; do not enter the PR workflow's publication phase.
+Before any push, invoke the public parity action for this standalone surface:
+
+```text
+coding:pr verify --target "$TARGET_SHA" --base "$TARGET_BASE" --kind "$TARGET_KIND"
+```
+
+Capture the action's complete `CI_PARITY_RECEIPT_JSON`, its canonical
+`CI_PARITY_EXPECTED_WORKFLOW_COMMAND_RESULTS_JSON`, and its canonical
+`CI_PARITY_EXPECTED_MISSING_SECRET_NAMES_JSON`, then consume them before the
+push:
+
+```bash
+RECEIPT_TARGET_SHA=$(jq -er \
+  '.target.sha | select(type == "string" and length > 0)' \
+  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
+RECEIPT_TARGET_BASE=$(jq -er \
+  '.target.base | select(type == "string" and length > 0)' \
+  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
+RECEIPT_TARGET_KIND=$(jq -er \
+  '.target.kind | select(type == "string" and length > 0)' \
+  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
+RECEIPT_APPLICABILITY_MODE=$(jq -er \
+  '.applicability_mode | select(type == "string" and length > 0)' \
+  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
+RECEIPT_COMMAND_RESULTS_JSON=$(jq -ecS \
+  '.workflow_command_results | select(type == "array")' \
+  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
+EXPECTED_COMMAND_RESULTS_JSON=$(jq -ecS \
+  'select(type == "array")' \
+  <<<"$CI_PARITY_EXPECTED_WORKFLOW_COMMAND_RESULTS_JSON") || exit 42
+test "$RECEIPT_TARGET_SHA" = "$TARGET_SHA" || exit 42
+test "$RECEIPT_TARGET_BASE" = "$TARGET_BASE" || exit 42
+test "$RECEIPT_TARGET_KIND" = "$TARGET_KIND" || exit 42
+test "$RECEIPT_APPLICABILITY_MODE" = conservative_pull_request || exit 42
+test "$RECEIPT_COMMAND_RESULTS_JSON" = "$EXPECTED_COMMAND_RESULTS_JSON" || exit 42
+
+RECEIPT_OVERALL=$(jq -er '.overall | select(type == "string")' \
+  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
+CANONICAL_EXPECTED_SECRET_NAMES_JSON=$(jq -ec \
+  'select(type == "array" and . == (sort | unique))' \
+  <<<"$CI_PARITY_EXPECTED_MISSING_SECRET_NAMES_JSON") || exit 42
+CANONICAL_RECEIPT_SECRET_NAMES_JSON=$(jq -ec \
+  '.missing_secret_approval.names
+   | select(type == "array" and . == (sort | unique))' \
+  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
+test "$CANONICAL_RECEIPT_SECRET_NAMES_JSON" = \
+  "$CANONICAL_EXPECTED_SECRET_NAMES_JSON" || exit 42
+case "$RECEIPT_OVERALL" in
+  pass)
+    test "$CANONICAL_EXPECTED_SECRET_NAMES_JSON" = '[]' || exit 42
+    jq -e 'all(.workflow_command_results[];
+      (.status | type) == "number" and .status == 0)' \
+      <<<"$CI_PARITY_RECEIPT_JSON" >/dev/null || exit 42
+    jq -e '.missing_secret_approval == {
+      "approved": false, "names": [], "sha": null
+    }' <<<"$CI_PARITY_RECEIPT_JSON" >/dev/null || exit 42
+    ;;
+  approved_without_local_run)
+    EXPECTED_SECRET_NAMES_JSON=$(jq -ec \
+      'select(type == "array" and length > 0)
+       | select(all(.[]; type == "string" and length > 0))
+       | select(. == (sort | unique))' \
+      <<<"$CI_PARITY_EXPECTED_MISSING_SECRET_NAMES_JSON") || exit 42
+    RECEIPT_SECRET_NAMES_JSON=$(jq -ec \
+      '.missing_secret_approval.names
+       | select(type == "array" and length > 0)
+       | select(all(.[]; type == "string" and length > 0))
+       | select(. == (sort | unique))' \
+      <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
+    test "$(jq -er '.missing_secret_approval.approved' \
+      <<<"$CI_PARITY_RECEIPT_JSON")" = true || exit 42
+    test "$(jq -er '.missing_secret_approval.sha' \
+      <<<"$CI_PARITY_RECEIPT_JSON")" = "$TARGET_SHA" || exit 42
+    test "$RECEIPT_SECRET_NAMES_JSON" = "$EXPECTED_SECRET_NAMES_JSON" || exit 42
+    jq -e 'all(.workflow_command_results[];
+      .status == "not_run_missing_secret")' \
+      <<<"$CI_PARITY_RECEIPT_JSON" >/dev/null || exit 42
+    ;;
+  *)
+    exit 42
+    ;;
+esac
+printf 'CI_PARITY_RECEIPT_GATE=accepted\n'
+```
+
+On the exception path, its `sha` equals the exact `TARGET_SHA` and its `names`
+equal the verifier's exact lexically sorted missing-secret names. A SHA-only
+approval or any name/order mismatch cannot form a complete receipt and stops
+before the push. Neither `--no-verify` nor `--allow-rewrite-merged` skips this
+gate. This is direct synchronization of the already-authorized bookmark, not
+PR publication; do not invoke a publication action.
 
 Synchronize only the existing bookmark whose rewrite the user authorized:
 

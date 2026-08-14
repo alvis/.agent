@@ -1,8 +1,8 @@
 ---
 name: pr
-description: 'Use for GitHub pull-request workflows when the user asks to draft PR text, publish a branch, create, update, discover, check out, review, or merge a PR or linear stack. Trigger before running gh pr, inspecting GitHub stacks, or publishing PR-related changes.'
+description: 'Use for GitHub pull-request workflows when the user asks to draft PR text, verify exact local CI parity, publish a branch, create, update, discover, check out, review, or merge a PR or linear stack. Trigger before running gh pr, inspecting GitHub stacks, or publishing PR-related changes.'
 model: opus
-argument-hint: "<author|create|update|review|stack|merge> [arguments]"
+argument-hint: "<author|verify|create|update|review|stack|merge> [arguments]"
 ---
 
 # Pull Requests
@@ -27,6 +27,7 @@ and the overall verdict through
 
 ```text
 /coding:pr author [<commit-ref>] [--base <ref>]
+/coding:pr verify --target <git-sha> --base <git-sha> [--kind standalone|stack-tip]
 /coding:pr create [<commit-ref>] [--branch-prefix <name>] [--remote <name>] [--no-review] [--publish-only] [--dry-run]
 /coding:pr update [<pr-number-or-url> | <commit-ref>] [--branch-prefix <name>] [--remote <name>] [--no-review] [--publish-only] [--dry-run]
 /coding:pr review [<pr-number-or-url> | <source-tree-path>] [--repo <owner/name>] [--area=<list>] [--dry-run]
@@ -52,6 +53,12 @@ or `merge`, rather than the explicit `stack` route.
   local template.
   Follow only [Author the PR text](references/create-update.md#author-the-pr-text);
   `--base` selects the intended PR base instead of the first-parent default.
+- `verify` runs the fail-closed local test/lint gate for one exact target and
+  base without publishing. Load and follow
+  [references/verify-ci-parity.md](references/verify-ci-parity.md); callers must
+  pass resolved Git SHAs, and `--kind` defaults to `standalone`. Because these
+  inputs do not identify a base ref or event type, workflow applicability is
+  conservative and the receipt records that mode.
 - `create` opens new draft PRs for one saved change or a conventional linear
   stack. Load and follow
   [references/create-update.md](references/create-update.md) with

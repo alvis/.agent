@@ -99,11 +99,10 @@ All descendants should be auto-rebased and free of conflicts. If conflicts appea
 
 - If any unmerged bookmark sits at or below the edited change, follow the
   [SKILL.md](../SKILL.md) publication handoff with the resolved stack metadata
-  after local integrity passes. Discover open PRs for the selected heads:
-  invoke `coding:pr create` when none has one, otherwise invoke
-  `coding:pr update` against the lowest open head so it can include unpublished
-  descendants. The descendants were auto-rebased by jj; the PR workflow owns
-  force-with-lease republication and PR reparenting.
+  after local integrity passes. Discover open PRs for the selected heads and
+  report their states without mutating them. The caller separately authorizes
+  any `coding:pr update` needed for force-with-lease republication and PR
+  reparenting.
 
 - The [SKILL.md](../SKILL.md) integrity check and project scripts (`npm run lint/test/build`) MUST pass.
 
