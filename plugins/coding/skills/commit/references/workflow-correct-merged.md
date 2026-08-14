@@ -88,11 +88,116 @@ jj new <merged_change_parent>
 jj rebase -s <merged_change> -d @
 ```
 
-After the local rewrite and integrity guard pass, synchronize only the existing
-bookmark whose rewrite the user authorized:
+After the local rewrite and integrity guard pass, fetch remote state:
 
 ```bash
 jj git fetch
+```
+
+Bind `TARGET_SHA` to the rewritten bookmark's exact Git commit and
+`TARGET_BASE` to the fetched pre-push `<affected-bookmark>@origin` commit:
+
+```bash
+TARGET_SHA=$(jj log -r <affected-bookmark> --no-graph -T 'commit_id')
+TARGET_BASE=$(jj log -r '<affected-bookmark>@origin' --no-graph -T 'commit_id')
+TARGET_KIND=standalone
+```
+
+Before any push, invoke the public parity action for this standalone surface:
+
+```text
+coding:pr verify --target "$TARGET_SHA" --base "$TARGET_BASE" --kind "$TARGET_KIND"
+```
+
+Capture the action's complete `CI_PARITY_RECEIPT_JSON`, its canonical
+`CI_PARITY_EXPECTED_WORKFLOW_COMMAND_RESULTS_JSON`, and its canonical
+`CI_PARITY_EXPECTED_MISSING_SECRET_NAMES_JSON`, then consume them before the
+push:
+
+```bash
+RECEIPT_TARGET_SHA=$(jq -er \
+  '.target.sha | select(type == "string" and length > 0)' \
+  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
+RECEIPT_TARGET_BASE=$(jq -er \
+  '.target.base | select(type == "string" and length > 0)' \
+  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
+RECEIPT_TARGET_KIND=$(jq -er \
+  '.target.kind | select(type == "string" and length > 0)' \
+  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
+RECEIPT_APPLICABILITY_MODE=$(jq -er \
+  '.applicability_mode | select(type == "string" and length > 0)' \
+  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
+RECEIPT_COMMAND_RESULTS_JSON=$(jq -ecS \
+  '.workflow_command_results | select(type == "array")' \
+  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
+EXPECTED_COMMAND_RESULTS_JSON=$(jq -ecS \
+  'select(type == "array")' \
+  <<<"$CI_PARITY_EXPECTED_WORKFLOW_COMMAND_RESULTS_JSON") || exit 42
+test "$RECEIPT_TARGET_SHA" = "$TARGET_SHA" || exit 42
+test "$RECEIPT_TARGET_BASE" = "$TARGET_BASE" || exit 42
+test "$RECEIPT_TARGET_KIND" = "$TARGET_KIND" || exit 42
+test "$RECEIPT_APPLICABILITY_MODE" = conservative_pull_request || exit 42
+test "$RECEIPT_COMMAND_RESULTS_JSON" = "$EXPECTED_COMMAND_RESULTS_JSON" || exit 42
+
+RECEIPT_OVERALL=$(jq -er '.overall | select(type == "string")' \
+  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
+CANONICAL_EXPECTED_SECRET_NAMES_JSON=$(jq -ec \
+  'select(type == "array" and . == (sort | unique))' \
+  <<<"$CI_PARITY_EXPECTED_MISSING_SECRET_NAMES_JSON") || exit 42
+CANONICAL_RECEIPT_SECRET_NAMES_JSON=$(jq -ec \
+  '.missing_secret_approval.names
+   | select(type == "array" and . == (sort | unique))' \
+  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
+test "$CANONICAL_RECEIPT_SECRET_NAMES_JSON" = \
+  "$CANONICAL_EXPECTED_SECRET_NAMES_JSON" || exit 42
+case "$RECEIPT_OVERALL" in
+  pass)
+    test "$CANONICAL_EXPECTED_SECRET_NAMES_JSON" = '[]' || exit 42
+    jq -e 'all(.workflow_command_results[];
+      (.status | type) == "number" and .status == 0)' \
+      <<<"$CI_PARITY_RECEIPT_JSON" >/dev/null || exit 42
+    jq -e '.missing_secret_approval == {
+      "approved": false, "names": [], "sha": null
+    }' <<<"$CI_PARITY_RECEIPT_JSON" >/dev/null || exit 42
+    ;;
+  approved_without_local_run)
+    EXPECTED_SECRET_NAMES_JSON=$(jq -ec \
+      'select(type == "array" and length > 0)
+       | select(all(.[]; type == "string" and length > 0))
+       | select(. == (sort | unique))' \
+      <<<"$CI_PARITY_EXPECTED_MISSING_SECRET_NAMES_JSON") || exit 42
+    RECEIPT_SECRET_NAMES_JSON=$(jq -ec \
+      '.missing_secret_approval.names
+       | select(type == "array" and length > 0)
+       | select(all(.[]; type == "string" and length > 0))
+       | select(. == (sort | unique))' \
+      <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
+    test "$(jq -er '.missing_secret_approval.approved' \
+      <<<"$CI_PARITY_RECEIPT_JSON")" = true || exit 42
+    test "$(jq -er '.missing_secret_approval.sha' \
+      <<<"$CI_PARITY_RECEIPT_JSON")" = "$TARGET_SHA" || exit 42
+    test "$RECEIPT_SECRET_NAMES_JSON" = "$EXPECTED_SECRET_NAMES_JSON" || exit 42
+    jq -e 'all(.workflow_command_results[];
+      .status == "not_run_missing_secret")' \
+      <<<"$CI_PARITY_RECEIPT_JSON" >/dev/null || exit 42
+    ;;
+  *)
+    exit 42
+    ;;
+esac
+printf 'CI_PARITY_RECEIPT_GATE=accepted\n'
+```
+
+On the exception path, its `sha` equals the exact `TARGET_SHA` and its `names`
+equal the verifier's exact lexically sorted missing-secret names. A SHA-only
+approval or any name/order mismatch cannot form a complete receipt and stops
+before the push. Neither `--no-verify` nor `--allow-rewrite-merged` skips this
+gate. This is direct synchronization of the already-authorized bookmark, not
+PR publication; do not invoke a publication action.
+
+Synchronize only the existing bookmark whose rewrite the user authorized:
+
+```bash
 jj git push --bookmark <affected-bookmark>
 ```
 
@@ -123,15 +228,16 @@ Notify reviewers and downstream consumers:
 ## Hard rules
 
 - Default route is ALWAYS the corrective PR. Only deviate on explicit user choice or `--allow-rewrite-merged`.
-- `--allow-rewrite-merged` skips the `AskUserQuestion` prompt but does NOT skip the integrity guard.
+- `--allow-rewrite-merged` skips the `AskUserQuestion` prompt but does NOT skip the integrity or exact-revision publication gate.
 - Conventional regex enforced on any new change introduced.
 - A rewrite that touches main@origin's tip itself is forbidden — surface and abort regardless of consent.
 
 ## Mandatory follow-ups
 
 - Option 1: normal save follow-ups ([workflow-save-local.md](./workflow-save-local.md)).
-- Option 2: integrity check and project scripts, direct force-with-lease sync
-  of the affected bookmark only, then read-only `gh pr checks` for relevant
+- Option 2: integrity check, ordinary project scripts unless `--no-verify`,
+  mandatory exact-revision publication gate, direct force-with-lease sync of
+  the affected bookmark only, then read-only `gh pr checks` for relevant
   downstream PRs. Updating or restacking them needs separate explicit consent.
 - Always: report the chosen route per [SKILL.md](../SKILL.md) Completion.
 

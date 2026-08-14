@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import runpy
 import shutil
 import subprocess
@@ -10,6 +11,7 @@ import pytest
 
 PLUGIN = Path(__file__).resolve().parents[1]
 WRITE_PR = PLUGIN / "skills" / "pr"
+PR_SKILL = WRITE_PR / "SKILL.md"
 SIZE_THRESHOLDS = WRITE_PR / "assets" / "size-thresholds.json"
 CLASSIFIER = WRITE_PR / "scripts" / "classify-pr-size.py"
 MESSAGE_SCANNER = WRITE_PR / "scripts" / "scan-pr-message.py"
@@ -17,7 +19,14 @@ COMMIT_SKILL = PLUGIN / "skills" / "commit" / "SKILL.md"
 COMMIT_DIRECTIONS = (
     PLUGIN / "skills" / "commit" / "references" / "conventional-commits.md"
 )
+PARTIAL_TO_BRANCH = (
+    PLUGIN / "skills" / "commit" / "references" / "workflow-partial-to-branch.md"
+)
+CORRECT_MERGED = (
+    PLUGIN / "skills" / "commit" / "references" / "workflow-correct-merged.md"
+)
 CREATE_UPDATE = WRITE_PR / "references" / "create-update.md"
+VERIFY_CI_PARITY = WRITE_PR / "references" / "verify-ci-parity.md"
 STACKED_PRS = WRITE_PR / "references" / "stacked-prs.md"
 REVIEW_WORKFLOW = WRITE_PR / "references" / "review-workflow.md"
 MERGE_WORKFLOW = WRITE_PR / "references" / "merge.md"
@@ -37,6 +46,73 @@ GIT_RULE_FILES = {
     "GIT-PR-TYPE-04.md",
     "GIT-PR-TYPE-05.md",
 }
+
+
+def _fenced_block_containing(markdown: str, token: str) -> str:
+    blocks = re.findall(r"```(?:bash|text)\n(.*?)```", markdown, re.DOTALL)
+    matches = [block for block in blocks if token in block]
+    assert len(matches) == 1
+    return matches[0]
+
+
+def _run_shell_contract(block: str, environment: dict[str, str]) -> dict[str, str]:
+    completed = _run_shell_contract_result(block, environment)
+    completed.check_returncode()
+    return dict(line.split("=", 1) for line in completed.stdout.splitlines())
+
+
+def _run_shell_contract_result(
+    block: str, environment: dict[str, str]
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["bash"],
+        input=block,
+        env={**os.environ, **environment},
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+
+def _assert_target_gate_precedes_push(workflow: str) -> None:
+    lines = [line.strip() for line in workflow.splitlines()]
+    target_definitions = {
+        name: [
+            index
+            for index, line in enumerate(lines)
+            if re.match(rf"^{name}=", line)
+        ]
+        for name in ("TARGET_SHA", "TARGET_BASE")
+    }
+    gates = [
+        index
+        for index, line in enumerate(lines)
+        if line.startswith("coding:pr verify ")
+    ]
+    pushes = [
+        index
+        for index, line in enumerate(lines)
+        if line.startswith("jj git push --bookmark")
+    ]
+
+    assert len(gates) == 1
+    assert pushes
+    gate = gates[0]
+    assert all(positions and max(positions) < gate for positions in target_definitions.values())
+    assert gate < min(pushes)
+
+    invocation = lines[gate]
+    assert re.search(r'--target "\$TARGET_SHA"(?:\s|$)', invocation)
+    assert re.search(r'--base "\$TARGET_BASE"(?:\s|$)', invocation)
+
+
+def _assert_links_stay_within_skill(path: Path, skill_root: Path) -> None:
+    for target in re.findall(r"\[[^]]+\]\(([^)]+)\)", path.read_text()):
+        if "://" in target or target.startswith("#"):
+            continue
+        resolved = (path.parent / target.split("#", 1)[0]).resolve()
+        assert resolved.is_relative_to(skill_root.resolve())
+        assert resolved.exists()
 
 
 def test_authoring_binds_all_deterministic_inputs_and_publication_output() -> None:
@@ -304,7 +380,7 @@ def test_merged_skill_resolves_bundled_helpers_for_resource_lifetimes() -> None:
     assert "set `CODING_PR_SKILL_DIR` to the absolute directory" in router
     helper_consumers = {
         "scripts/preflight-jj-range-push.sh": (merge,),
-        "scripts/temp-tree.sh": (create_update, review_extraction, review),
+        "scripts/temp-tree.sh": (VERIFY_CI_PARITY.read_text(), review_extraction, review),
         "scripts/review-scan.sh": (review,),
         "scripts/scan-pr-message.py": (create_update,),
     }
@@ -380,18 +456,21 @@ def test_correct_merged_monitoring_stays_read_only() -> None:
 
 
 def test_owned_trees_bind_outputs_and_keep_cleanup_in_parent() -> None:
-    create_update = (WRITE_PR / "references" / "create-update.md").read_text()
+    create_update = VERIFY_CI_PARITY.read_text()
     extraction = (WRITE_PR / "references" / "review-extraction.md").read_text()
     helper = (WRITE_PR / "scripts" / "temp-tree.sh").read_text()
 
-    assert "TEST_WORKTREE=$(jq -er .tree" in create_update
-    assert "context-owning parent passes only" in create_update
-    assert (
-        "neither removes the worktree nor closes or reports on the parent-owned"
-        in create_update
-    )
-    assert "After consuming each batch report" in create_update
-    assert "never transfers cleanup ownership" in create_update
+    tree_setup = _fenced_block_containing(create_update, "open-git")
+    tree_json = tree_setup.index("TREE_JSON=")
+    lease_binding = tree_setup.index("TREE_LEASE=")
+    tree_binding = tree_setup.index("TEST_WORKTREE=")
+    revision_check = tree_setup.index('git -C "$TEST_WORKTREE" rev-parse HEAD')
+    assert tree_json < lease_binding < tree_binding < revision_check
+    assert tree_setup.count("TREE_LEASE") == 1
+    assert tree_setup.count("TEST_WORKTREE") == 2
+    assert create_update.index(tree_setup) < create_update.index("<report>")
+    report = create_update.split("<report>", 1)[1].split("</report>", 1)[0]
+    assert not re.search(r"(?im)^\s*(?:cleanup|lease)\w*\s*:", report)
     assert (
         'open-clone "https://$HOST/$OWNER/$REPO" "$PR_NUMBER" "$HEAD_OID"' in extraction
     )
@@ -498,17 +577,21 @@ def test_stack_publication_and_inspection_have_no_implicit_origin() -> None:
     assert "<parent>@$REMOTE" in stacked
 
 
-def test_rewrites_route_unpublished_stacks_to_create() -> None:
-    references = [
-        WRITE_PR.parent / "commit" / "references" / "workflow-edit.md",
-        WRITE_PR.parent / "commit" / "references" / "workflow-reorder.md",
-        WRITE_PR.parent / "commit" / "references" / "workflow-retrospective.md",
-    ]
+def test_partial_to_branch_does_not_dispatch_pr_mutations() -> None:
+    workflow = PARTIAL_TO_BRANCH.read_text()
+    normalized_workflow = " ".join(workflow.split())
+    mutation_dispatches = re.findall(
+        r"(?<!do not )\b(?:invoke|run|execute|call|dispatch|hand off to)\s+`?/?"
+        r"(coding:pr (?:create|update))\b",
+        workflow,
+        re.IGNORECASE,
+    )
 
-    for reference in references:
-        workflow = reference.read_text()
-        assert "`coding:pr create` when none has one" in workflow
-        assert "`coding:pr update` against the lowest open head" in workflow
+    assert mutation_dispatches == []
+    assert "return the exact synchronized `<target>` bookmark" in normalized_workflow
+    assert "Do not mutate a PR or dispatch another action" in normalized_workflow
+    assert "caller must separately authorize the matching" in normalized_workflow
+    assert "`coding:pr create` or `coding:pr update` action" in normalized_workflow
 
 
 def test_reviewer_receives_the_pinned_mission_capsule() -> None:
@@ -523,19 +606,675 @@ def test_reviewer_receives_the_pinned_mission_capsule() -> None:
     assert "A stack never receives a second lease" in review
 
 
-def test_stacked_local_checks_are_batched_and_cleanup_every_lease() -> None:
-    workflow = (WRITE_PR / "references" / "create-update.md").read_text()
+def test_ci_parity_target_selection_covers_the_selected_surface() -> None:
+    workflow = CREATE_UPDATE.read_text()
+    selector = _fenced_block_containing(workflow, "SELECTED_STACK_JSON")
 
-    assert "batches of at most ten" in workflow
-    assert "one fresh small-model" in workflow
-    assert "retain every returned lease/tree" in workflow
-    assert "closes only a completed batch's leases" in workflow
-    assert "retains" in workflow
-    assert "undispatched batches" in workflow
-    assert "recreate the affected" in workflow
-    assert "neither removes the worktree nor closes or reports on" in workflow
-    report = workflow.split("<report>", 1)[1].split("</report>", 1)[0]
-    assert "temporary_worktree_cleanup" not in report
+    standalone = _run_shell_contract(
+        selector,
+        {
+            "SELECTED_STACK_JSON": json.dumps(
+                [{"head": "standalone-head", "base": "standalone-base"}]
+            ),
+        },
+    )
+    stack = _run_shell_contract(
+        selector,
+        {
+            "SELECTED_STACK_JSON": json.dumps(
+                [
+                    {"head": "bottom-head", "base": "stack-root-base"},
+                    {"head": "middle-head", "base": "bottom-head"},
+                    {"head": "stack-tip", "base": "middle-head"},
+                ]
+            ),
+        },
+    )
+
+    assert standalone == {
+        "TARGET_KIND": "standalone",
+        "TARGET_SHA": "standalone-head",
+        "TARGET_BASE": "standalone-base",
+    }
+    assert stack == {
+        "TARGET_KIND": "stack-tip",
+        "TARGET_SHA": "stack-tip",
+        "TARGET_BASE": "stack-root-base",
+    }
+
+
+def test_ci_parity_workflow_selection_ignores_unevaluated_filters() -> None:
+    contract = VERIFY_CI_PARITY.read_text()
+    selector = _fenced_block_containing(contract, "CI_PARITY_WORKFLOW_DECISION")
+
+    for filter_values in ("all-match", "base-miss", "type-miss", "paths-miss"):
+        included = _run_shell_contract(
+            selector,
+            {
+                "HAS_PULL_REQUEST_TRIGGER": "1",
+                "UNEVALUATED_FILTER_FIXTURE": filter_values,
+            },
+        )
+        assert included == {
+            "CI_PARITY_WORKFLOW_DECISION": "include",
+            "CI_PARITY_APPLICABILITY_MODE": "conservative_pull_request",
+            "CI_PARITY_UNEVALUATED_FILTERS": "base_ref,event_type,paths",
+        }
+
+    excluded = _run_shell_contract(selector, {"HAS_PULL_REQUEST_TRIGGER": "0"})
+    assert excluded == {
+        "CI_PARITY_WORKFLOW_DECISION": "exclude",
+        "CI_PARITY_APPLICABILITY_MODE": "not_applicable",
+        "CI_PARITY_UNEVALUATED_FILTERS": "",
+    }
+
+
+def test_all_ci_parity_callers_use_the_public_verify_action() -> None:
+    create_update = CREATE_UPDATE.read_text()
+    invocation = _fenced_block_containing(create_update, "coding:pr verify ")
+
+    assert invocation.strip() == (
+        'coding:pr verify --target "$TARGET_SHA" --base "$TARGET_BASE" '
+        '--kind "$TARGET_KIND"'
+    )
+    _assert_target_gate_precedes_push(PARTIAL_TO_BRANCH.read_text())
+    _assert_target_gate_precedes_push(CORRECT_MERGED.read_text())
+
+
+def test_ci_parity_missing_secret_gate_is_exact_and_fail_closed() -> None:
+    contract = VERIFY_CI_PARITY.read_text()
+    gate = _fenced_block_containing(contract, "CI_PARITY_SECRET_GATE")
+    target = "target-sha"
+    missing = "API_TOKEN,SIGNING_KEY"
+
+    runnable = _run_shell_contract(
+        gate,
+        {"TARGET_SHA": target, "MISSING_SECRET_NAMES": ""},
+    )
+    assert runnable == {
+        "CI_PARITY_SECRET_GATE": "run_local",
+        "CI_PARITY_OVERALL": "pending_local_run",
+    }
+
+    blocked_cases = (
+        {},
+        {
+            "MISSING_SECRET_APPROVED": "true",
+            "MISSING_SECRET_APPROVAL_SHA": "other-sha",
+            "MISSING_SECRET_APPROVAL_NAMES": missing,
+        },
+        {
+            "MISSING_SECRET_APPROVED": "true",
+            "MISSING_SECRET_APPROVAL_SHA": target,
+            "MISSING_SECRET_APPROVAL_NAMES": "API_TOKEN",
+        },
+    )
+    for approval in blocked_cases:
+        blocked = _run_shell_contract_result(
+            gate,
+            {
+                "TARGET_SHA": target,
+                "MISSING_SECRET_NAMES": missing,
+                **approval,
+            },
+        )
+        assert blocked.returncode == 42
+        assert blocked.stdout.splitlines() == [
+            "CI_PARITY_SECRET_GATE=stop_before_push",
+            "CI_PARITY_OVERALL=blocked",
+        ]
+
+    approved = _run_shell_contract(
+        gate,
+        {
+            "TARGET_SHA": target,
+            "MISSING_SECRET_NAMES": missing,
+            "MISSING_SECRET_APPROVED": "true",
+            "MISSING_SECRET_APPROVAL_SHA": target,
+            "MISSING_SECRET_APPROVAL_NAMES": missing,
+        },
+    )
+    assert approved == {
+        "CI_PARITY_SECRET_GATE": "approved_without_local_run",
+        "CI_PARITY_OVERALL": "approved_without_local_run",
+    }
+
+
+def test_ci_parity_consumers_require_exact_sha_and_sorted_secret_names() -> None:
+    for consumer in (CREATE_UPDATE, PARTIAL_TO_BRANCH, CORRECT_MERGED):
+        contract = " ".join(consumer.read_text().split())
+
+        assert "its `sha` equals the exact `TARGET_SHA`" in contract
+        assert (
+            "its `names` equal the verifier's exact lexically sorted "
+            "missing-secret names"
+        ) in contract
+        assert "A SHA-only approval or any name/order mismatch" in contract
+
+
+def test_ci_parity_receipt_consumers_accept_only_the_exact_local_run() -> None:
+    command_results = [
+        {
+            "command": "uvx pytest",
+            "kind": "test",
+            "ref": "target-sha",
+            "source": ".github/workflows/ci.yml:test",
+            "status": 0,
+        },
+        {
+            "command": "uvx ruff check",
+            "kind": "lint",
+            "ref": "target-sha",
+            "source": ".github/workflows/ci.yml:lint",
+            "status": 0,
+        },
+    ]
+    receipt = {
+        "applicability_mode": "conservative_pull_request",
+        "missing_secret_approval": {"approved": False, "names": [], "sha": None},
+        "overall": "pass",
+        "target": {
+            "base": "target-base",
+            "kind": "standalone",
+            "sha": "target-sha",
+        },
+        "workflow_command_results": command_results,
+    }
+    environment = {
+        "CI_PARITY_EXPECTED_MISSING_SECRET_NAMES_JSON": "[]",
+        "CI_PARITY_EXPECTED_WORKFLOW_COMMAND_RESULTS_JSON": json.dumps(
+            command_results
+        ),
+        "CI_PARITY_RECEIPT_JSON": json.dumps(receipt),
+        "TARGET_BASE": "target-base",
+        "TARGET_KIND": "standalone",
+        "TARGET_SHA": "target-sha",
+    }
+
+    for consumer in (CREATE_UPDATE, PARTIAL_TO_BRANCH, CORRECT_MERGED):
+        gate = _fenced_block_containing(
+            consumer.read_text(), "CI_PARITY_RECEIPT_GATE"
+        )
+        assert _run_shell_contract(gate, environment) == {
+            "CI_PARITY_RECEIPT_GATE": "accepted"
+        }
+
+
+def test_ci_parity_receipt_consumers_reject_a_changed_base() -> None:
+    command_results = [
+        {
+            "command": "uvx pytest",
+            "kind": "test",
+            "ref": "target-sha",
+            "source": ".github/workflows/ci.yml:test",
+            "status": 0,
+        }
+    ]
+    receipt = {
+        "applicability_mode": "conservative_pull_request",
+        "missing_secret_approval": {"approved": False, "names": [], "sha": None},
+        "overall": "pass",
+        "target": {
+            "base": "stale-base",
+            "kind": "standalone",
+            "sha": "target-sha",
+        },
+        "workflow_command_results": command_results,
+    }
+    environment = {
+        "CI_PARITY_EXPECTED_MISSING_SECRET_NAMES_JSON": "[]",
+        "CI_PARITY_EXPECTED_WORKFLOW_COMMAND_RESULTS_JSON": json.dumps(
+            command_results
+        ),
+        "CI_PARITY_RECEIPT_JSON": json.dumps(receipt),
+        "TARGET_BASE": "target-base",
+        "TARGET_KIND": "standalone",
+        "TARGET_SHA": "target-sha",
+    }
+
+    for consumer in (CREATE_UPDATE, PARTIAL_TO_BRANCH, CORRECT_MERGED):
+        gate = _fenced_block_containing(
+            consumer.read_text(), "CI_PARITY_RECEIPT_GATE"
+        )
+        rejected = _run_shell_contract_result(gate, environment)
+        assert rejected.returncode == 42
+        assert rejected.stdout == ""
+
+
+def test_ci_parity_receipt_consumers_reject_missing_secret_name_mismatch() -> None:
+    command_results = [
+        {
+            "command": "uvx pytest",
+            "kind": "test",
+            "ref": "target-sha",
+            "source": ".github/workflows/ci.yml:test",
+            "status": "not_run_missing_secret",
+        }
+    ]
+    receipt = {
+        "applicability_mode": "conservative_pull_request",
+        "missing_secret_approval": {
+            "approved": True,
+            "names": ["API_TOKEN"],
+            "sha": "target-sha",
+        },
+        "overall": "approved_without_local_run",
+        "target": {
+            "base": "target-base",
+            "kind": "standalone",
+            "sha": "target-sha",
+        },
+        "workflow_command_results": command_results,
+    }
+    environment = {
+        "CI_PARITY_EXPECTED_MISSING_SECRET_NAMES_JSON": json.dumps(
+            ["API_TOKEN", "SIGNING_KEY"]
+        ),
+        "CI_PARITY_EXPECTED_WORKFLOW_COMMAND_RESULTS_JSON": json.dumps(
+            command_results
+        ),
+        "CI_PARITY_RECEIPT_JSON": json.dumps(receipt),
+        "TARGET_BASE": "target-base",
+        "TARGET_KIND": "standalone",
+        "TARGET_SHA": "target-sha",
+    }
+
+    for consumer in (CREATE_UPDATE, PARTIAL_TO_BRANCH, CORRECT_MERGED):
+        gate = _fenced_block_containing(
+            consumer.read_text(), "CI_PARITY_RECEIPT_GATE"
+        )
+        rejected = _run_shell_contract_result(gate, environment)
+        assert rejected.returncode == 42
+        assert rejected.stdout == ""
+
+
+def test_ci_parity_pass_receipt_rejects_nonempty_expected_secret_names() -> None:
+    command_results = [
+        {
+            "command": "uvx pytest",
+            "kind": "test",
+            "ref": "target-sha",
+            "source": ".github/workflows/ci.yml:test",
+            "status": 0,
+        }
+    ]
+    receipt = {
+        "applicability_mode": "conservative_pull_request",
+        "missing_secret_approval": {"approved": False, "names": [], "sha": None},
+        "overall": "pass",
+        "target": {
+            "base": "target-base",
+            "kind": "standalone",
+            "sha": "target-sha",
+        },
+        "workflow_command_results": command_results,
+    }
+    environment = {
+        "CI_PARITY_EXPECTED_MISSING_SECRET_NAMES_JSON": '["API_TOKEN"]',
+        "CI_PARITY_EXPECTED_WORKFLOW_COMMAND_RESULTS_JSON": json.dumps(
+            command_results
+        ),
+        "CI_PARITY_RECEIPT_JSON": json.dumps(receipt),
+        "TARGET_BASE": "target-base",
+        "TARGET_KIND": "standalone",
+        "TARGET_SHA": "target-sha",
+    }
+
+    for consumer in (CREATE_UPDATE, PARTIAL_TO_BRANCH, CORRECT_MERGED):
+        gate = _fenced_block_containing(
+            consumer.read_text(), "CI_PARITY_RECEIPT_GATE"
+        )
+        rejected = _run_shell_contract_result(gate, environment)
+        assert rejected.returncode == 42
+        assert rejected.stdout == ""
+
+
+def test_ci_parity_receipt_consumers_reject_raw_sha_name_approval() -> None:
+    raw_approval = {
+        "missing_secret_approval": {
+            "approved": True,
+            "names": ["API_TOKEN"],
+            "sha": "target-sha",
+        }
+    }
+    environment = {
+        "CI_PARITY_EXPECTED_MISSING_SECRET_NAMES_JSON": '["API_TOKEN"]',
+        "CI_PARITY_EXPECTED_WORKFLOW_COMMAND_RESULTS_JSON": "[]",
+        "CI_PARITY_RECEIPT_JSON": json.dumps(raw_approval),
+        "TARGET_BASE": "target-base",
+        "TARGET_KIND": "standalone",
+        "TARGET_SHA": "target-sha",
+    }
+
+    for consumer in (CREATE_UPDATE, PARTIAL_TO_BRANCH, CORRECT_MERGED):
+        gate = _fenced_block_containing(
+            consumer.read_text(), "CI_PARITY_RECEIPT_GATE"
+        )
+        rejected = _run_shell_contract_result(gate, environment)
+        assert rejected.returncode == 42
+        assert rejected.stdout == ""
+
+
+def test_direct_sync_base_selection_and_gate_order_are_fail_closed() -> None:
+    partial = PARTIAL_TO_BRANCH.read_text()
+    correct_merged = CORRECT_MERGED.read_text()
+    selector = _fenced_block_containing(partial, 'case "$REMOTE_TARGET_SHA"')
+
+    remote_only = _run_shell_contract(
+        selector,
+        {
+            "LOCAL_TARGET_SHA": "",
+            "REMOTE_TARGET_SHA": "existing-remote",
+            "TARGET_CREATION_BASE": "existing-remote",
+        },
+    )
+    local_only = _run_shell_contract(
+        selector,
+        {
+            "LOCAL_TARGET_SHA": "local-target",
+            "REMOTE_TARGET_SHA": "",
+            "TARGET_CREATION_BASE": "local-target",
+        },
+    )
+    synchronized = _run_shell_contract(
+        selector,
+        {
+            "LOCAL_TARGET_SHA": "shared-target",
+            "REMOTE_TARGET_SHA": "shared-target",
+            "TARGET_CREATION_BASE": "shared-target",
+        },
+    )
+    new = _run_shell_contract(
+        selector,
+        {
+            "LOCAL_TARGET_SHA": "",
+            "REMOTE_TARGET_SHA": "",
+            "TARGET_CREATION_BASE": "creation-base",
+        },
+    )
+
+    assert remote_only == {
+        "TARGET_ROUTE": "remote-only",
+        "TARGET_BASE": "existing-remote",
+    }
+    assert local_only == {
+        "TARGET_ROUTE": "local-only",
+        "TARGET_BASE": "local-target",
+    }
+    assert synchronized == {
+        "TARGET_ROUTE": "synchronized",
+        "TARGET_BASE": "shared-target",
+    }
+    assert new == {"TARGET_ROUTE": "new-target", "TARGET_BASE": "creation-base"}
+
+    correct_selector = _fenced_block_containing(
+        correct_merged, "TARGET_BASE=$(jj log"
+    ).replace("<affected-bookmark>", "target")
+    correct = _run_shell_contract(
+        """jj() {
+  case " $* " in
+    *" target@origin "*) printf 'remote-base' ;;
+    *" target "*) printf 'rewritten-head' ;;
+    *) return 2 ;;
+  esac
+}
+"""
+        + correct_selector
+        + "printf 'TARGET_SHA=%s\\nTARGET_BASE=%s\\n' \"$TARGET_SHA\" \"$TARGET_BASE\"\n",
+        {},
+    )
+    assert correct == {
+        "TARGET_SHA": "rewritten-head",
+        "TARGET_BASE": "remote-base",
+    }
+
+    _assert_target_gate_precedes_push(partial)
+    _assert_target_gate_precedes_push(correct_merged)
+
+
+def test_remote_only_partial_target_creates_moves_and_pushes_exact_bookmark() -> None:
+    partial = PARTIAL_TO_BRANCH.read_text()
+    classification = _fenced_block_containing(partial, 'case "$REMOTE_TARGET_SHA"')
+    bookmark_operation = _fenced_block_containing(
+        partial, "jj bookmark create <target>"
+    )
+    scoped_push = _fenced_block_containing(
+        partial, "jj git push --bookmark <target>"
+    )
+    executable_contract = (
+        """JJ_CALL_COUNT=0
+jj() {
+  JJ_CALL_COUNT=$((JJ_CALL_COUNT + 1))
+  printf 'JJ_%s=%s\n' "$JJ_CALL_COUNT" "$*"
+}
+"""
+        + classification
+        + bookmark_operation.replace("<target>", "target").replace(
+            "<new-change-id>", "new-change"
+        )
+        + scoped_push.replace("<target>", "target")
+    )
+
+    result = _run_shell_contract(
+        executable_contract,
+        {
+            "LOCAL_TARGET_SHA": "",
+            "REMOTE_TARGET_SHA": "remote-target",
+            "TARGET_CREATION_BASE": "remote-target",
+        },
+    )
+
+    assert result == {
+        "TARGET_ROUTE": "remote-only",
+        "TARGET_BASE": "remote-target",
+        "JJ_1": "bookmark create target --revision remote-target",
+        "JJ_2": "bookmark move target --to new-change",
+        "JJ_3": "git push --bookmark target",
+    }
+
+
+@pytest.mark.parametrize("target_sha", ("shared-target", "f" * 40))
+def test_synchronized_partial_target_reuses_moves_and_pushes_bookmark(
+    target_sha: str,
+) -> None:
+    partial = PARTIAL_TO_BRANCH.read_text()
+    classification = _fenced_block_containing(partial, 'case "$REMOTE_TARGET_SHA"')
+    bookmark_operation = _fenced_block_containing(
+        partial, "jj bookmark create <target>"
+    )
+    scoped_push = _fenced_block_containing(
+        partial, "jj git push --bookmark <target>"
+    )
+    executable_contract = (
+        """JJ_CALL_COUNT=0
+jj() {
+  JJ_CALL_COUNT=$((JJ_CALL_COUNT + 1))
+  printf 'JJ_%s=%s\n' "$JJ_CALL_COUNT" "$*"
+}
+"""
+        + classification
+        + bookmark_operation.replace("<target>", "target").replace(
+            "<new-change-id>", "new-change"
+        )
+        + scoped_push.replace("<target>", "target")
+    )
+
+    result = _run_shell_contract(
+        executable_contract,
+        {
+            "LOCAL_TARGET_SHA": target_sha,
+            "REMOTE_TARGET_SHA": target_sha,
+            "TARGET_CREATION_BASE": target_sha,
+        },
+    )
+
+    assert result == {
+        "TARGET_ROUTE": "synchronized",
+        "TARGET_BASE": target_sha,
+        "JJ_1": "bookmark move target --to new-change",
+        "JJ_2": "git push --bookmark target",
+    }
+
+
+@pytest.mark.parametrize(
+    ("local_target_sha", "remote_target_sha"),
+    (("local-target", "remote-target"), ("remote-target", "local-target")),
+)
+def test_divergent_local_and_remote_partial_target_fails_before_mutation(
+    local_target_sha: str, remote_target_sha: str,
+) -> None:
+    partial = PARTIAL_TO_BRANCH.read_text()
+    classification = _fenced_block_containing(partial, 'case "$REMOTE_TARGET_SHA"')
+
+    rejected = _run_shell_contract_result(
+        classification,
+        {
+            "LOCAL_TARGET_SHA": local_target_sha,
+            "REMOTE_TARGET_SHA": remote_target_sha,
+            "TARGET_CREATION_BASE": remote_target_sha,
+        },
+    )
+
+    assert rejected.returncode != 0
+    assert rejected.stdout == ""
+    assert "local and remote target bookmarks diverge" in rejected.stderr
+    assert partial.index(classification) < partial.index("### 1. Surface the hunk plan")
+
+
+@pytest.mark.parametrize("target_kind", ("remote", "local-only"))
+def test_existing_partial_target_rejects_divergent_head_before_mutation(
+    tmp_path: Path, target_kind: str,
+) -> None:
+    repo = tmp_path / "repo"
+    subprocess.run(
+        ["git", "init", "--quiet", "--initial-branch=main", str(repo)],
+        check=True,
+    )
+    subprocess.run(["git", "-C", str(repo), "config", "user.name", "Test"], check=True)
+    subprocess.run(
+        ["git", "-C", str(repo), "config", "user.email", "test@example.com"],
+        check=True,
+    )
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(repo),
+            "commit",
+            "--quiet",
+            "--allow-empty",
+            "--no-gpg-sign",
+            "-m",
+            "base",
+        ],
+        check=True,
+    )
+    base = subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(repo),
+            "commit",
+            "--quiet",
+            "--allow-empty",
+            "--no-gpg-sign",
+            "-m",
+            "fetched target",
+        ],
+        check=True,
+    )
+    fetched_target = subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    subprocess.run(
+        ["git", "-C", str(repo), "switch", "--quiet", "--detach", base],
+        check=True,
+    )
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(repo),
+            "commit",
+            "--quiet",
+            "--allow-empty",
+            "--no-gpg-sign",
+            "-m",
+            "divergent head",
+        ],
+        check=True,
+    )
+    divergent_head = subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    merge_base = subprocess.run(
+        ["git", "-C", str(repo), "merge-base", fetched_target, divergent_head],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    assert merge_base == base
+
+    partial = PARTIAL_TO_BRANCH.read_text()
+    selector = _fenced_block_containing(partial, 'case "$REMOTE_TARGET_SHA"')
+
+    target_environment = {
+        "remote": {
+            "REMOTE_TARGET_SHA": fetched_target,
+            "LOCAL_TARGET_SHA": "",
+        },
+        "local-only": {
+            "REMOTE_TARGET_SHA": "",
+            "LOCAL_TARGET_SHA": fetched_target,
+        },
+    }[target_kind]
+
+    rejected = _run_shell_contract_result(
+        selector,
+        {
+            "TARGET_CREATION_BASE": divergent_head,
+            **target_environment,
+        },
+    )
+
+    assert rejected.returncode != 0
+    assert rejected.stdout == ""
+    expected_error = {
+        "remote": "must equal fetched target",
+        "local-only": "must equal local target",
+    }[target_kind]
+    assert expected_error in rejected.stderr
+    assert partial.index(selector) < partial.index("### 1. Surface the hunk plan")
+
+
+def test_changed_commit_references_are_portable() -> None:
+    commit_root = COMMIT_SKILL.parent
+    for path in (COMMIT_SKILL, PARTIAL_TO_BRANCH, CORRECT_MERGED):
+        _assert_links_stay_within_skill(path, commit_root)
+
+
+def test_ci_parity_reference_is_routed_and_portable() -> None:
+    routed_references = {
+        (WRITE_PR / target.split("#", 1)[0]).resolve()
+        for target in re.findall(r"\[[^]]+\]\(([^)]+)\)", PR_SKILL.read_text())
+        if "://" not in target and not target.startswith("#")
+    }
+
+    assert VERIFY_CI_PARITY.resolve() in routed_references
+    _assert_links_stay_within_skill(PR_SKILL, WRITE_PR)
+    _assert_links_stay_within_skill(VERIFY_CI_PARITY, WRITE_PR)
 
 
 def test_pr_metadata_stays_internal_and_template_owns_rationale() -> None:

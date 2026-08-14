@@ -96,8 +96,9 @@ jj edit abc123
 jj new
 ```
 
-Downstream bookmark exists → after local integrity passes, `coding:pr update`
-owns republishing and reparenting the affected stack. Report.
+Downstream bookmark exists → after local integrity passes, report the resolved
+stack metadata and current PR states without mutating them. The caller may
+authorize `coding:pr update` separately.
 
 ---
 
@@ -189,8 +190,8 @@ jj log -r 'change_id(abc123)' --no-graph
 # (single result — divergence resolved)
 ```
 
-After local integrity passes, `coding:pr update` re-syncs the affected remote
-stack. Report.
+After local integrity passes, report the affected stack metadata and current PR
+states. Do not re-sync or mutate the PR from the commit route.
 
 ---
 
@@ -256,7 +257,7 @@ jj diff --stat
 ```
 
 Stage 3 not needed (no git-only target). Integrity PASS. Per-change build
-PASS. `coding:pr update` owns any requested descendant republication. Report.
+PASS. Report rewritten descendant metadata without invoking PR publication.
 
 ---
 
@@ -287,8 +288,8 @@ bash "${CODING_COMMIT_SKILL_DIR}/scripts/verify.sh"
 # CONTENT_MATCH:  PASS
 ```
 
-Integrity passes locally, then `coding:pr update` republishes and reparents the
-three open PRs so each base matches the new parent. Report.
+Integrity passes locally, then report the reordered stack metadata and current
+PR states. The commit route does not republish or reparent the three open PRs.
 
 ---
 
@@ -318,7 +319,8 @@ final green state in its report.
 /coding:commit --no-verify
 # Default save runs. git commit --no-verify skips pre-commit hooks.
 # Local `npm run lint/test/build` verification is skipped.
-# With --create-pr, --no-verify maps to coding:pr create --skip-local-test.
+# With --create-pr, --no-verify is not forwarded; coding:pr create runs its
+# independent exact-revision test and lint gate.
 # PostToolUse integrity hook STILL fires (independent of --no-verify).
 ```
 
@@ -345,5 +347,6 @@ final green state in its report.
 # AskUserQuestion is SKIPPED.
 # Skill proceeds to Option 2 (rewrite) per workflow-correct-merged.md.
 # After local integrity passes, coding:commit lease-pushes only the authorized
-# bookmark. It invokes coding:pr update only for relevant open downstream PRs.
+# bookmark. It inspects relevant downstream PR checks read-only and reports
+# metadata; updating or restacking them requires separate user authorization.
 ```

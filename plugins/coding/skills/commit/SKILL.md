@@ -46,8 +46,8 @@ Never rewrite a commit already merged into a shared destination. Fix merged
 work with a corrective commit or PR. Rewriting a merged non-destination branch
 requires explicit user consent and coordination; rewriting the shared
 destination tip is forbidden. Route an unmerged stack fix to the earliest
-change that owns the faulty artifact, then restack its descendants through
-`coding:pr update`.
+change that owns the faulty artifact, then return the rewritten stack metadata
+to the caller that owns any subsequent `coding:pr update`.
 
 ## Boundaries
 
@@ -63,6 +63,10 @@ change that owns the faulty artifact, then restack its descendants through
 <IMPORTANT>
 - Every workflow MUST end with a linear clean chain + working code. No exceptions. If a workflow cannot guarantee this, STOP and surface to the user.
 - This skill never opens, updates, or polls PRs. Its only pushes are the explicit, single-bookmark sync steps in `workflow-correct-merged.md` Option 2 and `workflow-partial-to-branch.md`; `coding:pr create` owns PR publication and CI convergence.
+- Before either sanctioned direct push, bind the exact pushed Git SHA and base,
+  then invoke `coding:pr verify --target <sha> --base <sha> --kind standalone`.
+  `--no-verify` never skips this direct-sync gate. Passing it does not make a
+  direct bookmark sync PR publication.
 - NEVER rewrite merged-on-origin history without explicit consent. Detected target → `AskUserQuestion`, default = the corrective-PR route in [workflow-correct-merged.md](references/workflow-correct-merged.md). `--allow-rewrite-merged` skips the prompt.
 - Every change MUST be self-contained: compile + lint + tests pass for each change in isolation. Shared files (package.json, tsconfig, lockfiles) evolve incrementally — no forward references.
 - `--paths-from` is a closed-set save, not a path suggestion. Never save,
@@ -86,7 +90,7 @@ change that owns the faulty artifact, then restack its descendants through
 | `--reorder [--up-to <rev>]` | Reorder history into a clean linear chain up to target rev (default `main@origin`). Content-equivalence guard via `verify.sh`. See `references/workflow-reorder.md`. |
 | `--create-pr` | Compatibility entrypoint: finish the selected save/history route, then invoke `coding:pr create` with the resolved change or stack. |
 | `--branch-prefix <name>` | Forward the branch/bookmark prefix to `coding:pr create` when `--create-pr` is present. |
-| `--no-verify` | Skip pre-commit + post-commit lint/test/build checks. With `--create-pr`, also map this to `coding:pr create --skip-local-test`; no new commit flag is introduced. |
+| `--no-verify` | Skip this skill's ordinary pre-commit and post-commit lint/test/build checks. It does not waive or pre-authorize the exact-revision gate before a PR handoff or sanctioned direct push. |
 | `--dry-run` | Print the plan, don't mutate. |
 | `--allow-rewrite-merged` | Explicit consent to rewrite history already merged on origin (skips the `AskUserQuestion` corrective-PR prompt). |
 
@@ -169,7 +173,7 @@ Before writing any new code, plan the change structure so commits/PRs end up ind
 
 5. Run the verification below; when a check fails, fix the cause (or take the integrity table's prescribed action) and re-run that check. Repeat until every check passes or a concrete blocker remains — an integrity STOP awaiting the user, or a failure outside this skill's scope — then report the blocker instead of looping.
 
-6. **Synchronize or hand off after local work is complete.** The correct-merged Option 2 and partial-to-branch references perform their own direct bookmark sync after verification; they hand off to the explicit `coding:pr create` or `coding:pr update` action stated there. With `--create-pr` on every other route, invoke `coding:pr create <resolved-change-or-stack>` and forward `--branch-prefix <name>` and `--dry-run` when present; also map `--no-verify` to `--skip-local-test`. After another local rewrite affects an unmerged PR stack, return its metadata to an existing `coding:pr update` caller or invoke that subcommand once for remote restacking. The [`coding:pr` create/update workflow](../pr/references/create-update.md#3-publish-bottom-up) owns PR publication, restacking, base repair, and CI convergence.
+6. **Synchronize or hand off after local work is complete.** The correct-merged Option 2 and partial-to-branch references perform their own direct bookmark sync only after `coding:pr verify`; those syncs are not PR publication. With `--create-pr` on every other route, invoke `coding:pr create <resolved-change-or-stack>` and forward `--branch-prefix <name>` and `--dry-run` when present. Never forward `--no-verify`: the PR workflow runs its own exact-revision test and lint gate, and only it may ask for user approval when a required secret is missing. After another local rewrite affects an unmerged PR stack, report its resolved metadata and current PR states to the caller; do not invoke `coding:pr update`. A separately authorized PR action owns publication, restacking, base repair, and CI convergence.
 
 ## Verification
 
@@ -189,6 +193,9 @@ bash "${CODING_COMMIT_SKILL_DIR}/scripts/verify.sh"
 ```
 
 Then run the project's own lint, test, and build commands (skip if `--no-verify`) — `npm run lint`/`test`/`build` where `package.json` defines them, otherwise the equivalents its language standard mandates — and confirm the final chain is linear with each change self-contained.
+
+The direct-sync publication gate in the two sanctioned push references is
+separate from these ordinary checks and remains mandatory with `--no-verify`.
 
 ## Completion
 
