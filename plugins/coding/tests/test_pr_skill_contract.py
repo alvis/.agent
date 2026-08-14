@@ -1814,6 +1814,13 @@ def test_repository_label_selection_is_live_and_independent_of_archetypes() -> N
     workflow = CREATE_UPDATE.read_text()
     template = MESSAGE_TEMPLATE.read_text()
     discovery = extract_bash_block_containing(workflow, "REPOSITORY_LABELS=")
+    archetype_contract = workflow.split("### Select the PR archetype", 1)[1].split(
+        "## Boundaries", 1
+    )[0]
+    label_contract = workflow.split("#### Discover and select repository labels", 1)[
+        1
+    ].split("Publish a genuinely necessary self-contained black-zone unit", 1)[0]
+    scanner = runpy.run_path(str(MESSAGE_SCANNER), run_name="label_contract_scanner")
 
     assert '"repos/$REPOSITORY/labels?per_page=100"' in discovery
     assert "--paginate --slurp" in discovery
@@ -1821,6 +1828,22 @@ def test_repository_label_selection_is_live_and_independent_of_archetypes() -> N
     assert 'validate_selected_labels "$REPOSITORY_LABELS"' in discovery
     assert "#discover-and-select-repository-labels" in template
     assert re.findall(r"\b[A-Z_]*ARCHETYPE[A-Z_]*\b", discovery) == []
+    assert (
+        re.search(
+            r"(?m)^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*:?-{3,}:?\s*\|?\s*$",
+            archetype_contract,
+        )
+        is None
+    )
+    assert "classification table" not in workflow
+    assert "`scripts/scan-pr-message.py`" in archetype_contract
+    assert all(
+        f"`{archetype}`" not in archetype_contract
+        for archetype in scanner["ARCHETYPES"]
+    )
+    assert all(
+        f"`{archetype}`" not in label_contract for archetype in scanner["ARCHETYPES"]
+    )
 
 
 type _RepositoryLabel = dict[str, str]

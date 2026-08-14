@@ -35,24 +35,13 @@ the bundled body shape.
 
 ### Select the PR archetype
 
-Select the one archetype that best describes the implementation surface.
-Archetype classification is independent of labels: it drives conditional PR-body
-evidence and scanner behavior only.
-
-| Surface | Archetype |
-|---|---|
-| Design proposal without production code | `rfc` |
-| Types, interfaces, schemas, or JSDoc-only API shape | `code-spec` |
-| External API, IPC, or wire format | `contract` |
-| Pure entities, value objects, invariants, and unit tests | `domain-model` |
-| Business behavior fulfilling an existing shape | `implementation` |
-| Module wiring, adapters, dependency injection, or end-to-end tests | `integration` |
-| Add, flip, or remove a feature flag | `feature-flag` |
-| Schema migration, backfill, or config-format upgrade | `migration` |
-| User-facing visual or interaction change | `ui` |
-| Rename, move, codemod, formatting sweep, or pure restructuring | `mechanical-refactor` |
-| Dead-code, deprecation, or lint-debt removal | `cleanup` |
-| Logs, metrics, traces, dashboards, alerts, or instrumentation | `observability` |
+For each head, choose the `--archetype` value accepted by
+`scripts/scan-pr-message.py` that best describes its implementation surface.
+The scanner is the sole authority for accepted values;
+the selection drives conditional PR-body evidence and scanner behavior only.
+It must not propose, filter, select, attach, remove, or reconcile repository
+labels. Label decisions begin with the receiving repository's live inventory
+under [Discover and select repository labels](#discover-and-select-repository-labels).
 
 ## Boundaries
 
@@ -347,10 +336,6 @@ PR's base; for a new PR resolve the immediate unmerged predecessor, using the
 repository default branch only when none exists, then resolve that exact base
 commit as `AUTHOR_BASE_OID`. New-stack bookmarks do not yet exist, so author
 each head against `AUTHOR_BASE_OID`, never `PR_BASE`.
-
-Select one archetype for each head using the
-[classification table](#select-the-pr-archetype); this remains body and scanner
-metadata only.
 
 #### Discover and select repository labels
 
