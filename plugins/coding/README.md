@@ -9,6 +9,10 @@ skills return evidence and manifests; the coordinator reconciles state.
 
 Two mechanisms make saves and publication safe around AI-driven edits:
 
+- **One `jj` playbook.** [`references/jj.md`](references/jj.md) owns
+  initialization, workspaces, stacked-review fixes, history shaping,
+  publication handoffs, and recovery for every coding skill.
+
 - **Scoped saves.** Lifecycle saves run through `coding:commit` with a sealed
   path manifest (`--paths-from=<manifest> --manifest-sha256=<sha>`), so a
   save touches exactly the reviewed file set and preserves unrelated staged

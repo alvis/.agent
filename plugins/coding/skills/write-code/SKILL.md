@@ -7,6 +7,9 @@ argument-hint: "<instruction> [--resume]"
 
 # Write Code
 
+Before any `jj` decision or command, follow
+`coding:references/jj.md`.
+
 Composite orchestrator for the complete TDD lifecycle. It owns phase order,
 interactive gates, state reconciliation under an explicit coordinator lease,
 and final artifact batching; atomic children own implementation phases. Remove

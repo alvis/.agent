@@ -7,6 +7,10 @@ argument-hint: "[--only <name1,name2>] [--check] [--dry-run] [--force]"
 
 # Sync Tool
 
+Before any `jj` decision or command, follow
+`coding:references/jj.md`. This skill installs the
+tool; the guide owns repository initialization and use.
+
 Set `CODING_SYNC_TOOL_SKILL_DIR` to the absolute directory containing this
 loaded `SKILL.md` before invoking its scripts.
 

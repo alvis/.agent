@@ -17,7 +17,9 @@ Before work delegation, read `coding:references/ROUTING.md` and route the work t
 
 Settle this before editing:
 
-- **Small change** — if the user didn't request a specific location, work in place on the current local branch. With `jj` initialized, layer new changes onto the dirty HEAD (no isolation strategy to decide); on a git repository, work on the current branch as usual.
+- **Small change** — if the user didn't request a specific location, work in
+  place. Follow [the shared `jj` guide](jj.md) for initialization and workspace
+  selection; otherwise use the current Git branch.
 - **Substantial change** (worth a stacked PR) — follow
   `essential:references/directions/establish-work-stream.md`. It first reuses
   the current suitable work ID, then another suitable open stream, and creates
@@ -56,7 +58,8 @@ Settle this before editing:
 
 ### Version-control directions
 
-Before committing, branching, or mutating local history, follow
+Before choosing or using `jj`, follow `coding:references/jj.md`. Before
+committing, branching, or mutating local history, follow
 `coding:skills/commit/SKILL.md`. Before publishing, reviewing, or merging,
 follow the selected action under `coding:skills/pr/references/`. Templates own
 rendering, while standards own observable violations.
@@ -134,10 +137,17 @@ Type diagnostics and focused tests are separate gates that `coding:lint` does no
 
 ### 3. Then commit
 
-- `jj` is the **preferred** change-tracking tool when it is both installed on PATH and initialized for this repository — every op snapshots the working copy, so a dirty HEAD is never a blocker; work in place and don't create a `git worktree` just to isolate a task. Prove that initialization functionally rather than by directory presence: a `.jj` and a `.git` directory can both exist without sharing a backing repository, so confirm `git rev-parse HEAD` equals `jj log -r @- --no-graph -T 'commit_id'`. Anything else — `jj` missing, either command failing, or the two ids differing — means this is a git repository, and **`git` is then the normal, fully supported path** through every skill below, not a degraded one.
-- Saving changes goes through `coding:commit`, which owns routing among save/split/absorb/edit/parallel-workspace and all explicit history operations for both `jj` and `git`. It directly synchronizes only the explicitly authorized correct-merged bookmark and the chosen partial-to-branch target; PR publication and CI convergence go through `coding:pr create`. Never hand-run `git commit`, `jj describe`, `jj split`, `jj bookmark set`, or `gh pr create` — except `coding:finalize-commits`, which is sanctioned to run `jj describe -r <rev> -m` / `git commit --amend` directly when finalizing un-pushed commits.
+- Follow [the shared `jj` guide](jj.md) for initialization, functional
+  colocation proof, workspace selection, stacked-review repair, and rollback.
+- Saving changes goes through `coding:commit`, which owns every explicit local
+  history operation for both `jj` and Git. PR publication and CI convergence
+  go through `coding:pr create|update`; never hand-run their mutations outside
+  those owners.
 - **If the user did not explicitly request a commit, ask whether to commit the work** (via `coding:commit`).
-- **If HEAD is not the local main branch, or the work is in a `jj` workspace or a linked `git worktree`, `AskUserQuestion`** whether to open a PR (`/coding:commit --create-pr` remains the compatibility call: it finishes local history work, then delegates title/body authoring, bookmark/PR publication, and CI convergence to `/coding:pr create`) or move the work onto the local main branch. A `git worktree` is NOT a `jj` workspace.
+- **If HEAD is not the local main branch, or the work is in a `jj` workspace or
+  linked Git worktree, `AskUserQuestion`** whether to open a PR or move the work
+  onto local main. The shared guide owns the distinction between those
+  workspace types.
 
 ### Pull requests
 
@@ -147,13 +157,7 @@ subcommand composes the conventional-commit title and unified body from the
 commit, publishes it, and drives CI to green. This applies even when the request
 looks like a small, one-off PR.
 
-The `pr` skill publishes from whichever change-tracking tool the repository
-already uses, and decides which by running the functional colocation check above
-— never by asking anyone to initialize `jj`. On a jj-colocated repository it
-moves the bookmark and pushes with `jj git push`; on a git repository it pushes
-the same branch with `git push --force-with-lease` and opens or updates the PR
-with `gh pr create`/`gh pr edit`, using its authored title and body verbatim.
-Both are equally sanctioned publication paths: each ends with a draft PR on the
-intended base and CI driven to green (or its documented absence confirmed), and
-neither is an exception to be recorded, apologized for, or converted into the
-other.
+The `pr` skill detects the repository mode through the functional proof in
+[the shared `jj` guide](jj.md). It publishes the selected bookmark or branch,
+uses the authored title and body verbatim, and ends with a draft PR on the
+intended base and CI green or its documented absence confirmed.

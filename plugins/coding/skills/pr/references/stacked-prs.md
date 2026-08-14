@@ -69,8 +69,9 @@ path silently reshapes history.
 - Require one linear chain from the destination through every selected head.
 - Open every PR as draft. PR 01 targets the destination; each later PR targets
   the previous head.
-- Fix a finding in the earliest unmerged change that owns it. Once a lower PR
-  merges, fix forward instead of rewriting public history.
+- Fix a finding in the earliest unmerged change that owns it. In a `jj` stack,
+  use the `jj edit` review-repair route in `coding:references/jj.md`; once a
+  lower PR merges, fix forward instead of rewriting public history.
 - Update and merge the complete affected chain bottom-up.
 
 Load [github-stacks.md](github-stacks.md) for every GitHub PR-stack request,

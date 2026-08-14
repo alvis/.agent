@@ -8,7 +8,7 @@ Order matters: on macOS, `brew` must be present before `jj` and `gh` are install
 | Order | Name   | Min version | macOS-only | Installer script              | Source of truth                                    |
 | ----- | ------ | ----------- | ---------- | ----------------------------- | -------------------------------------------------- |
 | 1     | `brew` | 4.0.0       | yes        | `scripts/installers/brew.sh`  | <https://brew.sh>                                    |
-| 2     | `jj`   | 0.18.0      | no         | `scripts/installers/jj.sh`    | <https://github.com/jj-vcs/jj>                       |
+| 2     | `jj`   | 0.44.0      | no         | `scripts/installers/jj.sh`    | <https://github.com/jj-vcs/jj>                       |
 | 3     | `gh`   | 2.0.0       | no         | `scripts/installers/gh.sh`    | <https://cli.github.com> / <https://github.com/cli/cli> |
 | 4     | `fallow` | 2.0.0     | no         | `scripts/installers/fallow.sh` | <https://github.com/fallow-rs/fallow>               |
 | 5     | `python` | latest available | no       | `scripts/installers/python.sh` | <https://www.python.org/downloads/>                 |
@@ -35,3 +35,6 @@ To register a new tool (e.g., `rg`):
 ## Why this is a closed registry
 
 `sync-tool` is intentionally not a generic package manager. It exists to guarantee a known set of coding CLIs are present at minimum versions for sibling skills (e.g., `coding:commit` uses `jj` for history and `gh` for remote-state checks, while `coding:pr create` uses both for publication). Keeping the registry small and explicit means each tool gets a hand-tuned, audited installer that matches its upstream's official guidance.
+
+The `jj` floor is 0.44.0 because the shared coding guide and PR workflow rely
+on `jj arrange`, `jj bookmark advance`, and read-only `jj run`.

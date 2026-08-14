@@ -8,6 +8,9 @@ argument-hint: "<instruction>"
 
 # Draft Code Skeleton
 
+Before any `jj` decision or command, follow
+`coding:references/jj.md`.
+
 Creates TypeScript-compliant production skeletons with explicit
 `TODO(implementation):` markers, type definitions, and function signatures. It
 may outline pending tests, but test markers belong to `coding:complete-test`;

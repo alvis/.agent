@@ -8,6 +8,9 @@ argument-hint: "<scope>"
 
 # Complete Code
 
+Before any `jj` decision or command, follow
+`coding:references/jj.md`.
+
 Finish only explicit production implementation stubs. The surrounding contract,
 types, tests, and specification must already make the intended behavior clear.
 `coding:complete-test` owns test authoring; `coding:write-code` owns new

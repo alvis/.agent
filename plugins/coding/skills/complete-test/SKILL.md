@@ -7,6 +7,9 @@ argument-hint: "[scope] [--coverage=<percent>] [--framework=<name>]"
 
 # Complete test
 
+Before any `jj` decision or command, follow
+`coding:references/jj.md`.
+
 Own test authoring and test-suite maintenance. Do not implement production behavior, rewrite a failing application fix, or create placeholders for unspecified features.
 
 ## Boundaries
