@@ -37,11 +37,8 @@ the bundled body shape.
 
 For each head, choose the `--archetype` value accepted by
 `scripts/scan-pr-message.py` that best describes its implementation surface.
-The scanner is the sole authority for accepted values;
-the selection drives conditional PR-body evidence and scanner behavior only.
-It must not propose, filter, select, attach, remove, or reconcile repository
-labels. Label decisions begin with the receiving repository's live inventory
-under [Discover and select repository labels](#discover-and-select-repository-labels).
+This controls conditional body evidence and scanner behavior only; repository
+labels come only from the receiving repository's live inventory below.
 
 ## Boundaries
 
@@ -339,485 +336,35 @@ each head against `AUTHOR_BASE_OID`, never `PR_BASE`.
 
 #### Discover and select repository labels
 
-<IMPORTANT>
-
-Before submitting each PR, bind label work to that PR's target repository and
-host, then discover the complete live label inventory through the paginated
-repository API before any push or PR create/edit. For an existing PR, retain its
-absolute PR URL as `PR_URL` during per-head open-PR resolution; resolve its
-actual URL and head repository, derive the head host from that validated PR URL,
-retain the head owner/name, and require both to match the selected push remote's
-resolved repository before any topology check or remote mutation. Compare GitHub
-host and owner/name identities case-insensitively, then retain the resolved PR
-URL's canonical target values for later API calls. For a new PR,
-resolve the selected push remote's push URL through `gh repo view <push-url>` and use
-its `parent` repository as the PR target when the remote is a fork; otherwise
-the push repository is the target. Keep the push repository owner separately so
-fork heads use `<owner>:<branch>` while `--repo` and all label/API calls remain
-bound to the receiving repository. An unqualified current-directory lookup is
-forbidden. The discovery command returns each label's exact `name` and API
-`description`; use both to judge the closest suitable repository labels, then
-pass the selected names together with their selected `{name, description}`
-choices for refreshed validation and reconciliation.
-Selection may include every suitable exact repository label, including the
-closest available labels for PR type, risk, attention required, merge intent,
-and PR structure. Zero labels is valid when none is suitable. Never create,
-guess, or substitute a label, and never use a fixed vocabulary.
+Bind `HOST` and `REPOSITORY` to the receiving repository for this PR, using
+the existing PR URL on update or the intended PR target on create. Fetch its
+complete label inventory before publication:
 
 ```bash
-set -o pipefail
-bind_pr_url_target() {
-  local pr_url=$1 authority path owner repository_name pull_selector
-  local pull_number pull_suffix
-  case "$pr_url" in
-    https://*/*/*/pull/*) ;;
-    *) printf 'invalid PR URL: %s\n' "$pr_url" >&2; return 1 ;;
-  esac
-  authority=${pr_url#https://}
-  REPOSITORY_HOST=${authority%%/*}
-  path=${authority#*/}
-  path=${path%%\?*}
-  path=${path%%\#*}
-  owner=${path%%/*}
-  path=${path#*/}
-  repository_name=${path%%/*}
-  path=${path#*/}
-  test "${path%%/*}" = pull || return 1
-  pull_selector=${path#*/}
-  pull_number=${pull_selector%%/*}
-  pull_suffix=${pull_selector#"$pull_number"}
-  case "$pull_suffix" in
-    ''|'/'|'/files'|'/files/'|'/commits'|'/commits/'|'/checks'|'/checks/'|'/activity'|'/activity/') ;;
-    *) return 1 ;;
-  esac
-  case "$pull_number" in
-    ''|*[!0-9]*) return 1 ;;
-  esac
-  test -n "$REPOSITORY_HOST" && test -n "$owner" && \
-    test -n "$repository_name" || return 1
-  REPOSITORY=$owner/$repository_name
-  PR_NUMBER=$pull_number
-}
-github_repository_identity_matches() {
-  local first_host=$1 first_repository=$2 second_host=$3 second_repository=$4
-  jq -en --arg first_host "$first_host" \
-    --arg first_repository "$first_repository" \
-    --arg second_host "$second_host" \
-    --arg second_repository "$second_repository" '
-      (($first_host | ascii_downcase) == ($second_host | ascii_downcase)) and
-      (($first_repository | ascii_downcase) ==
-        ($second_repository | ascii_downcase))
-    ' >/dev/null
-}
-bind_existing_pr_push_target() {
-  local pr_url=$1 expected_repository expected_repository_host
-  local resolved_pr_url push_repository_host
-  bind_pr_url_target "$pr_url" || return $?
-  expected_repository=$REPOSITORY
-  expected_repository_host=$REPOSITORY_HOST
-  PR_DATA=$(gh pr view "$pr_url" --json url,headRepository) || return $?
-  resolved_pr_url=$(jq -er '.url | select(type == "string" and length > 0)' \
-    <<<"$PR_DATA") || return $?
-  bind_pr_url_target "$resolved_pr_url" || return $?
-  if ! github_repository_identity_matches \
-    "$expected_repository_host" "$expected_repository" \
-    "$REPOSITORY_HOST" "$REPOSITORY"; then
-    printf 'resolved PR target differs from selected PR URL: selected=%s/%s resolved=%s/%s\n' \
-      "$expected_repository_host" "$expected_repository" \
-      "$REPOSITORY_HOST" "$REPOSITORY" >&2
-    return 1
-  fi
-  HEAD_REPOSITORY=$(jq -er '
-    .headRepository.nameWithOwner
-    | select(type == "string" and length > 0)
-  ' <<<"$PR_DATA") || return $?
-  HEAD_REPOSITORY_HOST=$REPOSITORY_HOST
-  REMOTE_PUSH_URL=$(git remote get-url --push -- "$REMOTE") || return $?
-  PUSH_REPOSITORY_JSON=$(gh repo view "$REMOTE_PUSH_URL" \
-    --json nameWithOwner,url) || return $?
-  PUSH_REPOSITORY=$(jq -er \
-    '.nameWithOwner | select(type == "string" and length > 0)' \
-    <<<"$PUSH_REPOSITORY_JSON") || return $?
-  PUSH_REPOSITORY_URL=$(jq -er \
-    '.url | select(type == "string" and length > 0)' \
-    <<<"$PUSH_REPOSITORY_JSON") || return $?
-  case "$PUSH_REPOSITORY_URL" in
-    https://*/*/*) ;;
-    *) printf 'invalid push repository URL: %s\n' \
-      "$PUSH_REPOSITORY_URL" >&2; return 1 ;;
-  esac
-  push_repository_host=${PUSH_REPOSITORY_URL#https://}
-  push_repository_host=${push_repository_host%%/*}
-  if ! github_repository_identity_matches \
-    "$push_repository_host" "$PUSH_REPOSITORY" \
-    "$HEAD_REPOSITORY_HOST" "$HEAD_REPOSITORY"; then
-    printf 'selected push remote does not match existing PR head: selected=%s/%s head=%s/%s\n' \
-      "$push_repository_host" "$PUSH_REPOSITORY" \
-      "$HEAD_REPOSITORY_HOST" "$HEAD_REPOSITORY" >&2
-    return 1
-  fi
-  PR=$resolved_pr_url
-  PR_URL=$resolved_pr_url
-}
-if [ -n "${PR_URL:-}" ]; then
-  bind_existing_pr_push_target "$PR_URL" || exit $?
-else
-  REMOTE_PUSH_URL=$(git remote get-url --push -- "$REMOTE") || exit $?
-  PUSH_REPOSITORY_JSON=$(gh repo view "$REMOTE_PUSH_URL" \
-    --json nameWithOwner,url,parent) || exit $?
-  PUSH_REPOSITORY=$(jq -er '.nameWithOwner' <<<"$PUSH_REPOSITORY_JSON") || exit $?
-  PUSH_REPOSITORY_URL=$(jq -er '.url' <<<"$PUSH_REPOSITORY_JSON") || exit $?
-  case "$PUSH_REPOSITORY_URL" in
-    https://*/*/*) ;;
-    *) printf 'invalid push repository URL: %s\n' "$PUSH_REPOSITORY_URL" >&2; exit 1 ;;
-  esac
-  PUSH_OWNER=${PUSH_REPOSITORY%%/*}
-  REPOSITORY_HOST=${PUSH_REPOSITORY_URL#https://}
-  REPOSITORY_HOST=${REPOSITORY_HOST%%/*}
-  REPOSITORY=$PUSH_REPOSITORY
-  PR_HEAD=$BOOKMARK
-  if jq -e '.parent != null' <<<"$PUSH_REPOSITORY_JSON" >/dev/null; then
-    REPOSITORY=$(jq -er '
-      .parent
-      | select(
-          (.owner.login | type == "string" and length > 0) and
-          (.name | type == "string" and length > 0)
-        )
-      | .owner.login + "/" + .name
-    ' <<<"$PUSH_REPOSITORY_JSON") || exit $?
-    PUSH_OWNER_TYPE=$(gh api --hostname "$REPOSITORY_HOST" \
-      "users/$PUSH_OWNER" | jq -er '.type') || exit $?
-    if [ "$PUSH_OWNER_TYPE" != User ]; then
-      printf 'organization-owned fork heads are unsupported by gh pr create: %s\n' \
-        "$PUSH_OWNER" >&2
-      exit 1
-    fi
-    PR_HEAD=$PUSH_OWNER:$BOOKMARK
-  fi
-  test -n "$REPOSITORY_HOST" || exit 1
-fi
-discover_repository_labels() {
-  gh api --hostname "$REPOSITORY_HOST" --paginate --slurp \
-    "repos/$REPOSITORY/labels?per_page=100" |
-    jq -ce '[.[][] | {name, description}]'
-}
-attached_issue_labels() {
-  local pr_number=$1
-  gh api --hostname "$REPOSITORY_HOST" --paginate --slurp \
-    "repos/$REPOSITORY/issues/$pr_number/labels?per_page=100" |
-    jq -ce '[.[][] | .name]'
-}
-repository_label_names() {
-  jq -ce '[.[].name]' <<<"$1"
-}
-stable_label_snapshots() {
-  local pr_number=$1 attached available confirmed_attached confirmed_available
-  local retry_count=0 retry_limit=3
-  attached=$(attached_issue_labels "$pr_number") || return $?
-  available=$(discover_repository_labels) || return $?
-  while :; do
-    confirmed_attached=$(attached_issue_labels "$pr_number") || return $?
-    confirmed_available=$(discover_repository_labels) || return $?
-    if jq -en --argjson attached "$attached" \
-      --argjson confirmed_attached "$confirmed_attached" \
-      --argjson available "$available" \
-      --argjson confirmed_available "$confirmed_available" '
-        (($attached | sort | unique) ==
-          ($confirmed_attached | sort | unique)) and
-        (($available | sort_by(.name)) ==
-          ($confirmed_available | sort_by(.name)))
-      ' >/dev/null; then
-      jq -cn --argjson attached "$confirmed_attached" \
-        --argjson available "$confirmed_available" \
-        '{attached: $attached, available: $available}'
-      return 0
-    fi
-    if [ "$retry_count" -ge "$retry_limit" ]; then
-      printf 'label snapshots did not stabilize after %s retries\n' \
-        "$retry_limit" >&2
-      return 1
-    fi
-    attached=$confirmed_attached
-    available=$confirmed_available
-    retry_count=$((retry_count + 1))
-  done
-}
-validate_selected_labels() {
-  local available=$1 unavailable description_drift
-  unavailable=$(jq -cn --argjson selected "$SELECTED_LABELS" \
-    --argjson available "$available" \
-    '$selected - [$available[] | .name] | unique') || return $?
-  if ! jq -e 'length == 0' <<<"$unavailable" >/dev/null; then
-    printf 'selected labels unavailable in repository: %s\n' \
-      "$unavailable" >&2
-    return 1
-  fi
-  description_drift=$(jq -cn \
-    --argjson choices "$SELECTED_LABEL_CHOICES" \
-    --argjson available "$available" '
-      [
-        $choices[] as $choice
-        | $available[]
-        | select(.name == $choice.name and .description != $choice.description)
-        | {
-            name: $choice.name,
-            selected_description: $choice.description,
-            current_description: .description
-          }
-      ] | unique_by(.name)
-    ') || return $?
-  if ! jq -e 'length == 0' <<<"$description_drift" >/dev/null; then
-    printf 'selected label descriptions changed in repository: %s\n' \
-      "$description_drift" >&2
-    return 1
-  fi
-}
-label_reconciliation_plan() {
-  local attached=$1 available=$2 removals additions
-  removals=$(jq -cn --argjson attached "$attached" \
-    --argjson available "$available" \
-    '$attached - $available | unique') || return $?
-  additions=$(jq -cn --argjson selected "$SELECTED_LABELS" \
-    --argjson attached "$attached" \
-    '$selected - $attached | unique') || return $?
-  jq -cn --argjson removals "$removals" --argjson additions "$additions" \
-    '{removals: $removals, additions: $additions}'
-}
-print_label_permission_denial() {
-  local plan=$1
-  if jq -e '.additions | length > 0' <<<"$plan" >/dev/null; then
-    printf 'selected labels require repository label permission\n' >&2
-  else
-    printf 'repository-only label reconciliation requires repository label permission\n' \
-      >&2
-  fi
-}
-preflight_label_mutation_permission() {
-  local plan=$1 quiet=${2:-false} permissions
-  LABEL_PERMISSION_DENIED=false
-  if jq -e '
-    (.removals | length == 0) and (.additions | length == 0)
-  ' <<<"$plan" >/dev/null; then
-    return 0
-  fi
-  permissions=$(gh api --hostname "$REPOSITORY_HOST" \
-    "repos/$REPOSITORY" | jq -ce '.permissions') || return $?
-  if jq -e '
-    (.admin == true) or (.maintain == true) or (.push == true) or
-    (.triage == true)
-  ' <<<"$permissions" >/dev/null; then
-    return 0
-  fi
-  if [ "$quiet" != true ]; then
-    print_label_permission_denial "$plan"
-  fi
-  LABEL_PERMISSION_DENIED=true
-  return 1
-}
-stable_label_reconciliation_plan() {
-  local pr_number=$1 snapshots attached available
-  snapshots=$(stable_label_snapshots "$pr_number") || return $?
-  attached=$(jq -ce '.attached' <<<"$snapshots") || return $?
-  validate_selected_labels "$(jq -ce '.available' <<<"$snapshots")" || return $?
-  available=$(repository_label_names \
-    "$(jq -ce '.available' <<<"$snapshots")") || return $?
-  label_reconciliation_plan "$attached" "$available"
-}
-preflight_existing_pr_label_plan() {
-  local pr_number=$1 original_plan=$2 plan permission_status
-  plan=$original_plan
-  if preflight_label_mutation_permission "$plan" true; then
-    printf '%s\n' "$plan"
-    return 0
-  else
-    permission_status=$?
-  fi
-  [ "${LABEL_PERMISSION_DENIED:-false}" = true ] || return "$permission_status"
-  plan=$(stable_label_reconciliation_plan "$pr_number") || return $?
-  if jq -e '
-    (.removals | length == 0) and (.additions | length == 0)
-  ' <<<"$plan" >/dev/null; then
-    printf '%s\n' "$plan"
-    return 0
-  fi
-  print_label_permission_denial "$original_plan"
-  return 1
-}
-reconcile_pr_labels() {
-  local pr_number=$1 plan removals additions
-  local label_json encoded_label delete_error delete_status_line
-  local delete_protocol delete_status delete_rest
-  plan=$(stable_label_reconciliation_plan "$pr_number") || return $?
-  plan=$(preflight_existing_pr_label_plan "$pr_number" "$plan") || return $?
-  removals=$(jq -ce '.removals' <<<"$plan") || return $?
-  additions=$(jq -ce '.additions' <<<"$plan") || return $?
-  while IFS= read -r label_json; do
-    encoded_label=$(jq -er '@uri' <<<"$label_json") || return $?
-    if ! delete_error=$(gh api --include --method DELETE \
-      --hostname "$REPOSITORY_HOST" \
-      "repos/$REPOSITORY/issues/$pr_number/labels/$encoded_label" \
-      2>&1); then
-      delete_status_line=${delete_error%%$'\n'*}
-      read -r delete_protocol delete_status delete_rest \
-        <<<"$delete_status_line"
-      case "$delete_protocol" in
-        HTTP/[0-9]|HTTP/[0-9].[0-9]|HTTP/[0-9].[0-9][0-9]) ;;
-        *) delete_status= ;;
-      esac
-      if [ "$delete_status" != 404 ]; then
-        printf '%s\n' "$delete_error" >&2
-        return 1
-      fi
-    fi
-  done < <(jq -c '.[]' <<<"$removals")
-  if ! jq -e 'length == 0' <<<"$additions" >/dev/null; then
-    jq -cn --argjson labels "$additions" '{labels: $labels}' |
-      gh api --method POST --hostname "$REPOSITORY_HOST" \
-        "repos/$REPOSITORY/issues/$pr_number/labels" --input - \
-        >/dev/null || return $?
-  fi
-}
-REPOSITORY_LABELS=$(discover_repository_labels) || exit $?
-SELECTED_LABELS=${SELECTED_LABELS:-'[]'}
-SELECTED_LABEL_CHOICES=${SELECTED_LABEL_CHOICES:-'[]'}
-jq -e 'type == "array" and all(.[]; type == "string")' \
-  <<<"$SELECTED_LABELS" >/dev/null || exit $?
-jq -e '
-  type == "array" and all(
-    .[];
-    type == "object" and
-    (.name | type == "string") and
-    has("description") and
-    ((.description == null) or (.description | type == "string"))
-  )
-' <<<"$SELECTED_LABEL_CHOICES" >/dev/null || exit $?
-jq -ne --argjson selected "$SELECTED_LABELS" \
-  --argjson choices "$SELECTED_LABEL_CHOICES" \
-  '$selected | unique | sort == ([$choices[] | .name] | unique | sort)' \
-  >/dev/null || exit $?
-validate_selected_labels "$REPOSITORY_LABELS" || exit $?
-PREFLIGHT_ATTACHED_LABELS='[]'
-PREFLIGHT_REPOSITORY_LABELS=$REPOSITORY_LABELS
-if [ -n "${PR_URL:-}" ]; then
-  PREFLIGHT_LABEL_SNAPSHOTS=$(stable_label_snapshots "$PR_NUMBER") || exit $?
-  PREFLIGHT_ATTACHED_LABELS=$(jq -ce '.attached' \
-    <<<"$PREFLIGHT_LABEL_SNAPSHOTS") || exit $?
-  PREFLIGHT_REPOSITORY_LABELS=$(jq -ce '.available' \
-    <<<"$PREFLIGHT_LABEL_SNAPSHOTS") || exit $?
-fi
-validate_selected_labels "$PREFLIGHT_REPOSITORY_LABELS" || exit $?
-PREFLIGHT_REPOSITORY_LABEL_NAMES=$(repository_label_names \
-  "$PREFLIGHT_REPOSITORY_LABELS") || exit $?
-PREFLIGHT_LABEL_PLAN=$(label_reconciliation_plan \
-  "$PREFLIGHT_ATTACHED_LABELS" "$PREFLIGHT_REPOSITORY_LABEL_NAMES") || exit $?
-if [ -n "${PR_URL:-}" ]; then
-  PREFLIGHT_LABEL_PLAN=$(preflight_existing_pr_label_plan \
-    "$PR_NUMBER" "$PREFLIGHT_LABEL_PLAN") || exit $?
-else
-  preflight_label_mutation_permission "$PREFLIGHT_LABEL_PLAN" || exit $?
-fi
+REPOSITORY_LABELS=$(bash \
+  "${CODING_PR_SKILL_DIR}/scripts/list-repository-labels.sh" \
+  "$HOST" "$REPOSITORY")
 ```
 
-Validation is deliberately fail-closed even though selection uses live
-repository data: caller-provided selection may already be stale, and the
-repository inventory may change between discovery and publication. Rejection
-preserves the repository-only invariant by stopping instead of substituting a
-different label. A fork target is reconstructed from the actual nested
-`parent.owner.login` and `parent.name` fields while retaining the push
-repository's host. Reject an organization-owned fork before the batch push
-because `gh pr create --head OWNER:BRANCH` supports only user-owned forks.
-Stabilize consecutive attachment and inventory pairs before computing exact
-additions and removals or preflighting repository label permission. Existing
-PRs whose selected and attached repository labels already reconcile need no
-label-write permission. When permission is denied for a planned mutation,
-refresh and replan once: proceed only if the refreshed plan needs no mutation,
-otherwise preserve the denial. Recompute and preflight again immediately before
-reconciliation so a concurrent change cannot reach a label write without the
-permission check. Split each exact `title\n\nbody` into that head's `TITLE` and `BODY`;
-malformed output aborts the whole selection before any ref or remote mutation.
-
-After every per-head `PR_BASE` is resolved, collect one exact
-`{"bookmark":BOOKMARK,"pr_base":PR_BASE,"author_base_oid":AUTHOR_BASE_OID}`
-JSON entry per selected head in
-`SELECTED_HEAD_BASES`, then run this topology preflight before creating or
-moving a local ref, invoking the restack helper, pushing, or creating/editing a
-PR. A same-repository push can publish a selected predecessor before its
-dependent PR is created. A fork push cannot add that predecessor to the
-receiving repository, so every selected base must already exist there at its
-intended authoring OID:
+The helper returns deterministic JSON containing every exact label `name` and
+`description` from every API page. Inspect both fields and choose zero or more
+suitable names only from that output. Never create, guess, substitute, or
+remove labels. Build repeated `--label` arguments for create and `--add-label`
+arguments for update from those exact choices:
 
 ```bash
-SELECTED_HEAD_BASE=$(jq -cn --arg bookmark "$BOOKMARK" \
-  --arg pr_base "$PR_BASE" --arg author_base_oid "$AUTHOR_BASE_OID" \
-  '{
-    bookmark: $bookmark,
-    pr_base: $pr_base,
-    author_base_oid: $author_base_oid
-  }') || exit $?
-SELECTED_HEAD_BASES+=("$SELECTED_HEAD_BASE")
+CREATE_LABEL_ARGS=()
+UPDATE_LABEL_ARGS=()
+while IFS= read -r LABEL; do
+  CREATE_LABEL_ARGS+=(--label "$LABEL")
+  UPDATE_LABEL_ARGS+=(--add-label "$LABEL")
+done < <(jq -r '.[]' <<<"$SELECTED_LABELS")
 ```
 
-```bash
-preflight_fork_publication_topology() {
-  local head_base head base expected_base_oid encoded_base
-  local branch_response receiving_base_oid topology_invalid=0
-  if [ -z "${PUSH_REPOSITORY:-}" ]; then
-    REMOTE_PUSH_URL=$(git remote get-url --push -- "$REMOTE") || return $?
-    PUSH_REPOSITORY=$(gh repo view "$REMOTE_PUSH_URL" \
-      --json nameWithOwner --jq .nameWithOwner) || return $?
-  fi
-  [ "$PUSH_REPOSITORY" != "$REPOSITORY" ] || return 0
-  for head_base in "$@"; do
-    if ! head=$(jq -er \
-      '.bookmark | select(type == "string" and length > 0)' \
-      <<<"$head_base") || \
-      ! base=$(jq -er \
-        '.pr_base | select(type == "string" and length > 0)' \
-        <<<"$head_base") || \
-      ! expected_base_oid=$(jq -er \
-        '.author_base_oid | select(type == "string" and length > 0)' \
-        <<<"$head_base"); then
-      printf 'invalid selected head/base/OID topology entry: %s\n' \
-        "$head_base" >&2
-      topology_invalid=1
-      continue
-    fi
-    encoded_base=$(jq -rn --arg base "$base" '$base | @uri') || return $?
-    if ! branch_response=$(gh api --method GET --hostname "$REPOSITORY_HOST" \
-      "repos/$REPOSITORY/branches/$encoded_base" 2>&1); then
-      printf '%s\n' \
-        "fork publication topology unavailable: head=$head base=$base expected_base_oid=$expected_base_oid push_repository=$PUSH_REPOSITORY receiving_repository=$REPOSITORY: $branch_response" \
-        >&2
-      topology_invalid=1
-      continue
-    fi
-    if ! receiving_base_oid=$(jq -er \
-      '.commit.sha | select(type == "string" and length > 0)' \
-      <<<"$branch_response"); then
-      printf '%s\n' \
-        "fork publication topology invalid response: head=$head base=$base expected_base_oid=$expected_base_oid push_repository=$PUSH_REPOSITORY receiving_repository=$REPOSITORY" \
-        >&2
-      topology_invalid=1
-      continue
-    fi
-    if [ "$receiving_base_oid" != "$expected_base_oid" ]; then
-      printf '%s\n' \
-        "fork publication topology mismatch: head=$head base=$base expected_base_oid=$expected_base_oid receiving_base_oid=$receiving_base_oid push_repository=$PUSH_REPOSITORY receiving_repository=$REPOSITORY" \
-        >&2
-      topology_invalid=1
-    fi
-  done
-  return "$topology_invalid"
-}
-preflight_fork_publication_topology "${SELECTED_HEAD_BASES[@]}" || exit $?
-```
-
-The preflight checks every selected pair and aggregates unavailable, malformed,
-or wrong-OID bases so the rejection identifies the exact topology to change.
-Any branch lookup failure, including unavailable authorization or repository
-state, fails closed before mutation. A single-head fork and a fork stack remain
-valid when every selected base branch's returned `commit.sha` equals that
-head's `AUTHOR_BASE_OID`.
+Set `SELECTED_LABELS` to a JSON array of the chosen exact names, including
+`[]` when no label is suitable. Split each exact
+`title\n\nbody` into that head's `TITLE` and `BODY`; malformed output aborts
+the whole selection before any ref or remote mutation.
 
 After every per-head `PR_BASE` is resolved, bind the batch root to the first
 selected affected head's exact base:
@@ -874,76 +421,24 @@ publication. Do not follow a jj batch with gh-stack rebase, sync, push, or
 submit. Preserve stderr and the helper's `restacked` and `errors` arrays so a
 failure reports verified partial state rather than implying an all-or-nothing
 result.
-When the head has no open PR, create the draft against the resolved
-`HOST/OWNER/REPOSITORY` target without label flags, using the fork-qualified
-head when the push repository differs. Require the returned absolute PR URL to
-match the receiving target. Capture all
-attached labels through the paginated issue-label endpoint, refresh the
-repository inventory, then reconcile from that snapshot:
+When the head has no open PR, create a draft and include any selected labels:
 
 ```bash
-PR=$(gh pr create --repo "$REPOSITORY_HOST/$REPOSITORY" \
-  --draft --title "$TITLE" --body-file - \
-  --base "$PR_BASE" --head "$PR_HEAD" <<<"$BODY")
-PR_URL=$PR
-EXPECTED_REPOSITORY=$REPOSITORY
-EXPECTED_REPOSITORY_HOST=$REPOSITORY_HOST
-bind_pr_url_target "$PR" || exit $?
-test "$REPOSITORY" = "$EXPECTED_REPOSITORY" && \
-  test "$REPOSITORY_HOST" = "$EXPECTED_REPOSITORY_HOST" || exit 1
-reconcile_pr_labels "$PR_NUMBER" || exit $?
+PR=$(gh pr create --draft --title "$TITLE" --body-file - \
+  --base "$PR_BASE" --head "$BOOKMARK" \
+  "${CREATE_LABEL_ARGS[@]}" <<<"$BODY")
 ```
 
-When the head has one open PR, edit it and retain draft state. Stabilize the
-attached-label and repository-inventory pair, then reconcile the PR against
-that source of truth. Remove only names that were both in the stable attachment
-snapshot and absent from the stable repository list; URL-encode each exact name
-in its DELETE path. Add all selected missing labels with one complete JSON POST.
-Exact add/remove operations preserve concurrent valid label
-additions and avoid every mutation when both differences are empty. Do not use
-full-set PUT reconciliation or comma-separated `gh pr edit --add-label` /
-`--remove-label` arguments:
+When the head has one open PR, edit it, add any selected labels, and retain
+draft state:
 
 ```bash
 gh pr edit "$PR" --title "$TITLE" --body-file - --base "$PR_BASE" <<<"$BODY"
-reconcile_pr_labels "$PR_NUMBER" || exit $?
+if [ "${#UPDATE_LABEL_ARGS[@]}" -gt 0 ]; then
+  gh pr edit "$PR" "${UPDATE_LABEL_ARGS[@]}"
+fi
 gh pr ready "$PR" --undo # skip only when already draft
 ```
-
-After either create or update, capture the attached labels and refreshed
-repository inventory in two consecutive pairs. Compare them as unordered sets;
-when either set changes, retry the newer pair up to three times. Three retries
-cover three concurrent mutations without allowing persistent repository churn
-to block publication indefinitely. Validate only a stable pair, then prove that
-every selected label is attached and every attached label is currently
-repository-available. Evaluate both conditions independently and exit nonzero
-if either check fails:
-
-```bash
-POST_LABEL_SNAPSHOTS=$(stable_label_snapshots "$PR_NUMBER") || exit $?
-ATTACHED_LABELS=$(jq -ce '.attached' <<<"$POST_LABEL_SNAPSHOTS") || exit $?
-POST_REPOSITORY_LABELS=$(jq -ce '.available' \
-  <<<"$POST_LABEL_SNAPSHOTS") || exit $?
-validate_selected_labels "$POST_REPOSITORY_LABELS" || exit $?
-POST_REPOSITORY_LABEL_NAMES=$(repository_label_names \
-  "$POST_REPOSITORY_LABELS") || exit $?
-MISSING_SELECTED_LABELS=$(jq -cn --argjson selected "$SELECTED_LABELS" \
-  --argjson attached "$ATTACHED_LABELS" '$selected - $attached')
-UNAVAILABLE_ATTACHED_LABELS=$(jq -cn --argjson attached "$ATTACHED_LABELS" \
-  --argjson available "$POST_REPOSITORY_LABEL_NAMES" '$attached - $available')
-if ! jq -e 'length == 0' <<<"$MISSING_SELECTED_LABELS" >/dev/null; then
-  printf 'selected labels missing after publication: %s\n' \
-    "$MISSING_SELECTED_LABELS" >&2
-  exit 1
-fi
-if ! jq -e 'length == 0' <<<"$UNAVAILABLE_ATTACHED_LABELS" >/dev/null; then
-  printf 'attached labels unavailable in repository: %s\n' \
-    "$UNAVAILABLE_ATTACHED_LABELS" >&2
-  exit 1
-fi
-```
-
-</IMPORTANT>
 
 Publish a genuinely necessary self-contained black-zone unit as a draft
 without prior authorization only after its canonical body requires specific
