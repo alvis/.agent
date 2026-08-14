@@ -8,6 +8,7 @@ import subprocess
 from dataclasses import dataclass
 from itertools import pairwise
 from pathlib import Path
+from urllib.parse import quote
 
 import pytest
 
@@ -1392,7 +1393,7 @@ def _build_fork_topology_environment(
     env["GH_API_LOG"] = str(tmp_path / "api.log")
     env["GH_RECEIVING_BRANCH_OIDS"] = json.dumps(
         {
-            f"repos/upstream/project/branches/{base}": base_oid
+            f"repos/upstream/project/branches/{quote(base, safe='')}": base_oid
             for base, base_oid in receiving_base_oids.items()
         }
     )
@@ -1428,6 +1429,17 @@ def run_fork_topology_preflight(
     )
 
 
+def _topology_entry(bookmark: str, pr_base: str, author_base_oid: str, /) -> str:
+    return json.dumps(
+        {
+            "bookmark": bookmark,
+            "pr_base": pr_base,
+            "author_base_oid": author_base_oid,
+        },
+        separators=(",", ":"),
+    )
+
+
 def test_fork_stack_rejects_fork_only_base_before_remote_mutation(
     tmp_path: Path,
 ) -> None:
@@ -1448,8 +1460,8 @@ def test_fork_stack_rejects_fork_only_base_before_remote_mutation(
     completed = run_fork_topology_preflight(
         tmp_path,
         head_bases=[
-            f"feature/01=main={main_oid}",
-            f"feature/02=feature/01={predecessor_oid}",
+            _topology_entry("feature/01", "main", main_oid),
+            _topology_entry("feature/02", "feature/01", predecessor_oid),
         ],
         receiving_base_oids={"main": main_oid},
     )
@@ -1472,7 +1484,7 @@ def test_single_head_fork_accepts_base_available_in_receiving_repository(
     main_oid = "a" * 40
     completed = run_fork_topology_preflight(
         tmp_path,
-        head_bases=[f"feature=main={main_oid}"],
+        head_bases=[_topology_entry("feature", "main", main_oid)],
         receiving_base_oids={"main": main_oid},
     )
 
@@ -1493,7 +1505,7 @@ def test_single_head_fork_rejects_unrelated_receiving_base_before_mutation(
     receiving_base_oid = "b" * 40
     completed = run_fork_topology_preflight(
         tmp_path,
-        head_bases=[f"feature=main={intended_base_oid}"],
+        head_bases=[_topology_entry("feature", "main", intended_base_oid)],
         receiving_base_oids={"main": receiving_base_oid},
     )
 
@@ -1503,6 +1515,41 @@ def test_single_head_fork_rejects_unrelated_receiving_base_before_mutation(
     assert f"expected_base_oid={intended_base_oid}" in completed.stderr
     assert f"receiving_base_oid={receiving_base_oid}" in completed.stderr
     assert not (tmp_path / "mutations.log").exists()
+
+
+def test_fork_topology_preserves_equals_in_git_refs(tmp_path: Path) -> None:
+    base_oid = "a" * 40
+    completed = run_fork_topology_preflight(
+        tmp_path,
+        head_bases=[_topology_entry("feature=preview", "release=stable", base_oid)],
+        receiving_base_oids={"release=stable": base_oid},
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert (tmp_path / "api.log").read_text().splitlines() == [
+        "repos/upstream/project/branches/release%3Dstable"
+    ]
+
+
+def test_repository_label_publication_contract_has_one_semantic_boundary() -> None:
+    workflow = CREATE_UPDATE.read_text()
+    contract = workflow.split("#### Discover and select repository labels", 1)[1].split(
+        "Publish a genuinely necessary self-contained black-zone unit", 1
+    )[0]
+
+    assert contract.count("<IMPORTANT>") == 1
+    assert contract.count("</IMPORTANT>") == 1
+    boundary_start = contract.index("<IMPORTANT>")
+    boundary_end = contract.index("</IMPORTANT>")
+    for required in (
+        "REPOSITORY_LABELS=$(discover_repository_labels)",
+        "preflight_label_mutation_permission",
+        "reconcile_pr_labels",
+        "SELECTED_HEAD_BASE=$(jq -cn",
+        "preflight_fork_publication_topology",
+        "POST_LABEL_SNAPSHOTS=$(stable_label_snapshots",
+    ):
+        assert boundary_start < contract.index(required) < boundary_end
 
 
 def test_repository_label_selection_is_live_and_independent_of_archetypes() -> None:
@@ -1535,6 +1582,8 @@ class _RepositoryLabelScenario:
     push_owner_type: str = "User"
     concurrent: str | None = None
     post_noop: bool = False
+    post_failure_label: str | None = None
+    planning_deleted_label: str | None = None
     delete_race: bool = False
     delete_failure: bool = False
     verification_inventory_race: _RepositoryLabel | None = None
@@ -1556,6 +1605,7 @@ class _RepositoryLabelFixture:
     repository_reads: Path
     attached_reads: Path
     concurrent_marker: Path
+    publication_complete: Path
     script: Path
 
 
@@ -1651,6 +1701,15 @@ def _get_repository_label_scenario(name: str, /) -> _RepositoryLabelScenario:
             ),
             label_permission=False,
         ),
+        "update-permission-delete-race": _RepositoryLabelScenario(
+            selected=(),
+            attached=("retired",),
+            repository_pages=(
+                (_repository_label("retired", "Removed during planning"),),
+            ),
+            label_permission=False,
+            planning_deleted_label="retired",
+        ),
         "update-delete-race": _RepositoryLabelScenario(
             selected=("docs",),
             attached=("retired",),
@@ -1713,6 +1772,17 @@ def _get_repository_label_scenario(name: str, /) -> _RepositoryLabelScenario:
             repository_pages=((_repository_label("bug", "Something is broken"),),),
             post_noop=True,
         ),
+        "partial-addition-failure": _RepositoryLabelScenario(
+            selected=("docs", "bug"),
+            attached=(),
+            repository_pages=(
+                (
+                    _repository_label("docs", "Documentation only"),
+                    _repository_label("bug", "Something is broken"),
+                ),
+            ),
+            post_failure_label="bug",
+        ),
         "unavailable-attached": _RepositoryLabelScenario(
             selected=(),
             attached=(),
@@ -1764,6 +1834,7 @@ def _create_repository_label_fixture(
         repository_reads=tmp_path / "repository-reads",
         attached_reads=tmp_path / "attached-reads",
         concurrent_marker=tmp_path / "concurrent-marker",
+        publication_complete=tmp_path / "publication-complete",
         script=tmp_path / "label-workflow.sh",
     )
     fixture.fake_bin.mkdir()
@@ -1792,7 +1863,9 @@ def _write_repository_label_script(
         "PR_BASE=main\nBOOKMARK=feature\n"
         f'PR_URL={target.pr_url}\nPR="$PR_URL"\n'
         f'{discovery}\nprintf "%s" "$REPOSITORY_LABELS" '
-        f'>"$GH_DISCOVERED_LABELS"\n{publication}\n{verification}\n'
+        f'>"$GH_DISCOVERED_LABELS"\n{publication}\n'
+        ': >"$GH_PUBLICATION_COMPLETE"\n'
+        f"{verification}\n"
     )
 
 
@@ -1830,6 +1903,7 @@ def _build_repository_label_environment(
             "GH_REPOSITORY_READS": str(fixture.repository_reads),
             "GH_ATTACHED_READS": str(fixture.attached_reads),
             "GH_CONCURRENT_MARKER": str(fixture.concurrent_marker),
+            "GH_PUBLICATION_COMPLETE": str(fixture.publication_complete),
             "GH_EXPECTED_REPOSITORY": target.repository,
             "GH_EXPECTED_HOST": target.host,
             "GH_PUSH_OWNER": scenario.push_owner,
@@ -1847,6 +1921,10 @@ def _build_repository_label_environment(
     )
     if scenario.concurrent is not None:
         env["GH_CONCURRENT_LABEL"] = scenario.concurrent
+    if scenario.post_failure_label is not None:
+        env["GH_POST_FAILURE_LABEL"] = scenario.post_failure_label
+    if scenario.planning_deleted_label is not None:
+        env["GH_PLANNING_DELETED_LABEL"] = scenario.planning_deleted_label
     if scenario.verification_inventory_race is not None:
         env["GH_VERIFICATION_INVENTORY_RACE"] = json.dumps(
             scenario.verification_inventory_race
@@ -1902,13 +1980,30 @@ elif [ "$1" = api ]; then
     count=$(cat "$GH_REPOSITORY_READS")
     count=$((count + 1))
     printf '%s' "$count" >"$GH_REPOSITORY_READS"
-    if [ "$count" -ge 3 ] && [ "${GH_VERIFICATION_INVENTORY_CHURN:-0}" = 1 ]; then
+    attached_count=$(cat "$GH_ATTACHED_READS")
+    if [ -n "${GH_PLANNING_DELETED_LABEL:-}" ] && \
+       [ "$attached_count" -ge 1 ] && \
+       [ ! -e "$GH_PUBLICATION_COMPLETE" ] && \
+       [ ! -e "$GH_CONCURRENT_MARKER" ]; then
+      jq -ce --arg label "$GH_PLANNING_DELETED_LABEL" \
+        'map(map(select(.name != $label)))' "$GH_REPOSITORY_PAGES_AFTER" \
+        >"$GH_REPOSITORY_PAGES_AFTER.next"
+      mv "$GH_REPOSITORY_PAGES_AFTER.next" "$GH_REPOSITORY_PAGES_AFTER"
+      cp "$GH_REPOSITORY_PAGES_AFTER" "$GH_REPOSITORY_PAGES_FINAL"
+      jq -ce --arg label "$GH_PLANNING_DELETED_LABEL" \
+        'map(select(. != $label))' "$GH_ATTACHED_LABELS" \
+        >"$GH_ATTACHED_LABELS.next"
+      mv "$GH_ATTACHED_LABELS.next" "$GH_ATTACHED_LABELS"
+      : >"$GH_CONCURRENT_MARKER"
+    fi
+    if [ -e "$GH_PUBLICATION_COMPLETE" ] && \
+       [ "${GH_VERIFICATION_INVENTORY_CHURN:-0}" = 1 ]; then
       jq -ce --arg description "Description $count" \
         'map(map(.description = $description))' "$GH_REPOSITORY_PAGES_FINAL" \
         >"$GH_REPOSITORY_PAGES_FINAL.next"
       mv "$GH_REPOSITORY_PAGES_FINAL.next" "$GH_REPOSITORY_PAGES_FINAL"
     fi
-    if [ "$count" -ge 3 ] && \
+    if [ -e "$GH_PUBLICATION_COMPLETE" ] && \
        [ -n "${GH_VERIFICATION_DELETED_LABEL:-}" ] && \
        [ ! -e "$GH_CONCURRENT_MARKER" ]; then
       jq -ce --arg label "$GH_VERIFICATION_DELETED_LABEL" \
@@ -1921,7 +2016,7 @@ elif [ "$1" = api ]; then
       mv "$GH_ATTACHED_LABELS.next" "$GH_ATTACHED_LABELS"
       : >"$GH_CONCURRENT_MARKER"
     fi
-    if [ "$count" -ge 3 ] && [ -n "${GH_REPOSITORY_PAGES_FINAL:-}" ]; then
+    if [ -e "$GH_PUBLICATION_COMPLETE" ]; then
       cat "$GH_REPOSITORY_PAGES_FINAL"
     elif [ "$count" -ge 2 ] && [ -n "${GH_REPOSITORY_PAGES_AFTER:-}" ]; then
       cat "$GH_REPOSITORY_PAGES_AFTER"
@@ -1933,7 +2028,7 @@ elif [ "$1" = api ]; then
     count=$(cat "$GH_ATTACHED_READS")
     count=$((count + 1))
     printf '%s' "$count" >"$GH_ATTACHED_READS"
-    if [ "$count" -ge 3 ] && \
+    if [ -e "$GH_PUBLICATION_COMPLETE" ] && \
        [ -n "${GH_VERIFICATION_INVENTORY_RACE:-}" ] && \
        [ ! -e "$GH_CONCURRENT_MARKER" ]; then
       jq -ce --argjson label "$GH_VERIFICATION_INVENTORY_RACE" \
@@ -1954,8 +2049,15 @@ elif [ "$1" = api ]; then
           " $* " == *" repos/$GH_EXPECTED_REPOSITORY/issues/17/labels "* && \
           " $* " == *" --input - "* ]]; then
     payload=$(cat)
-    jq -e '.labels | length == 1 and all(.[]; type == "string")' \
+    jq -e '.labels | length > 0 and all(.[]; type == "string")' \
       <<<"$payload" >/dev/null || exit 71
+    if [ -n "${GH_POST_FAILURE_LABEL:-}" ] && \
+       jq -e --arg label "$GH_POST_FAILURE_LABEL" \
+         '.labels | index($label) != null' <<<"$payload" >/dev/null; then
+      printf 'HTTP 500: simulated label failure: %s\n' \
+        "$GH_POST_FAILURE_LABEL" >&2
+      exit 78
+    fi
     if [ -n "${GH_CONCURRENT_LABEL:-}" ] && [ ! -e "$GH_CONCURRENT_MARKER" ]; then
       jq -ce --arg label "$GH_CONCURRENT_LABEL" '. + [$label] | unique' \
         "$GH_ATTACHED_LABELS" >"$GH_ATTACHED_LABELS.next"
@@ -2162,7 +2264,8 @@ def test_repository_label_verification_fails_closed_after_retry_budget(
 
     assert completed.returncode != 0
     assert "label snapshots did not stabilize after 3 retries" in completed.stderr
-    assert (tmp_path / "repository-reads").read_text() == "7"
+    repository_reads = int((tmp_path / "repository-reads").read_text())
+    assert repository_reads == 1 + 2 + 2 + 5
 
 
 def test_repository_label_propagates_non_404_delete_failures(tmp_path: Path) -> None:
@@ -2215,6 +2318,47 @@ def test_repository_label_fork_update_skips_permission_preflight_for_no_op(
     assert not any("--method DELETE" in call for call in api_calls)
 
 
+def test_repository_label_update_skips_permission_after_planning_deletion(
+    tmp_path: Path,
+) -> None:
+    completed = run_repository_label_workflow(tmp_path, "update-permission-delete-race")
+
+    assert completed.returncode == 0, completed.stderr
+    assert json.loads((tmp_path / "attached-labels.json").read_text()) == []
+    api_calls = (tmp_path / "api.log").read_text().splitlines()
+    assert not any(call.endswith("repos/octo/update-target") for call in api_calls)
+    assert not any("--method POST" in call for call in api_calls)
+    assert not any("--method DELETE" in call for call in api_calls)
+
+
+def test_repository_label_additions_use_one_complete_payload(tmp_path: Path) -> None:
+    completed = run_repository_label_workflow(tmp_path, "create-paginated")
+
+    assert completed.returncode == 0, completed.stderr
+    post_calls = [
+        call
+        for call in (tmp_path / "api.log").read_text().splitlines()
+        if "--method POST" in call
+    ]
+    assert len(post_calls) == 1
+
+
+def test_repository_label_addition_failure_cannot_leave_a_prefix(
+    tmp_path: Path,
+) -> None:
+    completed = run_repository_label_workflow(tmp_path, "partial-addition-failure")
+
+    assert completed.returncode != 0
+    assert "simulated label failure: bug" in completed.stderr
+    assert json.loads((tmp_path / "attached-labels.json").read_text()) == []
+    post_calls = [
+        call
+        for call in (tmp_path / "api.log").read_text().splitlines()
+        if "--method POST" in call
+    ]
+    assert len(post_calls) == 1
+
+
 def test_label_preflight_reconciliation_and_verification_use_paginated_rest(
     tmp_path: Path,
 ) -> None:
@@ -2226,7 +2370,7 @@ def test_label_preflight_reconciliation_and_verification_use_paginated_rest(
         for call in (tmp_path / "api.log").read_text().splitlines()
         if "issues/17/labels?per_page=100" in call
     ]
-    assert len(attached_calls) == 4
+    assert len(attached_calls) == 6
     assert all("--paginate" in call and "--slurp" in call for call in attached_calls)
 
 

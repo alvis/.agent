@@ -354,6 +354,8 @@ metadata only.
 
 #### Discover and select repository labels
 
+<IMPORTANT>
+
 Before submitting each PR, bind label work to that PR's target repository and
 host, then discover the complete live label inventory through the paginated
 repository API before any push or PR create/edit. For an existing PR, retain its
@@ -453,6 +455,38 @@ attached_issue_labels() {
 repository_label_names() {
   jq -ce '[.[].name]' <<<"$1"
 }
+stable_label_snapshots() {
+  local pr_number=$1 attached available confirmed_attached confirmed_available
+  local retry_count=0 retry_limit=3
+  attached=$(attached_issue_labels "$pr_number") || return $?
+  available=$(discover_repository_labels) || return $?
+  while :; do
+    confirmed_attached=$(attached_issue_labels "$pr_number") || return $?
+    confirmed_available=$(discover_repository_labels) || return $?
+    if jq -en --argjson attached "$attached" \
+      --argjson confirmed_attached "$confirmed_attached" \
+      --argjson available "$available" \
+      --argjson confirmed_available "$confirmed_available" '
+        (($attached | sort | unique) ==
+          ($confirmed_attached | sort | unique)) and
+        (($available | sort_by(.name)) ==
+          ($confirmed_available | sort_by(.name)))
+      ' >/dev/null; then
+      jq -cn --argjson attached "$confirmed_attached" \
+        --argjson available "$confirmed_available" \
+        '{attached: $attached, available: $available}'
+      return 0
+    fi
+    if [ "$retry_count" -ge "$retry_limit" ]; then
+      printf 'label snapshots did not stabilize after %s retries\n' \
+        "$retry_limit" >&2
+      return 1
+    fi
+    attached=$confirmed_attached
+    available=$confirmed_available
+    retry_count=$((retry_count + 1))
+  done
+}
 validate_selected_labels() {
   local available=$1 unavailable description_drift
   unavailable=$(jq -cn --argjson selected "$SELECTED_LABELS" \
@@ -518,8 +552,13 @@ preflight_label_mutation_permission() {
   return 1
 }
 reconcile_pr_labels() {
-  local pr_number=$1 attached=$2 available=$3 plan removals additions
+  local pr_number=$1 snapshots attached available plan removals additions
   local label_json encoded_label delete_error
+  snapshots=$(stable_label_snapshots "$pr_number") || return $?
+  attached=$(jq -ce '.attached' <<<"$snapshots") || return $?
+  validate_selected_labels "$(jq -ce '.available' <<<"$snapshots")" || return $?
+  available=$(repository_label_names \
+    "$(jq -ce '.available' <<<"$snapshots")") || return $?
   plan=$(label_reconciliation_plan "$attached" "$available") || return $?
   preflight_label_mutation_permission "$plan" || return $?
   removals=$(jq -ce '.removals' <<<"$plan") || return $?
@@ -535,12 +574,12 @@ reconcile_pr_labels() {
       esac
     fi
   done < <(jq -c '.[]' <<<"$removals")
-  while IFS= read -r label_json; do
-    jq -cn --argjson label "$label_json" '{labels: [$label]}' |
+  if ! jq -e 'length == 0' <<<"$additions" >/dev/null; then
+    jq -cn --argjson labels "$additions" '{labels: $labels}' |
       gh api --method POST --hostname "$REPOSITORY_HOST" \
         "repos/$REPOSITORY/issues/$pr_number/labels" --input - \
         >/dev/null || return $?
-  done < <(jq -c '.[]' <<<"$additions")
+  fi
 }
 REPOSITORY_LABELS=$(discover_repository_labels) || exit $?
 SELECTED_LABELS=${SELECTED_LABELS:-'[]'}
@@ -561,13 +600,20 @@ jq -ne --argjson selected "$SELECTED_LABELS" \
   '$selected | unique | sort == ([$choices[] | .name] | unique | sort)' \
   >/dev/null || exit $?
 validate_selected_labels "$REPOSITORY_LABELS" || exit $?
-REPOSITORY_LABEL_NAMES=$(repository_label_names "$REPOSITORY_LABELS") || exit $?
 PREFLIGHT_ATTACHED_LABELS='[]'
+PREFLIGHT_REPOSITORY_LABELS=$REPOSITORY_LABELS
 if [ -n "${PR_URL:-}" ]; then
-  PREFLIGHT_ATTACHED_LABELS=$(attached_issue_labels "$PR_NUMBER") || exit $?
+  PREFLIGHT_LABEL_SNAPSHOTS=$(stable_label_snapshots "$PR_NUMBER") || exit $?
+  PREFLIGHT_ATTACHED_LABELS=$(jq -ce '.attached' \
+    <<<"$PREFLIGHT_LABEL_SNAPSHOTS") || exit $?
+  PREFLIGHT_REPOSITORY_LABELS=$(jq -ce '.available' \
+    <<<"$PREFLIGHT_LABEL_SNAPSHOTS") || exit $?
 fi
+validate_selected_labels "$PREFLIGHT_REPOSITORY_LABELS" || exit $?
+PREFLIGHT_REPOSITORY_LABEL_NAMES=$(repository_label_names \
+  "$PREFLIGHT_REPOSITORY_LABELS") || exit $?
 PREFLIGHT_LABEL_PLAN=$(label_reconciliation_plan \
-  "$PREFLIGHT_ATTACHED_LABELS" "$REPOSITORY_LABEL_NAMES") || exit $?
+  "$PREFLIGHT_ATTACHED_LABELS" "$PREFLIGHT_REPOSITORY_LABEL_NAMES") || exit $?
 preflight_label_mutation_permission "$PREFLIGHT_LABEL_PLAN" || exit $?
 ```
 
@@ -579,16 +625,18 @@ different label. A fork target is reconstructed from the actual nested
 `parent.owner.login` and `parent.name` fields while retaining the push
 repository's host. Reject an organization-owned fork before the batch push
 because `gh pr create --head OWNER:BRANCH` supports only user-owned forks.
-Compute the exact additions and removals before publication and preflight
-repository label permission only when that plan requires mutation. Existing
+Stabilize consecutive attachment and inventory pairs before computing exact
+additions and removals or preflighting repository label permission. Existing
 PRs whose selected and attached repository labels already reconcile need no
-label-write permission. Recompute the plan and preflight immediately before
-reconciliation so a concurrent change cannot reach a label write without the
-permission check. Split each exact `title\n\nbody` into that head's `TITLE` and `BODY`;
+label-write permission, including when a formerly attached label disappears
+while the pair is refreshed. Recompute from another stable pair and preflight
+immediately before reconciliation so a concurrent change cannot reach a label
+write without the permission check. Split each exact `title\n\nbody` into that head's `TITLE` and `BODY`;
 malformed output aborts the whole selection before any ref or remote mutation.
 
 After every per-head `PR_BASE` is resolved, collect one exact
-`BOOKMARK=PR_BASE=AUTHOR_BASE_OID` entry per selected head in
+`{"bookmark":BOOKMARK,"pr_base":PR_BASE,"author_base_oid":AUTHOR_BASE_OID}`
+JSON entry per selected head in
 `SELECTED_HEAD_BASES`, then run this topology preflight before creating or
 moving a local ref, invoking the restack helper, pushing, or creating/editing a
 PR. A same-repository push can publish a selected predecessor before its
@@ -597,8 +645,19 @@ receiving repository, so every selected base must already exist there at its
 intended authoring OID:
 
 ```bash
+SELECTED_HEAD_BASE=$(jq -cn --arg bookmark "$BOOKMARK" \
+  --arg pr_base "$PR_BASE" --arg author_base_oid "$AUTHOR_BASE_OID" \
+  '{
+    bookmark: $bookmark,
+    pr_base: $pr_base,
+    author_base_oid: $author_base_oid
+  }') || exit $?
+SELECTED_HEAD_BASES+=("$SELECTED_HEAD_BASE")
+```
+
+```bash
 preflight_fork_publication_topology() {
-  local head_base head base_and_oid base expected_base_oid encoded_base
+  local head_base head base expected_base_oid encoded_base
   local branch_response receiving_base_oid topology_invalid=0
   if [ -z "${PUSH_REPOSITORY:-}" ]; then
     REMOTE_PUSH_URL=$(git remote get-url --push -- "$REMOTE") || return $?
@@ -607,13 +666,15 @@ preflight_fork_publication_topology() {
   fi
   [ "$PUSH_REPOSITORY" != "$REPOSITORY" ] || return 0
   for head_base in "$@"; do
-    head=${head_base%%=*}
-    base_and_oid=${head_base#*=}
-    base=${base_and_oid%%=*}
-    expected_base_oid=${base_and_oid#*=}
-    if [ -z "$head" ] || [ -z "$base" ] || [ -z "$expected_base_oid" ] || \
-      [ "$base_and_oid" = "$head_base" ] || \
-      [ "$expected_base_oid" = "$base_and_oid" ]; then
+    if ! head=$(jq -er \
+      '.bookmark | select(type == "string" and length > 0)' \
+      <<<"$head_base") || \
+      ! base=$(jq -er \
+        '.pr_base | select(type == "string" and length > 0)' \
+        <<<"$head_base") || \
+      ! expected_base_oid=$(jq -er \
+        '.author_base_oid | select(type == "string" and length > 0)' \
+        <<<"$head_base"); then
       printf 'invalid selected head/base/OID topology entry: %s\n' \
         "$head_base" >&2
       topology_invalid=1
@@ -728,34 +789,22 @@ EXPECTED_REPOSITORY_HOST=$REPOSITORY_HOST
 bind_pr_url_target "$PR" || exit $?
 test "$REPOSITORY" = "$EXPECTED_REPOSITORY" && \
   test "$REPOSITORY_HOST" = "$EXPECTED_REPOSITORY_HOST" || exit 1
-CREATED_LABELS=$(attached_issue_labels "$PR_NUMBER") || exit $?
-REFRESHED_REPOSITORY_LABELS=$(discover_repository_labels) || exit $?
-REFRESHED_REPOSITORY_LABEL_NAMES=$(repository_label_names \
-  "$REFRESHED_REPOSITORY_LABELS") || exit $?
-validate_selected_labels "$REFRESHED_REPOSITORY_LABELS" || exit $?
-reconcile_pr_labels "$PR_NUMBER" "$CREATED_LABELS" \
-  "$REFRESHED_REPOSITORY_LABEL_NAMES" || exit $?
+reconcile_pr_labels "$PR_NUMBER" || exit $?
 ```
 
-When the head has one open PR, edit it and retain draft state. Refresh the
-repository labels, then reconcile the PR against that source of truth. Capture
-attached labels through the paginated issue-label endpoint. Remove only names
-that were both in that snapshot and absent from the refreshed repository list;
-URL-encode each exact name in its DELETE path. Add each selected missing label
-with one JSON POST. Exact add/remove operations preserve concurrent valid label
+When the head has one open PR, edit it and retain draft state. Stabilize the
+attached-label and repository-inventory pair, then reconcile the PR against
+that source of truth. Remove only names that were both in the stable attachment
+snapshot and absent from the stable repository list; URL-encode each exact name
+in its DELETE path. Add all selected missing labels with one complete JSON POST.
+Exact add/remove operations preserve concurrent valid label
 additions and avoid every mutation when both differences are empty. Do not use
 full-set PUT reconciliation or comma-separated `gh pr edit --add-label` /
 `--remove-label` arguments:
 
 ```bash
 gh pr edit "$PR" --title "$TITLE" --body-file - --base "$PR_BASE" <<<"$BODY"
-CURRENT_LABELS=$(attached_issue_labels "$PR_NUMBER") || exit $?
-REFRESHED_REPOSITORY_LABELS=$(discover_repository_labels) || exit $?
-REFRESHED_REPOSITORY_LABEL_NAMES=$(repository_label_names \
-  "$REFRESHED_REPOSITORY_LABELS") || exit $?
-validate_selected_labels "$REFRESHED_REPOSITORY_LABELS" || exit $?
-reconcile_pr_labels "$PR_NUMBER" "$CURRENT_LABELS" \
-  "$REFRESHED_REPOSITORY_LABEL_NAMES" || exit $?
+reconcile_pr_labels "$PR_NUMBER" || exit $?
 gh pr ready "$PR" --undo # skip only when already draft
 ```
 
@@ -769,35 +818,10 @@ repository-available. Evaluate both conditions independently and exit nonzero
 if either check fails:
 
 ```bash
-ATTACHED_LABELS=$(attached_issue_labels "$PR_NUMBER") || exit $?
-POST_REPOSITORY_LABELS=$(discover_repository_labels) || exit $?
-LABEL_SNAPSHOT_RETRIES=3
-LABEL_SNAPSHOT_RETRY_COUNT=0
-while :; do
-  CONFIRMED_ATTACHED_LABELS=$(attached_issue_labels "$PR_NUMBER") || exit $?
-  CONFIRMED_POST_REPOSITORY_LABELS=$(discover_repository_labels) || exit $?
-  if jq -en --argjson attached "$ATTACHED_LABELS" \
-    --argjson confirmed_attached "$CONFIRMED_ATTACHED_LABELS" \
-    --argjson available "$POST_REPOSITORY_LABELS" \
-    --argjson confirmed_available "$CONFIRMED_POST_REPOSITORY_LABELS" '
-      (($attached | sort | unique) ==
-        ($confirmed_attached | sort | unique)) and
-      (($available | sort_by(.name)) ==
-        ($confirmed_available | sort_by(.name)))
-    ' >/dev/null; then
-    ATTACHED_LABELS=$CONFIRMED_ATTACHED_LABELS
-    POST_REPOSITORY_LABELS=$CONFIRMED_POST_REPOSITORY_LABELS
-    break
-  fi
-  if [ "$LABEL_SNAPSHOT_RETRY_COUNT" -ge "$LABEL_SNAPSHOT_RETRIES" ]; then
-    printf 'label snapshots did not stabilize after %s retries\n' \
-      "$LABEL_SNAPSHOT_RETRIES" >&2
-    exit 1
-  fi
-  ATTACHED_LABELS=$CONFIRMED_ATTACHED_LABELS
-  POST_REPOSITORY_LABELS=$CONFIRMED_POST_REPOSITORY_LABELS
-  LABEL_SNAPSHOT_RETRY_COUNT=$((LABEL_SNAPSHOT_RETRY_COUNT + 1))
-done
+POST_LABEL_SNAPSHOTS=$(stable_label_snapshots "$PR_NUMBER") || exit $?
+ATTACHED_LABELS=$(jq -ce '.attached' <<<"$POST_LABEL_SNAPSHOTS") || exit $?
+POST_REPOSITORY_LABELS=$(jq -ce '.available' \
+  <<<"$POST_LABEL_SNAPSHOTS") || exit $?
 validate_selected_labels "$POST_REPOSITORY_LABELS" || exit $?
 POST_REPOSITORY_LABEL_NAMES=$(repository_label_names \
   "$POST_REPOSITORY_LABELS") || exit $?
@@ -816,6 +840,8 @@ if ! jq -e 'length == 0' <<<"$UNAVAILABLE_ATTACHED_LABELS" >/dev/null; then
   exit 1
 fi
 ```
+
+</IMPORTANT>
 
 Publish a genuinely necessary self-contained black-zone unit as a draft
 without prior authorization only after its canonical body requires specific
