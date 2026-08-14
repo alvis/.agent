@@ -34,6 +34,7 @@
 - **TYP-IMPT-05**: Within the same subpath domain, use relative imports (`./`, `../`).
 - **TYP-IMPT-06**: Use named imports by default. Default imports only when no named export exists.
 - **TYP-IMPT-07**: Use static `import` statements when the module path is statically known. Reserve dynamic `import()` for paths computed at runtime.
+- **TYP-IMPT-08**: Never import or re-export through a parent-relative `../src` or `../source` path; use the configured public subpath instead.
 
 ### Module Layout (TYP-MODL)
 

@@ -2,7 +2,7 @@
 
 ## Intent
 
-Vitest cleanup options (`mockReset`, `clearMocks`, `restoreMocks`, `unstubEnvs`, `unstubGlobals`) must be enabled in config. For non-Vitest mock libraries, do not use full-reset methods (e.g., `client.reset()`) that clear behavior defaults — use history-only clears (e.g., `client.resetHistory()`) instead.
+Vitest cleanup options (`mockReset`, `clearMocks`, `restoreMocks`, `unstubEnvs`, `unstubGlobals`) must be enabled in config. Do not call mock/stub cleanup methods (`mockReset()`, `mockClear()`, `mockRestore()`, `mock.reset()`, `client.reset()`, `vi.resetAllMocks()`, `vi.clearAllMocks()`, `vi.restoreAllMocks()`, `vi.unstubAllEnvs()`, or `vi.unstubAllGlobals()`) in a test or lifecycle hook; configured cleanup runs after each test. For non-Vitest mock libraries, do not use full-reset methods that clear behavior defaults — use history-only clears (e.g., `client.resetHistory()`) instead.
 
 ## Fix
 
@@ -28,6 +28,14 @@ export default defineConfig({
 // After: Timer setup at file level (no hooks needed)
 vi.useFakeTimers();
 vi.setSystemTime(new Date("2025-01-01T00:00:00.000Z"));
+
+// Before: Manual Vitest reset (WRONG)
+afterEach(() => {
+  service.mockReset();
+  vi.clearAllMocks();
+});
+
+// After: No manual reset — Vitest config restores mocks after each test
 
 // Before: Library-specific nuclear reset in hook (WRONG)
 beforeEach(() => {
@@ -59,7 +67,7 @@ export default defineConfig({
 ```
 
 <IMPORTANT>
-With proper Vitest configuration, **NEVER add manual cleanup in beforeEach/afterEach**. Let Vitest handle cleanup automatically via config.
+With proper Vitest configuration, **NEVER call Vitest mock/stub cleanup methods or add manual cleanup in beforeEach/afterEach**. Let Vitest handle cleanup automatically via config. The `mockReset: true` config property is required; a `mockReset()` call is not.
 </IMPORTANT>
 
 ## Edge Cases

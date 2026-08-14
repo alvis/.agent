@@ -95,8 +95,8 @@ AAA spacing: blank lines between arrange/act/assert. No `// Arrange` / `// Act` 
 - **TST-MOCK-07**: Mock behavior depends on input arguments, not mutable external flags.
 - **TST-MOCK-08**: Class mocks use `Object.assign(this, mockObject)` in constructor.
 - **TST-MOCK-09**: No `as unknown as` escape casts. Use `satisfies Partial<T>` and the approved bridge (`as Partial<T> as T`).
-- **TST-MOCK-10**: Vitest cleanup options enabled in config. No manual cleanup hooks (`afterEach(() => vi.clearAllMocks())`, `beforeAll(() => vi.useFakeTimers())`, `afterAll(() => vi.useRealTimers())`). For non-Vitest mocks, no full resets (`client.reset()`) — use history-only clears (`client.resetHistory()`).
-- **TST-MOCK-11**: Use `vi.stubGlobal` and `vi.stubEnv` with config-based auto restoration.
+- **TST-MOCK-10**: Vitest cleanup options enabled in config. Do not call mock/stub cleanup methods (`mockReset()`, `mockClear()`, `mockRestore()`, `mock.reset()`, `client.reset()`, `vi.resetAllMocks()`, `vi.clearAllMocks()`, `vi.restoreAllMocks()`, `vi.unstubAllEnvs()`, `vi.unstubAllGlobals()`) or add manual cleanup hooks. For non-Vitest mocks, use history-only clears (`client.resetHistory()`).
+- **TST-MOCK-11**: Use `vi.stubGlobal` and `vi.stubEnv` at the beginning of each `it()` that needs the override. File scope is permitted only when every test needs the same value; config automatically restores stubs after each test.
 - **TST-MOCK-12**: Set shared `vi.useFakeTimers()` and `vi.setSystemTime()` at file or describe level directly (no `beforeAll` wrapper). Per-test overrides for different times are acceptable.
 - **TST-MOCK-13**: No `mock*` or `mocked` identifier prefixes. Use semantic names: `userRepository`, `emailGateway`, `clockStub`.
 - **TST-MOCK-14**: Use `InstanceType<typeof import("...")["ClassName"]>` for class instance typing, not module-level `typeof import(...)`.

@@ -7,7 +7,7 @@ If a violation is detected, load the matching rule guide at `./rules/<rule-id>.m
 
 > **During linting**: Only apply a rule's fix if it is a mechanical correction — formatting, naming, documentation, casing, import ordering, or field/function reordering. If the fix would add new logic, change control flow, introduce runtime validation, or alter program behavior, report the violation without fixing it.
 
-> **Scanner-backed rules**: `TST-CORE-03`, `TST-CORE-08`, `TST-CORE-10`, `TST-CORE-11`, `TST-DATA-04`, `TST-DATA-06`, `TST-STRU-01`, and `TST-STRU-03` have advisory mechanical scanner support (`plugins/coding/scripts/scanners/`). The scanner surfaces candidates only — always re-verify each hit against the rule guide before flagging. For `TST-CORE-10`, reading a file in a test is only a review signal; it is not itself a violation.
+> **Scanner-backed rules**: `TST-CORE-03`, `TST-CORE-08`, `TST-CORE-10`, `TST-CORE-11`, `TST-DATA-04`, `TST-DATA-06`, `TST-MOCK-10`, `TST-MOCK-11`, `TST-STRU-01`, and `TST-STRU-03` have advisory mechanical scanner support (`plugins/coding/scripts/scanners/`). The scanner surfaces candidates only — always re-verify each hit against the rule guide before flagging. For `TST-CORE-10`, reading a file in a test is only a review signal; it is not itself a violation. The `TST-MOCK-10` and `TST-MOCK-11` scanners inspect JavaScript and TypeScript spec files.
 
 ## Quick Scan
 
@@ -42,8 +42,8 @@ If a violation is detected, load the matching rule guide at `./rules/<rule-id>.m
 - DO NOT control mock behavior with mutable flags [`TST-MOCK-07`]
 - DO NOT manually assign every class mock method [`TST-MOCK-08`]
 - DO NOT use double assertions that bypass mock typing, such as `as unknown as X` or `as any as X` [`TST-MOCK-09`]
-- DO NOT replace config cleanup with manual cleanup hooks, such as `afterEach(() => vi.clearAllMocks())`, `beforeAll(() => vi.useFakeTimers())`, `afterAll(() => vi.useRealTimers())`, or `beforeEach(() => client.reset())` [`TST-MOCK-10`]
-- DO NOT mutate globals/env without stubs [`TST-MOCK-11`]
+- DO NOT call mock/stub cleanup methods such as `mockReset()`, `mockClear()`, `mockRestore()`, `mock.reset()`, `client.reset()`, `vi.resetAllMocks()`, `vi.clearAllMocks()`, `vi.restoreAllMocks()`, `vi.unstubAllEnvs()`, or `vi.unstubAllGlobals()`; configured Vitest cleanup runs after each test, while `resetHistory()` remains the non-Vitest history-only exception [`TST-MOCK-10`]
+- DO NOT mutate `process.env` or global-object members directly; use `vi.stubEnv`/`vi.stubGlobal` at the beginning of the `it()` that needs the override, or at file scope only when every test needs the same value [`TST-MOCK-11`]
 - DO NOT repeat shared system time setup in individual test cases; set default `vi.useFakeTimers()` and `vi.setSystemTime(...)` at file or describe level [`TST-MOCK-12`]
 - DO NOT use test identifiers that start with `mock` or `mocked` [`TST-MOCK-13`]
 - DO NOT use module types for class instance mock typing, such as `typeof import("#svc")` for instance doubles [`TST-MOCK-14`]
@@ -90,8 +90,8 @@ If a violation is detected, load the matching rule guide at `./rules/<rule-id>.m
 | `TST-MOCK-07` | Mutable flag controls mock behavior | `scenario.fail = true`; `mockScenario.existsReturnsFalse = true;` |
 | `TST-MOCK-08` | Class mock manually assigns every method | `this.a = mock.a; this.b = mock.b`; `this.encode = encodeMock; this.decode = decodeMock` instead of `Object.assign` |
 | `TST-MOCK-09` | Double assertion bypasses mock typing | `{} as unknown as BlobClient`; `{} as any as BlobClient` |
-| `TST-MOCK-10` | Manual cleanup hooks replace config cleanup | `afterEach(() => vi.clearAllMocks())`; `afterEach(() => vi.restoreAllMocks())`; `beforeAll(() => vi.useFakeTimers())`; `afterAll(() => vi.useRealTimers())`; `beforeEach(() => client.reset())` |
-| `TST-MOCK-11` | Globals/env are mutated without stubs | `process.env.API_URL = "x"` |
+| `TST-MOCK-10` | Mock/stub full-reset cleanup is called manually instead of using configured automatic cleanup | `mock.reset(); client.reset(); mockClear(); vi.resetAllMocks(); vi.clearAllMocks(); vi.restoreAllMocks(); vi.unstubAllEnvs()` |
+| `TST-MOCK-11` | A test mutates `process.env` or a global without a Vitest stub | `process.env.API_URL = "x"`; `process["env"].API_URL = "x"`; `globalThis.fetch = fakeFetch` |
 | `TST-MOCK-12` | Shared system time is repeated in individual test cases or wrapped in hooks | `it("x", () => vi.setSystemTime(now))`; `beforeAll(() => { vi.useFakeTimers(); vi.setSystemTime(date) })` |
 | `TST-MOCK-13` | Test identifier starts with forbidden `mock` or `mocked` | `const mockUserRepo = {}` |
 | `TST-MOCK-14` | Module type is used for class instance mock typing | `Partial<typeof import("#svc")>`; `const client: typeof import("#svc") = { ... }` for an instance double |
