@@ -3,12 +3,12 @@
 from pathlib import Path
 
 from scanlib.core import Match
-from scanlib.predicates import NON_SPEC_TEST_PATTERNS, source_files
+from scanlib.predicates import source_files
 from scanlib.rule import Rule
 
 
 def scan(*, path: Path, lines: list[str], matches: list[Match]) -> None:
-    if not any(path.match(pattern) for pattern in NON_SPEC_TEST_PATTERNS):
+    if not path.match("*.test.*"):
         return
     # the file name itself is the violation — report it on line 1 so the match
     # has a stable anchor regardless of the file's contents.

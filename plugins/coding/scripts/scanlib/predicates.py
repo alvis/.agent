@@ -12,8 +12,6 @@ PY_SUFFIXES = {".py"}
 RUST_SUFFIXES = {".rs"}
 TS_SUFFIXES = {".ts", ".tsx"}
 SPEC_PATTERNS = ("*.spec.*",)
-NON_SPEC_TEST_PATTERNS = ("*.test.*",)
-TEST_FILE_PATTERNS = SPEC_PATTERNS + NON_SPEC_TEST_PATTERNS
 PYTHON_TEST_PATTERNS = ("test_*.py", "*_test.py")
 INDEX_NAMES = {"index.ts", "index.tsx"}
 
@@ -24,8 +22,8 @@ def is_spec_file(path: Path, /) -> bool:
 
 
 def is_test_file(path: Path, /) -> bool:
-    """Return whether ``path`` follows a supported JS/TS or Python test name."""
-    return any(path.match(pattern) for pattern in TEST_FILE_PATTERNS) or any(
+    """Return whether ``path`` follows a supported spec or Python test name."""
+    return any(path.match(pattern) for pattern in SPEC_PATTERNS) or any(
         path.match(pattern) for pattern in PYTHON_TEST_PATTERNS
     )
 

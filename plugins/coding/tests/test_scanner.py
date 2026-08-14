@@ -284,7 +284,7 @@ def test_spec_only_rules_skip_non_spec_files() -> None:
     ("name", "source"),
     (
         ("feature.spec.ts", 'readFile("guidance.md", "utf8")'),
-        ("feature.test.ts", 'readFileSync("guidance.md", "utf8")'),
+        ("feature.spec.int.ts", 'readFileSync("guidance.md", "utf8")'),
         ("test_feature.py", 'Path("#guidance.md").read_text()'),
         ("feature_test.py", 'Path("guidance.md").read_text()'),
     ),
@@ -301,6 +301,14 @@ def test_static_file_read_flags_supported_named_tests(
     STATIC_FILE_READ_RULE.scan(path=path, lines=[source], matches=matches)
 
     assert [match.lineno for match in matches] == [1]
+
+
+def test_static_file_read_ignores_disallowed_test_named_files(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "feature.test.ts"
+
+    assert not STATIC_FILE_READ_RULE.applies_to(path)
 
 
 @pytest.mark.parametrize(
