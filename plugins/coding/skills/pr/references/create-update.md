@@ -529,13 +529,15 @@ publication. Do not follow a jj batch with gh-stack rebase, sync, push, or
 submit. Preserve stderr and the helper's `restacked` and `errors` arrays so a
 failure reports verified partial state rather than implying an all-or-nothing
 result.
-When the head has no open PR, create the draft without label flags and require
-the returned absolute PR URL to match the push-remote target. Capture all
+When the head has no open PR, create the draft against the resolved
+`HOST/OWNER/REPOSITORY` target without label flags, then require the returned
+absolute PR URL to match that push-remote target. Capture all
 attached labels through the paginated issue-label endpoint, refresh the
 repository inventory, then reconcile from that snapshot:
 
 ```bash
-PR=$(gh pr create --draft --title "$TITLE" --body-file - \
+PR=$(gh pr create --repo "$REPOSITORY_HOST/$REPOSITORY" \
+  --draft --title "$TITLE" --body-file - \
   --base "$PR_BASE" --head "$BOOKMARK" <<<"$BODY")
 PR_URL=$PR
 EXPECTED_REPOSITORY=$REPOSITORY

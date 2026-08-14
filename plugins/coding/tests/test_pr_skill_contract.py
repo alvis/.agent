@@ -1463,6 +1463,7 @@ def run_repository_label_workflow(
     repository_pages.write_text(json.dumps(config["repository_pages"]))
     discovered_labels = tmp_path / "discovered-labels.json"
     api_log = tmp_path / "api.log"
+    create_log = tmp_path / "create.log"
     attached_reads = tmp_path / "attached-reads"
     concurrent_marker = tmp_path / "concurrent-marker"
     git = fake_bin / "git"
@@ -1532,7 +1533,9 @@ elif [ "$1" = api ]; then
     exit 65
   fi
 elif [ "$1 $2" = "pr create" ]; then
+  printf '%s\n' "$*" >"$GH_CREATE_LOG"
   [[ " $* " != *" --label "* ]] || exit 67
+  [[ " $* " == *" --repo $GH_EXPECTED_HOST/$GH_EXPECTED_REPOSITORY "* ]] || exit 76
   printf 'https://create.ghe.test/octo/create-target/pull/17\n'
 elif [ "$1 $2" = "pr view" ]; then
   exit 74
@@ -1572,6 +1575,7 @@ fi
     env["GH_REPOSITORY_PAGES"] = str(repository_pages)
     env["GH_DISCOVERED_LABELS"] = str(discovered_labels)
     env["GH_API_LOG"] = str(api_log)
+    env["GH_CREATE_LOG"] = str(create_log)
     env["GH_ATTACHED_READS"] = str(attached_reads)
     env["GH_CONCURRENT_MARKER"] = str(concurrent_marker)
     env["GH_EXPECTED_REPOSITORY"] = repository
@@ -1633,6 +1637,15 @@ def test_repository_label_discovery_binds_target_and_preserves_descriptions(
     assert api_calls
     assert all(f"--hostname {host}" in call for call in api_calls)
     assert all(f"repos/{repository}/" in call for call in api_calls)
+
+
+def test_repository_label_create_binds_the_resolved_target(tmp_path: Path) -> None:
+    completed = run_repository_label_workflow(tmp_path, "create-empty")
+
+    assert completed.returncode == 0, completed.stderr
+    assert "--repo create.ghe.test/octo/create-target" in (
+        tmp_path / "create.log"
+    ).read_text()
 
 
 @pytest.mark.parametrize("scenario", ["create-comma", "update-comma"])
