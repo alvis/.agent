@@ -1313,35 +1313,81 @@ def test_black_zone_requires_complete_body_and_live_authorization_receipt() -> N
     )
 
 
-def test_archetype_is_a_preflighted_label_not_pr_content() -> None:
+def test_labels_are_repository_discovered_and_archetype_stays_body_metadata() -> None:
     workflow = (WRITE_PR / "references" / "create-update.md").read_text()
     template = MESSAGE_TEMPLATE.read_text()
-    normalized_workflow = " ".join(workflow.split())
+    label_workflow = workflow[
+        workflow.index("Before submitting each PR, resolve") : workflow.index(
+            "Publish a genuinely necessary self-contained black-zone unit"
+        )
+    ]
+    normalized_label_workflow = " ".join(label_workflow.split())
+    normalized_template = " ".join(template.split())
 
     assert (
-        "Before submitting each PR, preflight the repository labels"
-        in normalized_workflow
+        "Before submitting each PR, resolve the target repository and discover its "
+        "complete label set through the paginated repository API"
+        in normalized_label_workflow
     )
-    assert "continue without it and record that it was skipped" in workflow
     assert (
-        "Never create, silently substitute, or require an unavailable label"
-        in normalized_workflow
+        "Select zero or more suitable labels only from those exact names"
+        in normalized_label_workflow
     )
-    assert "AVAILABLE_ARCHETYPES=" in workflow
-    assert "verify one archetype label remains when" in workflow
-    assert '--label "$ARCHETYPE"' in workflow
-    assert "PR=$(gh pr create" in workflow
-    assert '--remove-label "$label"' in workflow
-    assert 'gh pr view "$PR" --json labels' in workflow
-    assert "[.labels[].name | select(. as $label" in workflow
-    assert 'EXPECTED_ARCHETYPES=$(jq -cn --arg label "$ARCHETYPE"' in workflow
-    assert 'test "$ACTUAL_ARCHETYPES" = "$EXPECTED_ARCHETYPES"' in workflow
-    assert workflow.index("ARCHETYPE_LABELS='[") < workflow.index("PR=$(gh pr create")
-    assert "If unavailable, omit" in template
-    assert "label is never rendered in the title or" in template
-    assert "attach the exact archetype label only when it exists" in normalized_workflow
-    assert "If absent, omit it and report the skip" in normalized_workflow
-    assert "never create or substitute a label" in normalized_workflow
+    assert "an empty selection is valid" in normalized_label_workflow
+    assert "Never create or substitute a label" in normalized_label_workflow
+    for paginated_source_marker in (
+        "gh api",
+        "--paginate",
+        "--slurp",
+        "labels?per_page=",
+    ):
+        assert paginated_source_marker in label_workflow
+    assert "--limit" not in label_workflow
+    assert (
+        "never from the archetype table or another predefined vocabulary"
+        in normalized_label_workflow
+    )
+
+    assert (
+        "Remove only attached labels absent from the refreshed repository label list"
+        in normalized_label_workflow
+    )
+    assert "Preserve every attached label still available" in normalized_label_workflow
+    assert (
+        "add each selected available label not already attached"
+        in normalized_label_workflow
+    )
+    assert "--remove-label" in label_workflow
+    assert "--add-label" in label_workflow
+    assert (
+        "every selected label is attached and every attached label is currently "
+        "repository-available" in normalized_label_workflow
+    )
+    assert (
+        "Evaluate both conditions independently and exit nonzero if either check fails"
+        in normalized_label_workflow
+    )
+
+    assert "gh label create" not in label_workflow
+    assert "gh label delete" not in label_workflow
+    for removed_semantic in (
+        "canonical label",
+        "canonical set",
+        "one archetype label",
+        "one-label",
+        "at most one",
+        "selected label only",
+    ):
+        assert removed_semantic not in normalized_label_workflow.lower()
+
+    assert "Archetype classification is independent of labels" in workflow
+    assert "body evidence and scanner behavior" in " ".join(workflow.split())
+    assert "zero or more suitable labels" in template
+    assert "removes only labels no longer available" in normalized_template
+    assert (
+        "Attached labels are never rendered in the title or body" in normalized_template
+    )
+    assert "archetype label" not in normalized_label_workflow.lower()
     assert "## Category" not in template
 
 

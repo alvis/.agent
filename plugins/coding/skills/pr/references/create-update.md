@@ -36,10 +36,9 @@ the bundled body shape.
 ### Select the PR archetype
 
 Select the one archetype that best describes the implementation surface.
-Before publication, list the repository labels and attach the exact archetype
-label only when it exists. If absent, omit it and report the skip; never create
-or substitute a label. Remove other available archetype labels so at most one
-remains.
+Archetype classification is independent of labels: it drives conditional PR-body
+evidence and scanner behavior only. Publication may attach zero or more suitable
+labels discovered from the target repository.
 
 | Surface | Archetype |
 |---|---|
@@ -350,28 +349,39 @@ repository default branch only when none exists, then resolve that exact base
 commit as `AUTHOR_BASE_OID`. New-stack bookmarks do not yet exist, so author
 each head against `AUTHOR_BASE_OID`, never `PR_BASE`.
 
-Select one archetype label for each head using the
-[archetype table](#select-the-pr-archetype). Before submitting each PR, preflight
-the repository labels before any push or PR create/edit. If the selected label exists, attach it; if it is
-unavailable, continue without it and record that it was skipped. Never create,
-silently substitute, or require an unavailable label. Do not call any label
-creation command. Bind the canonical set before either publication branch and
-resolve repository names read-only:
+Select one archetype for each head using the
+[archetype table](#select-the-pr-archetype). Before submitting each PR, resolve
+the target repository and discover its complete label set through the paginated
+repository API before any push or PR create/edit. Select zero or more suitable
+labels only from those exact names; an empty selection is valid. Never create or
+substitute a label. Never remove an existing label because it is absent from
+`SELECTED_LABELS` or the archetype table. Bind the available names before either
+publication branch and reject any selected name absent from the repository:
 
 ```bash
-ARCHETYPE_LABELS='["rfc","code-spec","contract","domain-model","implementation","integration","feature-flag","migration","ui","mechanical-refactor","cleanup","observability"]'
-REPOSITORY_LABELS=$(gh label list --limit 1000 --json name)
-AVAILABLE_ARCHETYPES=$(jq -c --argjson archetypes "$ARCHETYPE_LABELS" \
-  '[.[].name | select(. as $name | $archetypes | index($name))]' \
-  <<<"$REPOSITORY_LABELS")
+set -o pipefail
+REPOSITORY=$(gh repo view --json nameWithOwner --jq '.nameWithOwner') || exit $?
+discover_repository_labels() {
+  gh api --paginate --slurp "repos/$REPOSITORY/labels?per_page=100" |
+    jq -ce '[.[][] | .name]'
+}
+REPOSITORY_LABELS=$(discover_repository_labels) || exit $?
+SELECTED_LABELS=${SELECTED_LABELS:-'[]'}
+jq -e 'type == "array" and all(.[]; type == "string")' \
+  <<<"$SELECTED_LABELS" >/dev/null || exit $?
+UNAVAILABLE_SELECTED_LABELS=$(jq -cn --argjson selected "$SELECTED_LABELS" \
+  --argjson available "$REPOSITORY_LABELS" '$selected - $available')
+test "$(jq 'length' <<<"$UNAVAILABLE_SELECTED_LABELS")" -eq 0 || {
+  printf 'selected labels unavailable in repository: %s\n' \
+    "$UNAVAILABLE_SELECTED_LABELS" >&2
+  exit 1
+}
 ```
 
-Use `AVAILABLE_ARCHETYPES` for the existence check, stale-label cleanup, and
-post-publication verification. Set `ARCHETYPE_AVAILABLE=true` only when the
-selected label is in that array; otherwise set it to `false`, report the
-skipped label, and omit every `--label`/`--add-label` operation for it. Split
-each exact `title\n\nbody` into that head's `TITLE` and `BODY`; malformed output
-aborts the whole selection before any ref or remote mutation.
+Choose `SELECTED_LABELS` from the discovered names, never from the archetype
+table or another predefined vocabulary. Split each exact `title\n\nbody` into
+that head's `TITLE` and `BODY`; malformed output aborts the whole selection
+before any ref or remote mutation.
 
 After every per-head `PR_BASE` is resolved, bind the batch root to the first
 selected affected head's exact base:
@@ -428,52 +438,68 @@ publication. Do not follow a jj batch with gh-stack rebase, sync, push, or
 submit. Preserve stderr and the helper's `restacked` and `errors` arrays so a
 failure reports verified partial state rather than implying an all-or-nothing
 result.
-When the head has no open PR, create a draft with the selected label only when
-`ARCHETYPE_AVAILABLE=true`; otherwise create the draft without an archetype
-label:
+When the head has no open PR, create a draft with every selected label. The
+argument array is empty when no suitable repository label was selected:
 
 ```bash
-if [ "$ARCHETYPE_AVAILABLE" = true ]; then
-  PR=$(gh pr create --draft --title "$TITLE" --body-file - \
-    --base "$PR_BASE" --head "$BOOKMARK" --label "$ARCHETYPE" <<<"$BODY")
-else
-  PR=$(gh pr create --draft --title "$TITLE" --body-file - \
-    --base "$PR_BASE" --head "$BOOKMARK" <<<"$BODY")
-fi
+LABEL_ARGS=()
+while IFS= read -r label; do
+  LABEL_ARGS+=(--label "$label")
+done < <(jq -r '.[]' <<<"$SELECTED_LABELS")
+PR=$(gh pr create --draft --title "$TITLE" --body-file - \
+  --base "$PR_BASE" --head "$BOOKMARK" "${LABEL_ARGS[@]}" <<<"$BODY")
 ```
 
-When the head has one open PR, edit it and retain draft state. Discover its
-current labels, remove every stale available archetype label, add the selected
-one only when it is available, and verify one archetype label remains when
-available and none remains when the selected label is unavailable:
+When the head has one open PR, edit it and retain draft state. Refresh the
+repository labels, then reconcile the PR against that source of truth. Remove
+only attached labels absent from the refreshed repository label list. Preserve
+every attached label still available, then add each selected available label
+not already attached:
 
 ```bash
 gh pr edit "$PR" --title "$TITLE" --body-file - --base "$PR_BASE" <<<"$BODY"
-CURRENT_LABELS=$(gh pr view "$PR" --json labels --jq '.labels[].name')
+CURRENT_LABELS=$(gh pr view "$PR" --json labels --jq '[.labels[].name]')
+REFRESHED_REPOSITORY_LABELS=$(discover_repository_labels) || exit $?
+UNAVAILABLE_CURRENT_LABELS=$(jq -cn --argjson current "$CURRENT_LABELS" \
+  --argjson available "$REFRESHED_REPOSITORY_LABELS" '$current - $available')
 while IFS= read -r label; do
-  if jq -e --arg label "$label" 'index($label) != null' <<<"$AVAILABLE_ARCHETYPES" >/dev/null &&
-     [ "$label" != "$ARCHETYPE" ]; then
-    gh pr edit "$PR" --remove-label "$label"
+  gh pr edit "$PR" --remove-label "$label"
+done < <(jq -r '.[]' <<<"$UNAVAILABLE_CURRENT_LABELS")
+VALID_CURRENT_LABELS=$(jq -cn --argjson current "$CURRENT_LABELS" \
+  --argjson unavailable "$UNAVAILABLE_CURRENT_LABELS" '$current - $unavailable')
+while IFS= read -r label; do
+  if jq -e --arg label "$label" 'index($label) != null' \
+    <<<"$REFRESHED_REPOSITORY_LABELS" >/dev/null &&
+    ! jq -e --arg label "$label" 'index($label) != null' \
+      <<<"$VALID_CURRENT_LABELS" >/dev/null; then
+    gh pr edit "$PR" --add-label "$label"
   fi
-done <<<"$CURRENT_LABELS"
-if [ "$ARCHETYPE_AVAILABLE" = true ]; then
-  gh pr edit "$PR" --add-label "$ARCHETYPE"
-fi
+done < <(jq -r '.[]' <<<"$SELECTED_LABELS")
 gh pr ready "$PR" --undo # skip only when already draft
 ```
 
-After either create or update, verify the post-publication label invariant:
+After either create or update, refresh the available repository names and prove
+that every selected label is attached and every attached label is currently
+repository-available. Evaluate both conditions independently and exit nonzero
+if either check fails:
 
 ```bash
-ACTUAL_ARCHETYPES=$(gh pr view "$PR" --json labels | jq -c --argjson archetypes \
-  "$AVAILABLE_ARCHETYPES" \
-  '[.labels[].name | select(. as $label | $archetypes | index($label))] | sort')
-if [ "$ARCHETYPE_AVAILABLE" = true ]; then
-  EXPECTED_ARCHETYPES=$(jq -cn --arg label "$ARCHETYPE" '[$label]')
-else
-  EXPECTED_ARCHETYPES='[]'
+POST_REPOSITORY_LABELS=$(discover_repository_labels) || exit $?
+ATTACHED_LABELS=$(gh pr view "$PR" --json labels --jq '[.labels[].name]')
+MISSING_SELECTED_LABELS=$(jq -cn --argjson selected "$SELECTED_LABELS" \
+  --argjson attached "$ATTACHED_LABELS" '$selected - $attached')
+UNAVAILABLE_ATTACHED_LABELS=$(jq -cn --argjson attached "$ATTACHED_LABELS" \
+  --argjson available "$POST_REPOSITORY_LABELS" '$attached - $available')
+if ! jq -e 'length == 0' <<<"$MISSING_SELECTED_LABELS" >/dev/null; then
+  printf 'selected labels missing after publication: %s\n' \
+    "$MISSING_SELECTED_LABELS" >&2
+  exit 1
 fi
-test "$ACTUAL_ARCHETYPES" = "$EXPECTED_ARCHETYPES"
+if ! jq -e 'length == 0' <<<"$UNAVAILABLE_ATTACHED_LABELS" >/dev/null; then
+  printf 'attached labels unavailable in repository: %s\n' \
+    "$UNAVAILABLE_ATTACHED_LABELS" >&2
+  exit 1
+fi
 ```
 
 Publish a genuinely necessary self-contained black-zone unit as a draft

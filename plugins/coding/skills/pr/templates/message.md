@@ -12,11 +12,12 @@ verbatim instead of this one.
 
 Publication metadata: classify every PR with the archetype selected in
 [create-update.md](../references/create-update.md#select-the-pr-archetype).
-Before publication, inspect the
-repository's existing labels
-and attach the selected archetype when it is available. If unavailable, omit
-it, report it as skipped, and continue; never create or substitute labels. The
-label is never rendered in the title or body.
+Archetype drives conditional body evidence and scanner input; it does not define
+labels. Before publication, inspect the repository's existing labels and attach
+zero or more suitable labels using only those exact names. Never create or
+substitute labels. Existing-PR refresh preserves every valid attached label and
+removes only labels no longer available in the repository. Attached labels are
+never rendered in the title or body.
 
 Always required: Summary + Goal + Requirements + Context + Verification. Goal
 states the outcome; Requirements lists observable behavior, never generic
