@@ -1438,13 +1438,14 @@ def run_repository_label_workflow(
                 ]
             ],
         },
-        "update-no-op": {
+        "update-fork-no-op": {
             "selected": ["docs"],
             "attached": ["docs"],
             "repository_pages": [
                 [{"name": "bug", "description": "Something is broken"}],
                 [{"name": "docs", "description": "Documentation only"}],
             ],
+            "label_permission": False,
         },
         "update-delete-race": {
             "selected": ["docs"],
@@ -1756,7 +1757,7 @@ def test_repository_label_workflow_accepts_zero_or_more_discovered_labels(
     ("scenario", "host", "repository"),
     [
         ("create-empty", "create.ghe.test", "octo/create-target"),
-        ("update-no-op", "update.ghe.test", "octo/update-target"),
+        ("update-fork-no-op", "update.ghe.test", "octo/update-target"),
     ],
 )
 def test_repository_label_discovery_binds_target_and_preserves_descriptions(
@@ -1857,7 +1858,7 @@ def test_repository_label_reconciliation_preserves_exact_comma_names(
         )
 
 
-@pytest.mark.parametrize("scenario", ["create-empty", "update-no-op"])
+@pytest.mark.parametrize("scenario", ["create-empty"])
 def test_repository_label_reconciliation_skips_no_op_mutations(
     tmp_path: Path, scenario: str
 ) -> None:
@@ -1869,7 +1870,19 @@ def test_repository_label_reconciliation_skips_no_op_mutations(
     assert not any("--method DELETE" in call for call in api_calls)
 
 
-def test_attached_label_snapshots_and_verification_are_paginated_rest_calls(
+def test_repository_label_fork_update_skips_permission_preflight_for_no_op(
+    tmp_path: Path,
+) -> None:
+    completed = run_repository_label_workflow(tmp_path, "update-fork-no-op")
+
+    assert completed.returncode == 0, completed.stderr
+    api_calls = (tmp_path / "api.log").read_text().splitlines()
+    assert not any(call.endswith("repos/octo/update-target") for call in api_calls)
+    assert not any("--method POST" in call for call in api_calls)
+    assert not any("--method DELETE" in call for call in api_calls)
+
+
+def test_label_preflight_reconciliation_and_verification_use_paginated_rest(
     tmp_path: Path,
 ) -> None:
     completed = run_repository_label_workflow(tmp_path, "update")
@@ -1880,7 +1893,7 @@ def test_attached_label_snapshots_and_verification_are_paginated_rest_calls(
         for call in (tmp_path / "api.log").read_text().splitlines()
         if "issues/17/labels?per_page=100" in call
     ]
-    assert len(attached_calls) == 2
+    assert len(attached_calls) == 3
     assert all("--paginate" in call and "--slurp" in call for call in attached_calls)
 
 

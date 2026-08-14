@@ -483,10 +483,22 @@ validate_selected_labels() {
     return 1
   fi
 }
+label_reconciliation_plan() {
+  local attached=$1 available=$2 removals additions
+  removals=$(jq -cn --argjson attached "$attached" \
+    --argjson available "$available" \
+    '$attached - $available | unique') || return $?
+  additions=$(jq -cn --argjson selected "$SELECTED_LABELS" \
+    --argjson attached "$attached" \
+    '$selected - $attached | unique') || return $?
+  jq -cn --argjson removals "$removals" --argjson additions "$additions" \
+    '{removals: $removals, additions: $additions}'
+}
 preflight_label_mutation_permission() {
-  local permissions
-  if [ -z "${PR_URL:-}" ] && \
-    jq -e 'length == 0' <<<"$SELECTED_LABELS" >/dev/null; then
+  local plan=$1 permissions
+  if jq -e '
+    (.removals | length == 0) and (.additions | length == 0)
+  ' <<<"$plan" >/dev/null; then
     return 0
   fi
   permissions=$(gh api --hostname "$REPOSITORY_HOST" \
@@ -497,7 +509,7 @@ preflight_label_mutation_permission() {
   ' <<<"$permissions" >/dev/null; then
     return 0
   fi
-  if jq -e 'length > 0' <<<"$SELECTED_LABELS" >/dev/null; then
+  if jq -e '.additions | length > 0' <<<"$plan" >/dev/null; then
     printf 'selected labels require repository label permission\n' >&2
   else
     printf 'repository-only label reconciliation requires repository label permission\n' \
@@ -506,14 +518,12 @@ preflight_label_mutation_permission() {
   return 1
 }
 reconcile_pr_labels() {
-  local pr_number=$1 attached=$2 available=$3 removals additions
+  local pr_number=$1 attached=$2 available=$3 plan removals additions
   local label_json encoded_label delete_error
-  removals=$(jq -cn --argjson attached "$attached" \
-    --argjson available "$available" \
-    '$attached - $available | unique') || return $?
-  additions=$(jq -cn --argjson selected "$SELECTED_LABELS" \
-    --argjson attached "$attached" \
-    '$selected - $attached | unique') || return $?
+  plan=$(label_reconciliation_plan "$attached" "$available") || return $?
+  preflight_label_mutation_permission "$plan" || return $?
+  removals=$(jq -ce '.removals' <<<"$plan") || return $?
+  additions=$(jq -ce '.additions' <<<"$plan") || return $?
   while IFS= read -r label_json; do
     encoded_label=$(jq -er '@uri' <<<"$label_json") || return $?
     if ! delete_error=$(gh api --method DELETE --hostname "$REPOSITORY_HOST" \
@@ -551,7 +561,14 @@ jq -ne --argjson selected "$SELECTED_LABELS" \
   '$selected | unique | sort == ([$choices[] | .name] | unique | sort)' \
   >/dev/null || exit $?
 validate_selected_labels "$REPOSITORY_LABELS" || exit $?
-preflight_label_mutation_permission || exit $?
+REPOSITORY_LABEL_NAMES=$(repository_label_names "$REPOSITORY_LABELS") || exit $?
+PREFLIGHT_ATTACHED_LABELS='[]'
+if [ -n "${PR_URL:-}" ]; then
+  PREFLIGHT_ATTACHED_LABELS=$(attached_issue_labels "$PR_NUMBER") || exit $?
+fi
+PREFLIGHT_LABEL_PLAN=$(label_reconciliation_plan \
+  "$PREFLIGHT_ATTACHED_LABELS" "$REPOSITORY_LABEL_NAMES") || exit $?
+preflight_label_mutation_permission "$PREFLIGHT_LABEL_PLAN" || exit $?
 ```
 
 Validation is deliberately fail-closed even though selection uses live
@@ -562,9 +579,12 @@ different label. A fork target is reconstructed from the actual nested
 `parent.owner.login` and `parent.name` fields while retaining the push
 repository's host. Reject an organization-owned fork before the batch push
 because `gh pr create --head OWNER:BRANCH` supports only user-owned forks.
-Preflight repository label permission before publication whenever selected
-labels or an existing PR can require reconciliation; a new PR with no selected
-labels needs no label mutation permission. Split each exact `title\n\nbody` into that head's `TITLE` and `BODY`;
+Compute the exact additions and removals before publication and preflight
+repository label permission only when that plan requires mutation. Existing
+PRs whose selected and attached repository labels already reconcile need no
+label-write permission. Recompute the plan and preflight immediately before
+reconciliation so a concurrent change cannot reach a label write without the
+permission check. Split each exact `title\n\nbody` into that head's `TITLE` and `BODY`;
 malformed output aborts the whole selection before any ref or remote mutation.
 
 After every per-head `PR_BASE` is resolved, bind the batch root to the first
