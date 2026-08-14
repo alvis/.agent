@@ -1323,9 +1323,10 @@ def test_repository_label_inventory_is_complete_and_deterministic(
     gh.write_text(
         "#!/usr/bin/env bash\n"
         'printf \'%s\\n\' "$@" >"$GH_CALL_LOG"\n'
-        'printf \'%s\\n\' \'[[{"name":"zeta","description":null},'
-        '{"name":"Alpha","description":"first"}],'
-        '[{"name":"beta","description":"second"}]]\'\n'
+        'printf \'%s\\n\' \'[[{"name":"zeta","description":"later"},'
+        '{"name":"Alpha","description":"first","color":"ffffff"}],'
+        '[{"name":"beta","description":"second"},'
+        '{"name":"zeta","description":null}]]\'\n'
     )
     gh.chmod(0o755)
     environment = os.environ | {
@@ -1334,7 +1335,7 @@ def test_repository_label_inventory_is_complete_and_deterministic(
     }
 
     first = subprocess.run(
-        ["bash", str(LABEL_LISTER), "github.example", "octo/widgets"],
+        ["bash", str(LABEL_LISTER), "github example", "octo/widgets repository"],
         check=True,
         capture_output=True,
         text=True,
@@ -1344,14 +1345,15 @@ def test_repository_label_inventory_is_complete_and_deterministic(
         {"name": "Alpha", "description": "first"},
         {"name": "beta", "description": "second"},
         {"name": "zeta", "description": None},
+        {"name": "zeta", "description": "later"},
     ]
     assert call_log.read_text().splitlines() == [
         "api",
         "--hostname",
-        "github.example",
+        "github example",
         "--paginate",
         "--slurp",
-        "repos/octo/widgets/labels?per_page=100",
+        "repos/octo/widgets repository/labels?per_page=100",
     ]
 
 
