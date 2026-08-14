@@ -1492,6 +1492,22 @@ def run_repository_label_workflow(
                 "description": "Added during verification",
             },
         },
+        "update-verification-delete-race": {
+            "selected": [],
+            "attached": ["retired"],
+            "repository_pages": [
+                [{"name": "retired", "description": "Removed during verification"}]
+            ],
+            "verification_deleted_label": "retired",
+        },
+        "update-verification-churn": {
+            "selected": [],
+            "attached": [],
+            "repository_pages": [
+                [{"name": "churn", "description": "Initial description"}]
+            ],
+            "verification_inventory_churn": True,
+        },
         "unavailable-selection": {
             "selected": ["not-in-repository"],
             "selected_choices": [
@@ -1589,6 +1605,25 @@ elif [ "$1" = api ]; then
     count=$(cat "$GH_REPOSITORY_READS")
     count=$((count + 1))
     printf '%s' "$count" >"$GH_REPOSITORY_READS"
+    if [ "$count" -ge 3 ] && [ "${GH_VERIFICATION_INVENTORY_CHURN:-0}" = 1 ]; then
+      jq -ce --arg description "Description $count" \
+        'map(map(.description = $description))' "$GH_REPOSITORY_PAGES_FINAL" \
+        >"$GH_REPOSITORY_PAGES_FINAL.next"
+      mv "$GH_REPOSITORY_PAGES_FINAL.next" "$GH_REPOSITORY_PAGES_FINAL"
+    fi
+    if [ "$count" -ge 3 ] && \
+       [ -n "${GH_VERIFICATION_DELETED_LABEL:-}" ] && \
+       [ ! -e "$GH_CONCURRENT_MARKER" ]; then
+      jq -ce --arg label "$GH_VERIFICATION_DELETED_LABEL" \
+        'map(map(select(.name != $label)))' "$GH_REPOSITORY_PAGES_FINAL" \
+        >"$GH_REPOSITORY_PAGES_FINAL.next"
+      mv "$GH_REPOSITORY_PAGES_FINAL.next" "$GH_REPOSITORY_PAGES_FINAL"
+      jq -ce --arg label "$GH_VERIFICATION_DELETED_LABEL" \
+        'map(select(. != $label))' "$GH_ATTACHED_LABELS" \
+        >"$GH_ATTACHED_LABELS.next"
+      mv "$GH_ATTACHED_LABELS.next" "$GH_ATTACHED_LABELS"
+      : >"$GH_CONCURRENT_MARKER"
+    fi
     if [ "$count" -ge 3 ] && [ -n "${GH_REPOSITORY_PAGES_FINAL:-}" ]; then
       cat "$GH_REPOSITORY_PAGES_FINAL"
     elif [ "$count" -ge 2 ] && [ -n "${GH_REPOSITORY_PAGES_AFTER:-}" ]; then
@@ -1744,6 +1779,13 @@ fi
         env["GH_CONCURRENT_LABEL"] = concurrent
     if verification_inventory_race := config.get("verification_inventory_race"):
         env["GH_VERIFICATION_INVENTORY_RACE"] = json.dumps(verification_inventory_race)
+    if isinstance(
+        verification_deleted_label := config.get("verification_deleted_label"), str
+    ):
+        env["GH_VERIFICATION_DELETED_LABEL"] = verification_deleted_label
+    env["GH_VERIFICATION_INVENTORY_CHURN"] = (
+        "1" if config.get("verification_inventory_churn") else "0"
+    )
     if final_override := config.get("final_override"):
         env["GH_FINAL_OVERRIDE"] = json.dumps(final_override)
 
@@ -1867,6 +1909,27 @@ def test_repository_label_verification_refreshes_inventory_after_attached_snapsh
     assert json.loads((tmp_path / "attached-labels.json").read_text()) == ["automation"]
 
 
+def test_repository_label_verification_retries_deleted_attachment_snapshot(
+    tmp_path: Path,
+) -> None:
+    completed = run_repository_label_workflow(
+        tmp_path, "update-verification-delete-race"
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert json.loads((tmp_path / "attached-labels.json").read_text()) == []
+
+
+def test_repository_label_verification_fails_closed_after_retry_budget(
+    tmp_path: Path,
+) -> None:
+    completed = run_repository_label_workflow(tmp_path, "update-verification-churn")
+
+    assert completed.returncode != 0
+    assert "label snapshots did not stabilize after 3 retries" in completed.stderr
+    assert (tmp_path / "repository-reads").read_text() == "7"
+
+
 def test_repository_label_propagates_non_404_delete_failures(tmp_path: Path) -> None:
     completed = run_repository_label_workflow(tmp_path, "update-delete-failure")
 
@@ -1928,7 +1991,7 @@ def test_label_preflight_reconciliation_and_verification_use_paginated_rest(
         for call in (tmp_path / "api.log").read_text().splitlines()
         if "issues/17/labels?per_page=100" in call
     ]
-    assert len(attached_calls) == 3
+    assert len(attached_calls) == 4
     assert all("--paginate" in call and "--slurp" in call for call in attached_calls)
 
 

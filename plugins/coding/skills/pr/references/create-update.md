@@ -690,14 +690,45 @@ reconcile_pr_labels "$PR_NUMBER" "$CURRENT_LABELS" \
 gh pr ready "$PR" --undo # skip only when already draft
 ```
 
-After either create or update, capture the attached labels, refresh the available
-repository names, and prove that every selected label is attached and every
-attached label is currently repository-available. Evaluate both conditions
-independently and exit nonzero if either check fails:
+After either create or update, capture the attached labels and refreshed
+repository inventory in two consecutive pairs. Compare them as unordered sets;
+when either set changes, retry the newer pair up to three times. Three retries
+cover three concurrent mutations without allowing persistent repository churn
+to block publication indefinitely. Validate only a stable pair, then prove that
+every selected label is attached and every attached label is currently
+repository-available. Evaluate both conditions independently and exit nonzero
+if either check fails:
 
 ```bash
 ATTACHED_LABELS=$(attached_issue_labels "$PR_NUMBER") || exit $?
 POST_REPOSITORY_LABELS=$(discover_repository_labels) || exit $?
+LABEL_SNAPSHOT_RETRIES=3
+LABEL_SNAPSHOT_RETRY_COUNT=0
+while :; do
+  CONFIRMED_ATTACHED_LABELS=$(attached_issue_labels "$PR_NUMBER") || exit $?
+  CONFIRMED_POST_REPOSITORY_LABELS=$(discover_repository_labels) || exit $?
+  if jq -en --argjson attached "$ATTACHED_LABELS" \
+    --argjson confirmed_attached "$CONFIRMED_ATTACHED_LABELS" \
+    --argjson available "$POST_REPOSITORY_LABELS" \
+    --argjson confirmed_available "$CONFIRMED_POST_REPOSITORY_LABELS" '
+      (($attached | sort | unique) ==
+        ($confirmed_attached | sort | unique)) and
+      (($available | sort_by(.name)) ==
+        ($confirmed_available | sort_by(.name)))
+    ' >/dev/null; then
+    ATTACHED_LABELS=$CONFIRMED_ATTACHED_LABELS
+    POST_REPOSITORY_LABELS=$CONFIRMED_POST_REPOSITORY_LABELS
+    break
+  fi
+  if [ "$LABEL_SNAPSHOT_RETRY_COUNT" -ge "$LABEL_SNAPSHOT_RETRIES" ]; then
+    printf 'label snapshots did not stabilize after %s retries\n' \
+      "$LABEL_SNAPSHOT_RETRIES" >&2
+    exit 1
+  fi
+  ATTACHED_LABELS=$CONFIRMED_ATTACHED_LABELS
+  POST_REPOSITORY_LABELS=$CONFIRMED_POST_REPOSITORY_LABELS
+  LABEL_SNAPSHOT_RETRY_COUNT=$((LABEL_SNAPSHOT_RETRY_COUNT + 1))
+done
 validate_selected_labels "$POST_REPOSITORY_LABELS" || exit $?
 POST_REPOSITORY_LABEL_NAMES=$(repository_label_names \
   "$POST_REPOSITORY_LABELS") || exit $?
