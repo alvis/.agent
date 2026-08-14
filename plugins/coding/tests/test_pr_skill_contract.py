@@ -1313,82 +1313,181 @@ def test_black_zone_requires_complete_body_and_live_authorization_receipt() -> N
     )
 
 
-def test_labels_are_repository_discovered_and_archetype_stays_body_metadata() -> None:
-    workflow = (WRITE_PR / "references" / "create-update.md").read_text()
-    template = MESSAGE_TEMPLATE.read_text()
-    label_workflow = workflow[
-        workflow.index("Before submitting each PR, resolve") : workflow.index(
-            "Publish a genuinely necessary self-contained black-zone unit"
-        )
-    ]
-    normalized_label_workflow = " ".join(label_workflow.split())
-    normalized_template = " ".join(template.split())
+def extract_bash_block_containing(markdown: str, marker: str) -> str:
+    blocks = re.findall(r"```bash\n(.*?)\n```", markdown, flags=re.DOTALL)
 
-    assert (
-        "Before submitting each PR, resolve the target repository and discover its "
-        "complete label set through the paginated repository API"
-        in normalized_label_workflow
+    return next(block for block in blocks if marker in block)
+
+
+def run_repository_label_workflow(
+    tmp_path: Path, scenario: str
+) -> subprocess.CompletedProcess[str]:
+    workflow = CREATE_UPDATE.read_text()
+    discovery = extract_bash_block_containing(workflow, "REPOSITORY_LABELS=")
+    publication = extract_bash_block_containing(
+        workflow, "CURRENT_LABELS=" if scenario == "update" else "LABEL_ARGS=()"
     )
-    assert (
-        "Select zero or more suitable labels only from those exact names"
-        in normalized_label_workflow
+    verification = extract_bash_block_containing(workflow, "POST_REPOSITORY_LABELS=")
+    scenarios = {
+        "create-empty": {
+            "selected": [],
+            "attached": [],
+            "repository_pages": [[{"name": "bug"}], [{"name": "docs"}]],
+            "create_override": None,
+        },
+        "create-paginated": {
+            "selected": ["docs", "bug"],
+            "attached": [],
+            "repository_pages": [[{"name": "bug"}], [{"name": "docs"}]],
+            "create_override": None,
+        },
+        "update": {
+            "selected": ["docs", "customer-request"],
+            "attached": ["keep", "retired"],
+            "repository_pages": [
+                [{"name": "keep"}, {"name": "docs"}],
+                [{"name": "customer-request"}],
+            ],
+            "create_override": None,
+        },
+        "unavailable-selection": {
+            "selected": ["not-in-repository"],
+            "attached": [],
+            "repository_pages": [[{"name": "bug"}]],
+            "create_override": None,
+        },
+        "missing-selected": {
+            "selected": ["bug"],
+            "attached": [],
+            "repository_pages": [[{"name": "bug"}]],
+            "create_override": [],
+        },
+        "unavailable-attached": {
+            "selected": [],
+            "attached": [],
+            "repository_pages": [[{"name": "bug"}]],
+            "create_override": ["retired"],
+        },
+    }
+    config = scenarios[scenario]
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    attached_labels = tmp_path / "attached-labels.json"
+    attached_labels.write_text(json.dumps(config["attached"]))
+    repository_pages = tmp_path / "repository-pages.json"
+    repository_pages.write_text(json.dumps(config["repository_pages"]))
+    gh = fake_bin / "gh"
+    gh.write_text(
+        """#!/usr/bin/env bash
+set -eu
+if [ "$1 $2" = "repo view" ]; then
+  printf 'octo/repo\n'
+elif [ "$1" = api ]; then
+  [[ " $* " == *" --paginate "* && " $* " == *" --slurp "* ]] || exit 64
+  [[ " $* " == *" repos/octo/repo/labels?per_page=100 "* ]] || exit 65
+  cat "$GH_REPOSITORY_PAGES"
+elif [ "$1 $2" = "pr create" ]; then
+  labels=()
+  shift 2
+  while [ "$#" -gt 0 ]; do
+    if [ "$1" = --label ]; then
+      labels+=("$2")
+      shift 2
+    else
+      shift
+    fi
+  done
+  if [ -n "${GH_CREATE_OVERRIDE:-}" ]; then
+    printf '%s' "$GH_CREATE_OVERRIDE" >"$GH_ATTACHED_LABELS"
+  else
+    jq -cn '$ARGS.positional' --args "${labels[@]}" >"$GH_ATTACHED_LABELS"
+  fi
+  printf '17\n'
+elif [ "$1 $2" = "pr view" ]; then
+  cat "$GH_ATTACHED_LABELS"
+elif [ "$1 $2" = "pr edit" ]; then
+  if [ "${4:-}" = --remove-label ]; then
+    jq -c --arg label "$5" 'map(select(. != $label))' \
+      "$GH_ATTACHED_LABELS" >"$GH_ATTACHED_LABELS.next"
+    mv "$GH_ATTACHED_LABELS.next" "$GH_ATTACHED_LABELS"
+  elif [ "${4:-}" = --add-label ]; then
+    jq -c --arg label "$5" '. + [$label] | unique' \
+      "$GH_ATTACHED_LABELS" >"$GH_ATTACHED_LABELS.next"
+    mv "$GH_ATTACHED_LABELS.next" "$GH_ATTACHED_LABELS"
+  else
+    cat >/dev/null
+  fi
+elif [ "$1 $2" = "pr ready" ]; then
+  :
+else
+  exit 66
+fi
+"""
     )
-    assert "an empty selection is valid" in normalized_label_workflow
-    assert "Never create or substitute a label" in normalized_label_workflow
-    for paginated_source_marker in (
-        "gh api",
-        "--paginate",
-        "--slurp",
-        "labels?per_page=",
-    ):
-        assert paginated_source_marker in label_workflow
-    assert "--limit" not in label_workflow
-    assert (
-        "never from the archetype table or another predefined vocabulary"
-        in normalized_label_workflow
+    gh.chmod(0o755)
+    script = tmp_path / "label-workflow.sh"
+    script.write_text(
+        "set -eu\n"
+        'TITLE="title"\nBODY="body"\nPR_BASE=main\nBOOKMARK=feature\nPR=17\n'
+        f"{discovery}\n{publication}\n{verification}\n"
+    )
+    env = os.environ.copy()
+    env["PATH"] = f"{fake_bin}:{env['PATH']}"
+    env["GH_ATTACHED_LABELS"] = str(attached_labels)
+    env["GH_REPOSITORY_PAGES"] = str(repository_pages)
+    env["SELECTED_LABELS"] = json.dumps(config["selected"])
+    if config["create_override"] is not None:
+        env["GH_CREATE_OVERRIDE"] = json.dumps(config["create_override"])
+
+    return subprocess.run(
+        ["bash", str(script)],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=env,
     )
 
-    assert (
-        "Remove only attached labels absent from the refreshed repository label list"
-        in normalized_label_workflow
-    )
-    assert "Preserve every attached label still available" in normalized_label_workflow
-    assert (
-        "add each selected available label not already attached"
-        in normalized_label_workflow
-    )
-    assert "--remove-label" in label_workflow
-    assert "--add-label" in label_workflow
-    assert (
-        "every selected label is attached and every attached label is currently "
-        "repository-available" in normalized_label_workflow
-    )
-    assert (
-        "Evaluate both conditions independently and exit nonzero if either check fails"
-        in normalized_label_workflow
+
+@pytest.mark.parametrize(
+    ("scenario", "expected_labels"),
+    [
+        ("create-empty", []),
+        ("create-paginated", ["docs", "bug"]),
+        ("update", ["keep", "docs", "customer-request"]),
+    ],
+)
+def test_repository_label_workflow_accepts_zero_or_more_discovered_labels(
+    tmp_path: Path, scenario: str, expected_labels: list[str]
+) -> None:
+    completed = run_repository_label_workflow(tmp_path, scenario)
+
+    assert completed.returncode == 0, completed.stderr
+    assert set(json.loads((tmp_path / "attached-labels.json").read_text())) == set(
+        expected_labels
     )
 
-    assert "gh label create" not in label_workflow
-    assert "gh label delete" not in label_workflow
-    for removed_semantic in (
-        "canonical label",
-        "canonical set",
-        "one archetype label",
-        "one-label",
-        "at most one",
-        "selected label only",
-    ):
-        assert removed_semantic not in normalized_label_workflow.lower()
 
-    assert "Archetype classification is independent of labels" in workflow
-    assert "body evidence and scanner behavior" in " ".join(workflow.split())
-    assert "zero or more suitable labels" in template
-    assert "removes only labels no longer available" in normalized_template
+@pytest.mark.parametrize(
+    ("scenario", "violating_label", "expected_labels"),
+    [
+        ("unavailable-selection", "not-in-repository", []),
+        ("missing-selected", "bug", []),
+        ("unavailable-attached", "retired", ["retired"]),
+    ],
+)
+def test_repository_label_workflow_fails_closed(
+    tmp_path: Path,
+    scenario: str,
+    violating_label: str,
+    expected_labels: list[str],
+) -> None:
+    completed = run_repository_label_workflow(tmp_path, scenario)
+
+    assert completed.returncode != 0
+    assert violating_label in completed.stderr
     assert (
-        "Attached labels are never rendered in the title or body" in normalized_template
+        json.loads((tmp_path / "attached-labels.json").read_text()) == expected_labels
     )
-    assert "archetype label" not in normalized_label_workflow.lower()
-    assert "## Category" not in template
 
 
 def test_generated_files_section_is_conditional_and_emoji_named() -> None:
