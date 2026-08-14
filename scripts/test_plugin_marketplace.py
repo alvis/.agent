@@ -54,6 +54,7 @@ CONTEXT_PAYLOAD_EVENTS = {
     "hooks/MAINAGENT.md": {"SessionStart"},
     "hooks/SUBAGENT.md": {"SubagentStart"},
 }
+CLAUDE_ONLY_SHARED_SKILLS = ("install-output-style", "install-statusline")
 RESOURCE_ROOT = re.compile(
     r"\$\{([A-Z][A-Z0-9_]*_(?:PLUGIN_ROOT|PLUGIN_DIR|SKILL_DIR))\}"
 )
@@ -686,10 +687,10 @@ def shared_codex_skill_root_violations(plugin_root: Path) -> list[str]:
         if not path.is_file():
             continue
         relative_path = path.relative_to(plugin_root)
-        if relative_path.parts[:3] == (
-            "essential",
-            "skills",
-            "install-statusline",
+        if (
+            len(relative_path.parts) >= 3
+            and relative_path.parts[:2] == ("essential", "skills")
+            and relative_path.parts[2] in CLAUDE_ONLY_SHARED_SKILLS
         ):
             continue
 
@@ -761,25 +762,23 @@ def test_shared_codex_skill_path_scan_catches_claude_roots_in_all_text_files(
     assert f"example/skills/leak/script{suffix}: CLAUDE_PLUGIN_ROOT" in str(error.value)
 
 
-def test_shared_codex_skill_path_scan_limits_claude_statusline_exemption(
+@pytest.mark.parametrize("skill_name", CLAUDE_ONLY_SHARED_SKILLS)
+def test_shared_codex_skill_path_scan_limits_claude_only_exemptions(
     tmp_path: Path,
+    skill_name: str,
 ) -> None:
-    claude_statusline = (
-        tmp_path / "essential" / "skills" / "install-statusline" / "script"
-    )
-    claude_statusline.parent.mkdir(parents=True)
-    claude_statusline.write_text("CLAUDE_PLUGIN_ROOT\n", encoding="utf-8")
-    shared_statusline = (
-        tmp_path / "example" / "skills" / "install-statusline" / "script"
-    )
-    shared_statusline.parent.mkdir(parents=True)
-    shared_statusline.write_text("CLAUDE_PLUGIN_ROOT\n", encoding="utf-8")
+    claude_skill = tmp_path / "essential" / "skills" / skill_name / "script"
+    claude_skill.parent.mkdir(parents=True)
+    claude_skill.write_text("CLAUDE_PLUGIN_ROOT\n", encoding="utf-8")
+    shared_skill = tmp_path / "example" / "skills" / skill_name / "script"
+    shared_skill.parent.mkdir(parents=True)
+    shared_skill.write_text("CLAUDE_PLUGIN_ROOT\n", encoding="utf-8")
 
     with pytest.raises(AssertionError) as error:
         assert_shared_codex_skill_paths_use_loaded_resource_roots(tmp_path)
 
-    assert "example/skills/install-statusline/script" in str(error.value)
-    assert "essential/skills/install-statusline/script" not in str(error.value)
+    assert f"example/skills/{skill_name}/script" in str(error.value)
+    assert f"essential/skills/{skill_name}/script" not in str(error.value)
 
 
 @pytest.mark.parametrize(
