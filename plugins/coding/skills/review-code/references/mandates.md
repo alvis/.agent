@@ -28,8 +28,14 @@ Search siblings with the same role and compare naming, parameter and return
 shape, error/log/retry/cache behavior, and logic flow. Flag unexplained
 divergence and human-detectable redundancy such as behavior-free wrappers,
 duplicate logic, impossible defensive checks, parallel compatibility paths, or
-single-caller over-generalization. Tool-detectable dead/unused code stays with
-lint.
+single-caller over-generalization. For a defensive-check finding, trace value
+provenance and show that no public, external, dynamic, unsafe, persistence, or
+deserialization boundary exists and that supported execution cannot invalidate
+the condition independently, applying `GEN-SAFE-03`. A first-party producer postcondition does not
+justify the check merely because the type cannot fully express it. Cite the
+exact producer test that proves the checked postcondition; broad coverage and
+the helper's name are not evidence.
+Tool-detectable dead/unused code stays with lint.
 
 ## Mechanical checks stay mechanical
 

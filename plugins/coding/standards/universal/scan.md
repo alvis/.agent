@@ -19,7 +19,7 @@ If a violation is detected, load the matching rule guide at `./rules/<rule-id>.m
 - DO NOT keep symbols with no consumer — pre-scan with `fallow dead-code --production`, then deep-dive each candidate case by case [`GEN-DESN-04`]
 - DO NOT add suppression comments without approval, such as `// @ts-ignore` or `/* eslint-disable */` [`GEN-SAFE-01`] (→ TYP-CORE-04)
 - DO NOT patch symptoms instead of fixing root cause, such as `catch { return }` that hides failures [`GEN-SAFE-02`]
-- DO NOT access boundary input before validation/narrowing, such as `const id = input.id` when `input` is still `unknown` [`GEN-SAFE-03`]
+- DO NOT omit validation at a real trust boundary or revalidate a closed first-party producer postcondition whose exact producer test exists and supported execution cannot invalidate independently [`GEN-SAFE-03`]
 - DO NOT optimize hot paths without profiling evidence [`GEN-SCAL-01`]
 - DO NOT use linear array scans in hot paths when collection size can grow large, such as `users.find((u)=>u.id===id)` on hundreds+ entries [`GEN-SCAL-02`]
 - DO NOT skip explicit risk and uncertainty checks for complex changes [`GEN-SCAL-03`]
@@ -38,7 +38,7 @@ If a violation is detected, load the matching rule guide at `./rules/<rule-id>.m
 | `GEN-DESN-04` | Symbol has no consumer (dead code) | `export const INLINE_PATTERNS = /.../` with no caller; `const logo = '...'` read by no code |
 | `GEN-SAFE-01` | Suppression comment used without approval | `// @ts-ignore`; `// @ts-ignore - types are broken here` |
 | `GEN-SAFE-02` | Symptom patched, root cause unresolved | `catch { return }` |
-| `GEN-SAFE-03` | Unknown boundary input is not validated before use | `const id = input.id` when `input: unknown`; `const user = payload as User` without guard/schema |
+| `GEN-SAFE-03` | Trust-boundary validation is missing or redundant | `const id = input.id` when `input: unknown`; `validateResult(await closedInternal.run())` despite an exact producer test |
 | `GEN-SCAL-01` | Optimization added without profiling | `optimizePath();`; `const cache = new WeakMap(); // "just in case" it's slow` |
 | `GEN-SCAL-02` | Non-scalable lookup in hot path | `users.find((u)=>u.id===id)` |
 | `GEN-SCAL-03` | No explicit risk/uncertainty check | `deployChange(); // no risk checklist, no rollback plan` |
