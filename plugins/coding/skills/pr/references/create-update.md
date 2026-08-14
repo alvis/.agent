@@ -349,20 +349,8 @@ REPOSITORY_LABELS=$(bash \
 The helper returns deterministic JSON containing every exact label `name` and
 `description` from every API page. Inspect both fields and choose zero or more
 suitable names only from that output. Never create, guess, substitute, or
-remove labels. Build repeated `--label` arguments for create and `--add-label`
-arguments for update from those exact choices:
-
-```bash
-CREATE_LABEL_ARGS=()
-UPDATE_LABEL_ARGS=()
-while IFS= read -r LABEL; do
-  CREATE_LABEL_ARGS+=(--label "$LABEL")
-  UPDATE_LABEL_ARGS+=(--add-label "$LABEL")
-done < <(jq -r '.[]' <<<"$SELECTED_LABELS")
-```
-
-Set `SELECTED_LABELS` to a JSON array of the chosen exact names, including
-`[]` when no label is suitable. Split each exact
+remove labels. Set `SELECTED_LABELS` to a JSON array of those exact choices,
+including `[]` when no label is suitable. Split each exact
 `title\n\nbody` into that head's `TITLE` and `BODY`; malformed output aborts
 the whole selection before any ref or remote mutation.
 
@@ -421,23 +409,34 @@ publication. Do not follow a jj batch with gh-stack rebase, sync, push, or
 submit. Preserve stderr and the helper's `restacked` and `errors` arrays so a
 failure reports verified partial state rather than implying an all-or-nothing
 result.
-When the head has no open PR, create a draft and include any selected labels:
+When the head has no open PR, create a draft:
 
 ```bash
 PR=$(gh pr create --draft --title "$TITLE" --body-file - \
-  --base "$PR_BASE" --head "$BOOKMARK" \
-  "${CREATE_LABEL_ARGS[@]}" <<<"$BODY")
+  --base "$PR_BASE" --head "$BOOKMARK" <<<"$BODY")
 ```
 
-When the head has one open PR, edit it, add any selected labels, and retain
-draft state:
+When the head has one open PR, edit it and retain draft state:
 
 ```bash
 gh pr edit "$PR" --title "$TITLE" --body-file - --base "$PR_BASE" <<<"$BODY"
-if [ "${#UPDATE_LABEL_ARGS[@]}" -gt 0 ]; then
-  gh pr edit "$PR" "${UPDATE_LABEL_ARGS[@]}"
-fi
 gh pr ready "$PR" --undo # skip only when already draft
+```
+
+#### Attach selected repository labels
+
+After either path binds `PR`, add nonempty selections as JSON so commas
+remain inside exact names. This endpoint adds to existing labels; it does not
+remove them.
+
+```bash
+if jq -e 'length > 0' >/dev/null <<<"$SELECTED_LABELS"; then
+  PR_NUMBER=$(gh pr view "$PR" --repo "$HOST/$REPOSITORY" \
+    --json number --jq .number)
+  jq -ce '{labels: .}' <<<"$SELECTED_LABELS" |
+    gh api --method POST --hostname "$HOST" \
+      "repos/$REPOSITORY/issues/$PR_NUMBER/labels" --input - >/dev/null
+fi
 ```
 
 Publish a genuinely necessary self-contained black-zone unit as a draft

@@ -1378,6 +1378,114 @@ def test_repository_label_inventory_propagates_api_errors(tmp_path: Path) -> Non
     assert completed.stderr == "label lookup failed\n"
 
 
+@pytest.mark.parametrize(
+    (
+        "operation_marker",
+        "operation_setup",
+        "selected_labels",
+        "expected_commands",
+        "expected_payload",
+    ),
+    [
+        (
+            "When the head has no open PR",
+            "",
+            '["api,breaking", "docs"]',
+            ["pr create", "pr view", "api --method"],
+            {"labels": ["api,breaking", "docs"]},
+        ),
+        (
+            "When the head has one open PR",
+            'PR="https://github.example/octo/widgets/pull/41"',
+            '["api,breaking"]',
+            ["pr edit", "pr ready", "pr view", "api --method"],
+            {"labels": ["api,breaking"]},
+        ),
+        ("When the head has no open PR", "", "[]", ["pr create"], None),
+    ],
+    ids=("create", "update", "no-labels"),
+)
+def test_pr_label_attachment_preserves_exact_names(
+    tmp_path: Path,
+    operation_marker: str,
+    operation_setup: str,
+    selected_labels: str,
+    expected_commands: list[str],
+    expected_payload: dict[str, list[str]] | None,
+) -> None:
+    workflow = CREATE_UPDATE.read_text()
+    operation = workflow.split(operation_marker, 1)[1]
+    operation = operation.split("```bash\n", 1)[1].split("\n```", 1)[0]
+    attachment = workflow.split("#### Attach selected repository labels", 1)[1]
+    attachment = attachment.split("```bash\n", 1)[1].split("\n```", 1)[0]
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    command_log = tmp_path / "gh-commands"
+    api_log = tmp_path / "gh-api-args"
+    input_log = tmp_path / "gh-input"
+    gh = fake_bin / "gh"
+    gh.write_text(
+        "#!/usr/bin/env bash\n"
+        'printf \'%s %s\\n\' "$1" "${2:-}" >>"$GH_COMMAND_LOG"\n'
+        'if [ "$1 $2" = "pr create" ]; then\n'
+        "  printf '%s\\n' 'https://github.example/octo/widgets/pull/41'\n"
+        'elif [ "$1 $2" = "pr view" ]; then\n'
+        "  printf '41\\n'\n"
+        'elif [ "$1" = api ]; then\n'
+        '  printf \'%s\\n\' "$@" >"$GH_API_LOG"\n'
+        '  cat >"$GH_INPUT_LOG"\n'
+        "fi\n"
+    )
+    gh.chmod(0o755)
+    environment = os.environ | {
+        "PATH": f"{fake_bin}:{os.environ['PATH']}",
+        "GH_COMMAND_LOG": str(command_log),
+        "GH_API_LOG": str(api_log),
+        "GH_INPUT_LOG": str(input_log),
+    }
+
+    subprocess.run(
+        [
+            "bash",
+            "-c",
+            "\n".join(
+                (
+                    "set -euo pipefail",
+                    "HOST=github.example",
+                    "REPOSITORY=octo/widgets",
+                    'TITLE="fix: preserve labels"',
+                    'BODY="body"',
+                    "PR_BASE=main",
+                    "BOOKMARK=fix/labels",
+                    f"SELECTED_LABELS='{selected_labels}'",
+                    operation_setup,
+                    operation,
+                    attachment,
+                )
+            ),
+        ],
+        check=True,
+        env=environment,
+    )
+
+    assert command_log.read_text().splitlines() == expected_commands
+    if expected_payload is None:
+        assert not api_log.exists()
+        assert not input_log.exists()
+        return
+    assert api_log.read_text().splitlines() == [
+        "api",
+        "--method",
+        "POST",
+        "--hostname",
+        "github.example",
+        "repos/octo/widgets/issues/41/labels",
+        "--input",
+        "-",
+    ]
+    assert json.loads(input_log.read_text()) == expected_payload
+
+
 def test_pr_labels_have_no_canonical_vocabulary_or_archetype_coupling() -> None:
     workflow = (WRITE_PR / "references" / "create-update.md").read_text()
     template = MESSAGE_TEMPLATE.read_text()
@@ -1391,6 +1499,8 @@ def test_pr_labels_have_no_canonical_vocabulary_or_archetype_coupling() -> None:
     assert "| Surface | Archetype |" not in workflow
     assert "ARCHETYPE_LABELS" not in workflow
     assert "AVAILABLE_ARCHETYPES" not in workflow
+    assert "CREATE_LABEL_ARGS" not in workflow
+    assert "UPDATE_LABEL_ARGS" not in workflow
     assert "--remove-label" not in label_section
     assert "archetype" not in label_section.lower()
     assert (
