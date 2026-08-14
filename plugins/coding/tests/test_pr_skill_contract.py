@@ -1326,7 +1326,7 @@ def test_repository_label_selection_is_live_and_independent_of_archetypes() -> N
 
     assert "Archetype classification is independent of labels" in workflow
     assert "body and scanner metadata only" in normalized_workflow
-    assert "exact `name` and API `description`" in workflow
+    assert "exact `name` and API `description`" in normalized_workflow
     assert (
         "Selection may include every suitable exact repository label"
         in normalized_workflow
@@ -1357,7 +1357,7 @@ def run_repository_label_workflow(
     discovery = extract_bash_block_containing(workflow, "REPOSITORY_LABELS=")
     publication = extract_bash_block_containing(
         workflow,
-        "CURRENT_LABELS=" if scenario.startswith("update") else "PR=$(gh pr create",
+        "gh pr edit" if scenario.startswith("update") else "PR=$(gh pr create",
     )
     verification = extract_bash_block_containing(workflow, "POST_REPOSITORY_LABELS=")
     scenarios = {
@@ -1368,7 +1368,6 @@ def run_repository_label_workflow(
                 [{"name": "bug", "description": "Something is broken"}],
                 [{"name": "docs", "description": "Documentation only"}],
             ],
-            "set_override": None,
         },
         "create-paginated": {
             "selected": ["docs", "bug"],
@@ -1377,7 +1376,6 @@ def run_repository_label_workflow(
                 [{"name": "bug", "description": "Something is broken"}],
                 [{"name": "docs", "description": "Documentation only"}],
             ],
-            "set_override": None,
         },
         "create-comma": {
             "selected": ["api,breaking"],
@@ -1385,7 +1383,6 @@ def run_repository_label_workflow(
             "repository_pages": [
                 [{"name": "api,breaking", "description": "Breaking API change"}]
             ],
-            "set_override": None,
         },
         "update": {
             "selected": ["docs", "customer-request"],
@@ -1402,18 +1399,36 @@ def run_repository_label_workflow(
                     }
                 ],
             ],
-            "set_override": None,
+        },
+        "update-concurrent": {
+            "selected": ["docs"],
+            "attached": ["keep"],
+            "repository_pages": [
+                [
+                    {"name": "keep", "description": "Keep this label"},
+                    {"name": "docs", "description": "Documentation only"},
+                    {"name": "concurrent", "description": "Added concurrently"},
+                ]
+            ],
+            "concurrent": "concurrent",
         },
         "update-comma": {
             "selected": ["api,breaking"],
-            "attached": ["keep", "retired"],
+            "attached": ["keep", "retired,old"],
             "repository_pages": [
                 [
                     {"name": "keep", "description": "Keep this label"},
                     {"name": "api,breaking", "description": "Breaking API change"},
                 ]
             ],
-            "set_override": None,
+        },
+        "update-no-op": {
+            "selected": ["docs"],
+            "attached": ["docs"],
+            "repository_pages": [
+                [{"name": "bug", "description": "Something is broken"}],
+                [{"name": "docs", "description": "Documentation only"}],
+            ],
         },
         "unavailable-selection": {
             "selected": ["not-in-repository"],
@@ -1421,7 +1436,6 @@ def run_repository_label_workflow(
             "repository_pages": [
                 [{"name": "bug", "description": "Something is broken"}]
             ],
-            "set_override": None,
         },
         "missing-selected": {
             "selected": ["bug"],
@@ -1429,7 +1443,7 @@ def run_repository_label_workflow(
             "repository_pages": [
                 [{"name": "bug", "description": "Something is broken"}]
             ],
-            "set_override": [],
+            "post_noop": True,
         },
         "unavailable-attached": {
             "selected": [],
@@ -1437,7 +1451,7 @@ def run_repository_label_workflow(
             "repository_pages": [
                 [{"name": "bug", "description": "Something is broken"}]
             ],
-            "set_override": ["retired"],
+            "final_override": ["retired"],
         },
     }
     config = scenarios[scenario]
@@ -1449,42 +1463,82 @@ def run_repository_label_workflow(
     repository_pages.write_text(json.dumps(config["repository_pages"]))
     discovered_labels = tmp_path / "discovered-labels.json"
     api_log = tmp_path / "api.log"
+    attached_reads = tmp_path / "attached-reads"
+    concurrent_marker = tmp_path / "concurrent-marker"
+    git = fake_bin / "git"
+    git.write_text(
+        """#!/usr/bin/env bash
+set -eu
+if [ "$*" = "remote get-url --push -- origin" ]; then
+  printf 'git@create.ghe.test:octo/create-target.git\n'
+else
+  exit 69
+fi
+"""
+    )
+    git.chmod(0o755)
     gh = fake_bin / "gh"
     gh.write_text(
         """#!/usr/bin/env bash
 set -eu
 if [ "$1 $2" = "repo view" ]; then
-  printf '{"nameWithOwner":"octo/repo","url":"https://ghe.example.test/octo/repo"}\n'
+  [ "$3" = "git@create.ghe.test:octo/create-target.git" ] || exit 62
+  printf '{"nameWithOwner":"octo/create-target","url":"https://create.ghe.test/octo/create-target"}\n'
 elif [ "$1" = api ]; then
   printf '%s\n' "$*" >>"$GH_API_LOG"
-  [[ " $* " == *" --hostname ghe.example.test "* ]] || exit 63
-  if [[ " $* " == *" repos/octo/repo/labels?per_page=100 "* ]]; then
+  [[ " $* " == *" --hostname $GH_EXPECTED_HOST "* ]] || exit 63
+  if [[ " $* " == *" repos/$GH_EXPECTED_REPOSITORY/labels?per_page=100 "* ]]; then
     [[ " $* " == *" --paginate "* && " $* " == *" --slurp "* ]] || exit 64
     cat "$GH_REPOSITORY_PAGES"
-  elif [[ " $* " == *" --method PUT "* && \
-          " $* " == *" repos/octo/repo/issues/17/labels "* && \
+  elif [[ " $* " == *" repos/$GH_EXPECTED_REPOSITORY/issues/17/labels?per_page=100 "* ]]; then
+    [[ " $* " == *" --paginate "* && " $* " == *" --slurp "* ]] || exit 70
+    count=$(cat "$GH_ATTACHED_READS")
+    count=$((count + 1))
+    printf '%s' "$count" >"$GH_ATTACHED_READS"
+    if [ "$count" -ge 2 ] && [ -n "${GH_FINAL_OVERRIDE:-}" ]; then
+      printf '%s' "$GH_FINAL_OVERRIDE" >"$GH_ATTACHED_LABELS"
+    fi
+    jq -c '[.[] | [{name: .}]]' "$GH_ATTACHED_LABELS"
+  elif [[ " $* " == *" --method POST "* && \
+          " $* " == *" repos/$GH_EXPECTED_REPOSITORY/issues/17/labels "* && \
           " $* " == *" --input - "* ]]; then
     payload=$(cat)
-    if [ -n "${GH_SET_OVERRIDE:-}" ]; then
-      printf '%s' "$GH_SET_OVERRIDE" >"$GH_ATTACHED_LABELS"
-    else
-      jq -ce '.labels' <<<"$payload" >"$GH_ATTACHED_LABELS"
+    jq -e '.labels | length == 1 and all(.[]; type == "string")' \
+      <<<"$payload" >/dev/null || exit 71
+    if [ -n "${GH_CONCURRENT_LABEL:-}" ] && [ ! -e "$GH_CONCURRENT_MARKER" ]; then
+      jq -ce --arg label "$GH_CONCURRENT_LABEL" '. + [$label] | unique' \
+        "$GH_ATTACHED_LABELS" >"$GH_ATTACHED_LABELS.next"
+      mv "$GH_ATTACHED_LABELS.next" "$GH_ATTACHED_LABELS"
+      : >"$GH_CONCURRENT_MARKER"
+    fi
+    if [ "${GH_POST_NOOP:-0}" != 1 ]; then
+      jq -ce --argjson labels "$(jq -c '.labels' <<<"$payload")" \
+        '. + $labels | unique' "$GH_ATTACHED_LABELS" \
+        >"$GH_ATTACHED_LABELS.next"
+      mv "$GH_ATTACHED_LABELS.next" "$GH_ATTACHED_LABELS"
     fi
     cat "$GH_ATTACHED_LABELS"
+  elif [[ " $* " == *" --method DELETE "* ]]; then
+    endpoint=${!#}
+    prefix="repos/$GH_EXPECTED_REPOSITORY/issues/17/labels/"
+    [[ "$endpoint" == "$prefix"* ]] || exit 72
+    encoded=${endpoint#"$prefix"}
+    label=$(jq -er --arg encoded "$encoded" \
+      '.[] | select((@uri) == $encoded)' "$GH_ATTACHED_LABELS") || exit 73
+    jq -ce --arg label "$label" 'map(select(. != $label))' \
+      "$GH_ATTACHED_LABELS" >"$GH_ATTACHED_LABELS.next"
+    mv "$GH_ATTACHED_LABELS.next" "$GH_ATTACHED_LABELS"
   else
     exit 65
   fi
 elif [ "$1 $2" = "pr create" ]; then
   [[ " $* " != *" --label "* ]] || exit 67
-  printf '17\n'
+  printf 'https://create.ghe.test/octo/create-target/pull/17\n'
 elif [ "$1 $2" = "pr view" ]; then
-  if [[ " $* " == *" --json number "* ]]; then
-    printf '17\n'
-  else
-    cat "$GH_ATTACHED_LABELS"
-  fi
+  exit 74
 elif [ "$1 $2" = "pr edit" ]; then
   [[ " $* " != *" --add-label "* && " $* " != *" --remove-label "* ]] || exit 68
+  [ "$3" = "https://update.ghe.test/octo/update-target/pull/17" ] || exit 75
   cat >/dev/null
 elif [ "$1 $2" = "pr ready" ]; then
   :
@@ -1494,10 +1548,21 @@ fi
 """
     )
     gh.chmod(0o755)
+    action = "update" if scenario.startswith("update") else "create"
+    repository = "octo/update-target" if action == "update" else "octo/create-target"
+    host = "update.ghe.test" if action == "update" else "create.ghe.test"
+    attached_reads.write_text("0")
     script = tmp_path / "label-workflow.sh"
+    pr_url = (
+        "https://update.ghe.test/octo/update-target/pull/17"
+        if action == "update"
+        else ""
+    )
     script.write_text(
         "set -eu\n"
-        'TITLE="title"\nBODY="body"\nPR_BASE=main\nBOOKMARK=feature\nPR=17\n'
+        f'ACTION={action}\nREMOTE=origin\nTITLE="title"\nBODY="body"\n'
+        'PR_BASE=main\nBOOKMARK=feature\n'
+        f'PR_URL={pr_url}\nPR="$PR_URL"\n'
         f'{discovery}\nprintf "%s" "$REPOSITORY_LABELS" '
         f'>"$GH_DISCOVERED_LABELS"\n{publication}\n{verification}\n'
     )
@@ -1507,9 +1572,16 @@ fi
     env["GH_REPOSITORY_PAGES"] = str(repository_pages)
     env["GH_DISCOVERED_LABELS"] = str(discovered_labels)
     env["GH_API_LOG"] = str(api_log)
+    env["GH_ATTACHED_READS"] = str(attached_reads)
+    env["GH_CONCURRENT_MARKER"] = str(concurrent_marker)
+    env["GH_EXPECTED_REPOSITORY"] = repository
+    env["GH_EXPECTED_HOST"] = host
     env["SELECTED_LABELS"] = json.dumps(config["selected"])
-    if config["set_override"] is not None:
-        env["GH_SET_OVERRIDE"] = json.dumps(config["set_override"])
+    env["GH_POST_NOOP"] = "1" if config.get("post_noop") else "0"
+    if isinstance(concurrent := config.get("concurrent"), str):
+        env["GH_CONCURRENT_LABEL"] = concurrent
+    if final_override := config.get("final_override"):
+        env["GH_FINAL_OVERRIDE"] = json.dumps(final_override)
 
     return subprocess.run(
         ["bash", str(script)],
@@ -1526,6 +1598,7 @@ fi
         ("create-empty", []),
         ("create-paginated", ["docs", "bug"]),
         ("update", ["keep", "docs", "customer-request"]),
+        ("update-concurrent", ["keep", "docs", "concurrent"]),
     ],
 )
 def test_repository_label_workflow_accepts_zero_or_more_discovered_labels(
@@ -1539,10 +1612,17 @@ def test_repository_label_workflow_accepts_zero_or_more_discovered_labels(
     )
 
 
-def test_repository_label_discovery_preserves_host_and_descriptions(
-    tmp_path: Path,
+@pytest.mark.parametrize(
+    ("scenario", "host", "repository"),
+    [
+        ("create-empty", "create.ghe.test", "octo/create-target"),
+        ("update-no-op", "update.ghe.test", "octo/update-target"),
+    ],
+)
+def test_repository_label_discovery_binds_target_and_preserves_descriptions(
+    tmp_path: Path, scenario: str, host: str, repository: str
 ) -> None:
-    completed = run_repository_label_workflow(tmp_path, "create-empty")
+    completed = run_repository_label_workflow(tmp_path, scenario)
 
     assert completed.returncode == 0, completed.stderr
     assert json.loads((tmp_path / "discovered-labels.json").read_text()) == [
@@ -1551,7 +1631,8 @@ def test_repository_label_discovery_preserves_host_and_descriptions(
     ]
     api_calls = (tmp_path / "api.log").read_text().splitlines()
     assert api_calls
-    assert all("--hostname ghe.example.test" in call for call in api_calls)
+    assert all(f"--hostname {host}" in call for call in api_calls)
+    assert all(f"repos/{repository}/" in call for call in api_calls)
 
 
 @pytest.mark.parametrize("scenario", ["create-comma", "update-comma"])
@@ -1565,6 +1646,39 @@ def test_repository_label_reconciliation_preserves_exact_comma_names(
     assert "api,breaking" in attached
     assert "api" not in attached
     assert "breaking" not in attached
+    if scenario == "update-comma":
+        assert "retired,old" not in attached
+        assert any(
+            "labels/retired%2Cold" in call
+            for call in (tmp_path / "api.log").read_text().splitlines()
+        )
+
+
+@pytest.mark.parametrize("scenario", ["create-empty", "update-no-op"])
+def test_repository_label_reconciliation_skips_no_op_mutations(
+    tmp_path: Path, scenario: str
+) -> None:
+    completed = run_repository_label_workflow(tmp_path, scenario)
+
+    assert completed.returncode == 0, completed.stderr
+    api_calls = (tmp_path / "api.log").read_text().splitlines()
+    assert not any("--method POST" in call for call in api_calls)
+    assert not any("--method DELETE" in call for call in api_calls)
+
+
+def test_attached_label_snapshots_and_verification_are_paginated_rest_calls(
+    tmp_path: Path,
+) -> None:
+    completed = run_repository_label_workflow(tmp_path, "update")
+
+    assert completed.returncode == 0, completed.stderr
+    attached_calls = [
+        call
+        for call in (tmp_path / "api.log").read_text().splitlines()
+        if "issues/17/labels?per_page=100" in call
+    ]
+    assert len(attached_calls) == 2
+    assert all("--paginate" in call and "--slurp" in call for call in attached_calls)
 
 
 @pytest.mark.parametrize(
