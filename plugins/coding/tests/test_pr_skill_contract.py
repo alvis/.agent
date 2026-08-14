@@ -1453,9 +1453,10 @@ def run_existing_pr_push_target_preflight(
     tmp_path: Path,
     *,
     head_repository: str,
-    head_host: str,
     push_repository: str,
     push_host: str,
+    pr_url: str = "https://receiving.example/upstream/project/pull/140",
+    resolved_pr_url: str = "https://receiving.example/upstream/project/pull/140",
 ) -> subprocess.CompletedProcess[str]:
     workflow = CREATE_UPDATE.read_text()
     publication = extract_bash_block_containing(
@@ -1483,9 +1484,18 @@ fi
         """#!/usr/bin/env bash
 set -eu
 if [ "$1 $2" = "pr view" ]; then
-  jq -cn --arg url "$PR_URL" --arg repository "$HEAD_REPOSITORY" \
-    --arg repository_url "https://$HEAD_HOST/$HEAD_REPOSITORY" \
-    '{url:$url,headRepository:{nameWithOwner:$repository,url:$repository_url}}'
+  [ "$3" = "$GH_SELECTED_PR_URL" ] || exit 81
+  [ "$4 $5" = "--json url,headRepository" ] || exit 82
+  jq -cn --arg url "$GH_RESOLVED_PR_URL" --arg repository "$HEAD_REPOSITORY" '
+    {
+      url: $url,
+      headRepository: {
+        id: "R_head",
+        name: ($repository | split("/")[-1]),
+        nameWithOwner: $repository
+      }
+    }
+  '
 elif [ "$1 $2" = "repo view" ]; then
   jq -cn --arg repository "$PUSH_REPOSITORY" \
     --arg repository_url "https://$PUSH_HOST/$PUSH_REPOSITORY" \
@@ -1500,7 +1510,7 @@ fi
         "set -eu\n"
         f"{functions}\n"
         "REMOTE=selected\n"
-        "PR_URL=https://receiving.example/upstream/project/pull/140\n"
+        f"PR_URL={shlex.quote(pr_url)}\n"
         'bind_existing_pr_push_target "$PR_URL"\n'
         "printf 'topology check\n' >>\"$REMOTE_MUTATION_LOG\"\n"
         "git push selected feature\n"
@@ -1511,9 +1521,9 @@ fi
         {
             "PATH": f"{fake_bin}:{env['PATH']}",
             "REMOTE_MUTATION_LOG": str(tmp_path / "mutations.log"),
-            "PR_URL": "https://receiving.example/upstream/project/pull/140",
+            "GH_SELECTED_PR_URL": pr_url,
+            "GH_RESOLVED_PR_URL": resolved_pr_url,
             "HEAD_REPOSITORY": head_repository,
-            "HEAD_HOST": head_host,
             "PUSH_REPOSITORY": push_repository,
             "PUSH_HOST": push_host,
         }
@@ -1533,14 +1543,13 @@ def test_existing_pr_rejects_a_different_fork_before_remote_mutation(
     completed = run_existing_pr_push_target_preflight(
         tmp_path,
         head_repository="contributor/project",
-        head_host="github.example",
         push_repository="other-contributor/project",
         push_host="github.example",
     )
 
     assert completed.returncode != 0
     assert "selected=github.example/other-contributor/project" in completed.stderr
-    assert "head=github.example/contributor/project" in completed.stderr
+    assert "head=receiving.example/contributor/project" in completed.stderr
     assert not (tmp_path / "mutations.log").exists()
 
 
@@ -1550,14 +1559,62 @@ def test_existing_pr_rejects_same_owner_and_name_on_a_different_host(
     completed = run_existing_pr_push_target_preflight(
         tmp_path,
         head_repository="contributor/project",
-        head_host="github.example",
         push_repository="contributor/project",
         push_host="other.example",
     )
 
     assert completed.returncode != 0
     assert "selected=other.example/contributor/project" in completed.stderr
-    assert "head=github.example/contributor/project" in completed.stderr
+    assert "head=receiving.example/contributor/project" in completed.stderr
+    assert not (tmp_path / "mutations.log").exists()
+
+
+def test_existing_pr_accepts_supported_head_repository_shape(tmp_path: Path) -> None:
+    completed = run_existing_pr_push_target_preflight(
+        tmp_path,
+        head_repository="contributor/project",
+        push_repository="contributor/project",
+        push_host="receiving.example",
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert (tmp_path / "mutations.log").read_text().splitlines() == [
+        "topology check",
+        "git push selected feature",
+        ("gh pr edit https://receiving.example/upstream/project/pull/140 --base main"),
+    ]
+
+
+def test_existing_pr_canonicalizes_a_trailing_slash_before_mutation(
+    tmp_path: Path,
+) -> None:
+    completed = run_existing_pr_push_target_preflight(
+        tmp_path,
+        head_repository="contributor/project",
+        push_repository="contributor/project",
+        push_host="receiving.example",
+        pr_url="https://receiving.example/upstream/project/pull/140/",
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    mutations = (tmp_path / "mutations.log").read_text().splitlines()
+    assert mutations[-1] == (
+        "gh pr edit https://receiving.example/upstream/project/pull/140 --base main"
+    )
+
+
+def test_existing_pr_trailing_slash_support_rejects_an_extra_path_segment(
+    tmp_path: Path,
+) -> None:
+    completed = run_existing_pr_push_target_preflight(
+        tmp_path,
+        head_repository="contributor/project",
+        push_repository="contributor/project",
+        push_host="receiving.example",
+        pr_url="https://receiving.example/upstream/project/pull/140//",
+    )
+
+    assert completed.returncode != 0
     assert not (tmp_path / "mutations.log").exists()
 
 
@@ -1725,6 +1782,7 @@ class _RepositoryLabelScenario:
     planning_deleted_label: str | None = None
     delete_race: bool = False
     delete_failure: bool = False
+    delete_unrelated_404_failure: bool = False
     verification_inventory_race: _RepositoryLabel | None = None
     verification_deleted_label: str | None = None
     verification_inventory_churn: bool = False
@@ -1860,6 +1918,12 @@ def _get_repository_label_scenario(name: str, /) -> _RepositoryLabelScenario:
             attached=("retired",),
             repository_pages=((_repository_label("docs", "Documentation only"),),),
             delete_failure=True,
+        ),
+        "update-delete-unrelated-404": _RepositoryLabelScenario(
+            selected=("docs",),
+            attached=("retired",),
+            repository_pages=((_repository_label("docs", "Documentation only"),),),
+            delete_unrelated_404_failure=True,
         ),
         "update-description-drift": _RepositoryLabelScenario(
             selected=("docs",),
@@ -2055,6 +2119,9 @@ def _build_repository_label_environment(
             "GH_POST_NOOP": "1" if scenario.post_noop else "0",
             "GH_DELETE_RACE": "1" if scenario.delete_race else "0",
             "GH_DELETE_FAILURE": "1" if scenario.delete_failure else "0",
+            "GH_DELETE_UNRELATED_404_FAILURE": (
+                "1" if scenario.delete_unrelated_404_failure else "0"
+            ),
             "GH_VERIFICATION_INVENTORY_CHURN": (
                 "1" if scenario.verification_inventory_churn else "0"
             ),
@@ -2232,11 +2299,19 @@ elif [ "$1" = api ]; then
       jq -ce 'map(select(. != "retired"))' "$GH_ATTACHED_LABELS" \
         >"$GH_ATTACHED_LABELS.next"
       mv "$GH_ATTACHED_LABELS.next" "$GH_ATTACHED_LABELS"
-      printf 'HTTP 404: Not Found\n' >&2
+      printf 'HTTP/2.0 404 Not Found\n' >&2
+      printf 'gh: Not Found (HTTP 404)\n' >&2
       exit 44
     fi
+    if [ "${GH_DELETE_UNRELATED_404_FAILURE:-0}" = 1 ]; then
+      printf 'HTTP/2.0 500 Internal Server Error\n' >&2
+      printf 'X-Request-Id: retry-404\n' >&2
+      printf 'gh: request 404 failed (HTTP 500)\n' >&2
+      exit 46
+    fi
     if [ "${GH_DELETE_FAILURE:-0}" = 1 ]; then
-      printf 'HTTP 500: Internal Server Error\n' >&2
+      printf 'HTTP/2.0 500 Internal Server Error\n' >&2
+      printf 'gh: Internal Server Error (HTTP 500)\n' >&2
       exit 45
     fi
     encoded=${endpoint#"$prefix"}
@@ -2259,8 +2334,9 @@ elif [ "$1 $2" = "pr view" ]; then
   jq -cn --arg url "$GH_PR_URL" --arg push_owner "$GH_PUSH_OWNER" '{
     url: $url,
     headRepository: {
-      nameWithOwner: ($push_owner + "/update-fork"),
-      url: ("https://update.ghe.test/" + $push_owner + "/update-fork")
+      id: "R_update_fork",
+      name: "update-fork",
+      nameWithOwner: ($push_owner + "/update-fork")
     }
   }'
 elif [ "$1 $2" = "pr edit" ]; then
@@ -2432,7 +2508,18 @@ def test_repository_label_propagates_non_404_delete_failures(tmp_path: Path) -> 
     completed = run_repository_label_workflow(tmp_path, "update-delete-failure")
 
     assert completed.returncode != 0
-    assert "HTTP 500: Internal Server Error" in completed.stderr
+    assert "HTTP/2.0 500 Internal Server Error" in completed.stderr
+
+
+def test_repository_label_propagates_unrelated_stderr_containing_404(
+    tmp_path: Path,
+) -> None:
+    completed = run_repository_label_workflow(tmp_path, "update-delete-unrelated-404")
+
+    assert completed.returncode != 0
+    assert "HTTP/2.0 500 Internal Server Error" in completed.stderr
+    assert "X-Request-Id: retry-404" in completed.stderr
+    assert json.loads((tmp_path / "attached-labels.json").read_text()) == ["retired"]
 
 
 @pytest.mark.parametrize("scenario", ["create-comma", "update-comma"])

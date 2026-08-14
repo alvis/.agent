@@ -360,10 +360,10 @@ Before submitting each PR, bind label work to that PR's target repository and
 host, then discover the complete live label inventory through the paginated
 repository API before any push or PR create/edit. For an existing PR, retain its
 absolute PR URL as `PR_URL` during per-head open-PR resolution; resolve its
-actual URL and head repository, retain the head repository's host and
-owner/name, and require both to equal the selected push remote's resolved
-repository before any topology check or remote mutation. For a new PR, resolve
-the selected push remote's push URL through `gh repo view <push-url>` and use
+actual URL and head repository, derive the head host from that validated PR URL,
+retain the head owner/name, and require both to equal the selected push remote's
+resolved repository before any topology check or remote mutation. For a new PR,
+resolve the selected push remote's push URL through `gh repo view <push-url>` and use
 its `parent` repository as the PR target when the remote is a fork; otherwise
 the push repository is the target. Keep the push repository owner separately so
 fork heads use `<owner>:<branch>` while `--repo` and all label/API calls remain
@@ -396,6 +396,9 @@ bind_pr_url_target() {
   path=${path#*/}
   test "${path%%/*}" = pull || return 1
   pull_number=${path#*/}
+  case "$pull_number" in
+    */) pull_number=${pull_number%/} ;;
+  esac
   test "$pull_number" = "${pull_number%%/*}" || return 1
   case "$pull_number" in
     ''|*[!0-9]*) return 1 ;;
@@ -407,7 +410,7 @@ bind_pr_url_target() {
 }
 bind_existing_pr_push_target() {
   local pr_url=$1 expected_repository expected_repository_host
-  local resolved_pr_url head_repository_url push_repository_host
+  local resolved_pr_url push_repository_host
   bind_pr_url_target "$pr_url" || return $?
   expected_repository=$REPOSITORY
   expected_repository_host=$REPOSITORY_HOST
@@ -426,16 +429,7 @@ bind_existing_pr_push_target() {
     .headRepository.nameWithOwner
     | select(type == "string" and length > 0)
   ' <<<"$PR_DATA") || return $?
-  head_repository_url=$(jq -er '
-    .headRepository.url | select(type == "string" and length > 0)
-  ' <<<"$PR_DATA") || return $?
-  case "$head_repository_url" in
-    https://*/*/*) ;;
-    *) printf 'invalid PR head repository URL: %s\n' \
-      "$head_repository_url" >&2; return 1 ;;
-  esac
-  HEAD_REPOSITORY_HOST=${head_repository_url#https://}
-  HEAD_REPOSITORY_HOST=${HEAD_REPOSITORY_HOST%%/*}
+  HEAD_REPOSITORY_HOST=$REPOSITORY_HOST
   REMOTE_PUSH_URL=$(git remote get-url --push -- "$REMOTE") || return $?
   PUSH_REPOSITORY_JSON=$(gh repo view "$REMOTE_PUSH_URL" \
     --json nameWithOwner,url) || return $?
@@ -611,7 +605,8 @@ preflight_label_mutation_permission() {
 }
 reconcile_pr_labels() {
   local pr_number=$1 snapshots attached available plan removals additions
-  local label_json encoded_label delete_error
+  local label_json encoded_label delete_error delete_status_line
+  local delete_protocol delete_status delete_rest
   snapshots=$(stable_label_snapshots "$pr_number") || return $?
   attached=$(jq -ce '.attached' <<<"$snapshots") || return $?
   validate_selected_labels "$(jq -ce '.available' <<<"$snapshots")" || return $?
@@ -623,13 +618,21 @@ reconcile_pr_labels() {
   additions=$(jq -ce '.additions' <<<"$plan") || return $?
   while IFS= read -r label_json; do
     encoded_label=$(jq -er '@uri' <<<"$label_json") || return $?
-    if ! delete_error=$(gh api --method DELETE --hostname "$REPOSITORY_HOST" \
+    if ! delete_error=$(gh api --include --method DELETE \
+      --hostname "$REPOSITORY_HOST" \
       "repos/$REPOSITORY/issues/$pr_number/labels/$encoded_label" \
-      2>&1 >/dev/null); then
-      case "$delete_error" in
-        *404*) ;;
-        *) printf '%s\n' "$delete_error" >&2; return 1 ;;
+      2>&1); then
+      delete_status_line=${delete_error%%$'\n'*}
+      read -r delete_protocol delete_status delete_rest \
+        <<<"$delete_status_line"
+      case "$delete_protocol" in
+        HTTP/[0-9]|HTTP/[0-9].[0-9]|HTTP/[0-9].[0-9][0-9]) ;;
+        *) delete_status= ;;
       esac
+      if [ "$delete_status" != 404 ]; then
+        printf '%s\n' "$delete_error" >&2
+        return 1
+      fi
     fi
   done < <(jq -c '.[]' <<<"$removals")
   if ! jq -e 'length == 0' <<<"$additions" >/dev/null; then
