@@ -358,11 +358,16 @@ Before submitting each PR, bind label work to that PR's target repository and
 host, then discover the complete live label inventory through the paginated
 repository API before any push or PR create/edit. For an existing PR, retain its
 absolute PR URL as `PR_URL` during per-head open-PR resolution and derive the
-host, owner/repository, and issue number from that URL. For a new PR, resolve the selected push remote's
-push URL through `gh repo view <push-url>`; an unqualified current-directory
-lookup is forbidden. The discovery command returns each label's exact `name`
-and API `description`; use both to judge the closest suitable repository labels,
-then derive the exact-name array used for validation and reconciliation.
+host, owner/repository, and issue number from that URL. For a new PR, resolve
+the selected push remote's push URL through `gh repo view <push-url>` and use
+its `parent` repository as the PR target when the remote is a fork; otherwise
+the push repository is the target. Keep the push repository owner separately so
+fork heads use `<owner>:<branch>` while `--repo` and all label/API calls remain
+bound to the receiving repository. An unqualified current-directory lookup is
+forbidden. The discovery command returns each label's exact `name` and API
+`description`; use both to judge the closest suitable repository labels, then
+pass the selected names together with their selected `{name, description}`
+choices for refreshed validation and reconciliation.
 Selection may include every suitable exact repository label, including the
 closest available labels for PR type, risk, attention required, merge intent,
 and PR structure. Zero labels is valid when none is suitable. Never create,
@@ -401,16 +406,28 @@ if [ -n "${PR_URL:-}" ]; then
   bind_pr_url_target "$PR_URL" || exit $?
 else
   REMOTE_PUSH_URL=$(git remote get-url --push -- "$REMOTE") || exit $?
-  REPOSITORY_JSON=$(gh repo view "$REMOTE_PUSH_URL" \
-    --json nameWithOwner,url) || exit $?
+  PUSH_REPOSITORY_JSON=$(gh repo view "$REMOTE_PUSH_URL" \
+    --json nameWithOwner,url,parent) || exit $?
+  PUSH_REPOSITORY=$(jq -er '.nameWithOwner' <<<"$PUSH_REPOSITORY_JSON") || exit $?
+  PUSH_REPOSITORY_URL=$(jq -er '.url' <<<"$PUSH_REPOSITORY_JSON") || exit $?
+  case "$PUSH_REPOSITORY_URL" in
+    https://*/*/*) ;;
+    *) printf 'invalid push repository URL: %s\n' "$PUSH_REPOSITORY_URL" >&2; exit 1 ;;
+  esac
+  PUSH_OWNER=${PUSH_REPOSITORY%%/*}
+  REPOSITORY_JSON=$(jq -ce '.parent // .' <<<"$PUSH_REPOSITORY_JSON") || exit $?
   REPOSITORY=$(jq -er '.nameWithOwner' <<<"$REPOSITORY_JSON") || exit $?
   REPOSITORY_URL=$(jq -er '.url' <<<"$REPOSITORY_JSON") || exit $?
   case "$REPOSITORY_URL" in
     https://*/*/*) ;;
-    *) printf 'invalid repository URL: %s\n' "$REPOSITORY_URL" >&2; exit 1 ;;
+    *) printf 'invalid target repository URL: %s\n' "$REPOSITORY_URL" >&2; exit 1 ;;
   esac
   REPOSITORY_HOST=${REPOSITORY_URL#https://}
   REPOSITORY_HOST=${REPOSITORY_HOST%%/*}
+  PR_HEAD=$BOOKMARK
+  if [ "$PUSH_REPOSITORY" != "$REPOSITORY" ]; then
+    PR_HEAD=$PUSH_OWNER:$BOOKMARK
+  fi
   test -n "$REPOSITORY_HOST" || exit 1
 fi
 discover_repository_labels() {
@@ -428,18 +445,38 @@ repository_label_names() {
   jq -ce '[.[].name]' <<<"$1"
 }
 validate_selected_labels() {
-  local available=$1 unavailable
+  local available=$1 unavailable description_drift
   unavailable=$(jq -cn --argjson selected "$SELECTED_LABELS" \
-    --argjson available "$available" '$selected - $available') || return $?
+    --argjson available "$available" \
+    '$selected - [$available[] | .name] | unique') || return $?
   if ! jq -e 'length == 0' <<<"$unavailable" >/dev/null; then
     printf 'selected labels unavailable in repository: %s\n' \
       "$unavailable" >&2
     return 1
   fi
+  description_drift=$(jq -cn \
+    --argjson choices "$SELECTED_LABEL_CHOICES" \
+    --argjson available "$available" '
+      [
+        $choices[] as $choice
+        | $available[]
+        | select(.name == $choice.name and .description != $choice.description)
+        | {
+            name: $choice.name,
+            selected_description: $choice.description,
+            current_description: .description
+          }
+      ] | unique_by(.name)
+    ') || return $?
+  if ! jq -e 'length == 0' <<<"$description_drift" >/dev/null; then
+    printf 'selected label descriptions changed in repository: %s\n' \
+      "$description_drift" >&2
+    return 1
+  fi
 }
 reconcile_pr_labels() {
   local pr_number=$1 attached=$2 available=$3 removals additions
-  local label_json encoded_label
+  local label_json encoded_label delete_error
   removals=$(jq -cn --argjson attached "$attached" \
     --argjson available "$available" \
     '$attached - $available | unique') || return $?
@@ -448,9 +485,14 @@ reconcile_pr_labels() {
     '$selected - $attached | unique') || return $?
   while IFS= read -r label_json; do
     encoded_label=$(jq -er '@uri' <<<"$label_json") || return $?
-    gh api --method DELETE --hostname "$REPOSITORY_HOST" \
+    if ! delete_error=$(gh api --method DELETE --hostname "$REPOSITORY_HOST" \
       "repos/$REPOSITORY/issues/$pr_number/labels/$encoded_label" \
-      >/dev/null || return $?
+      2>&1 >/dev/null); then
+      case "$delete_error" in
+        *404*) ;;
+        *) printf '%s\n' "$delete_error" >&2; return 1 ;;
+      esac
+    fi
   done < <(jq -c '.[]' <<<"$removals")
   while IFS= read -r label_json; do
     jq -cn --argjson label "$label_json" '{labels: [$label]}' |
@@ -460,11 +502,24 @@ reconcile_pr_labels() {
   done < <(jq -c '.[]' <<<"$additions")
 }
 REPOSITORY_LABELS=$(discover_repository_labels) || exit $?
-REPOSITORY_LABEL_NAMES=$(repository_label_names "$REPOSITORY_LABELS") || exit $?
 SELECTED_LABELS=${SELECTED_LABELS:-'[]'}
+SELECTED_LABEL_CHOICES=${SELECTED_LABEL_CHOICES:-'[]'}
 jq -e 'type == "array" and all(.[]; type == "string")' \
   <<<"$SELECTED_LABELS" >/dev/null || exit $?
-validate_selected_labels "$REPOSITORY_LABEL_NAMES" || exit $?
+jq -e '
+  type == "array" and all(
+    .[];
+    type == "object" and
+    (.name | type == "string") and
+    has("description") and
+    ((.description == null) or (.description | type == "string"))
+  )
+' <<<"$SELECTED_LABEL_CHOICES" >/dev/null || exit $?
+jq -ne --argjson selected "$SELECTED_LABELS" \
+  --argjson choices "$SELECTED_LABEL_CHOICES" \
+  '$selected | unique | sort == ([$choices[] | .name] | unique | sort)' \
+  >/dev/null || exit $?
+validate_selected_labels "$REPOSITORY_LABELS" || exit $?
 ```
 
 Validation is deliberately fail-closed even though selection uses live
@@ -530,15 +585,16 @@ submit. Preserve stderr and the helper's `restacked` and `errors` arrays so a
 failure reports verified partial state rather than implying an all-or-nothing
 result.
 When the head has no open PR, create the draft against the resolved
-`HOST/OWNER/REPOSITORY` target without label flags, then require the returned
-absolute PR URL to match that push-remote target. Capture all
+`HOST/OWNER/REPOSITORY` target without label flags, using the fork-qualified
+head when the push repository differs. Require the returned absolute PR URL to
+match the receiving target. Capture all
 attached labels through the paginated issue-label endpoint, refresh the
 repository inventory, then reconcile from that snapshot:
 
 ```bash
 PR=$(gh pr create --repo "$REPOSITORY_HOST/$REPOSITORY" \
   --draft --title "$TITLE" --body-file - \
-  --base "$PR_BASE" --head "$BOOKMARK" <<<"$BODY")
+  --base "$PR_BASE" --head "$PR_HEAD" <<<"$BODY")
 PR_URL=$PR
 EXPECTED_REPOSITORY=$REPOSITORY
 EXPECTED_REPOSITORY_HOST=$REPOSITORY_HOST
@@ -549,7 +605,7 @@ CREATED_LABELS=$(attached_issue_labels "$PR_NUMBER") || exit $?
 REFRESHED_REPOSITORY_LABELS=$(discover_repository_labels) || exit $?
 REFRESHED_REPOSITORY_LABEL_NAMES=$(repository_label_names \
   "$REFRESHED_REPOSITORY_LABELS") || exit $?
-validate_selected_labels "$REFRESHED_REPOSITORY_LABEL_NAMES" || exit $?
+validate_selected_labels "$REFRESHED_REPOSITORY_LABELS" || exit $?
 reconcile_pr_labels "$PR_NUMBER" "$CREATED_LABELS" \
   "$REFRESHED_REPOSITORY_LABEL_NAMES" || exit $?
 ```
@@ -570,7 +626,7 @@ CURRENT_LABELS=$(attached_issue_labels "$PR_NUMBER") || exit $?
 REFRESHED_REPOSITORY_LABELS=$(discover_repository_labels) || exit $?
 REFRESHED_REPOSITORY_LABEL_NAMES=$(repository_label_names \
   "$REFRESHED_REPOSITORY_LABELS") || exit $?
-validate_selected_labels "$REFRESHED_REPOSITORY_LABEL_NAMES" || exit $?
+validate_selected_labels "$REFRESHED_REPOSITORY_LABELS" || exit $?
 reconcile_pr_labels "$PR_NUMBER" "$CURRENT_LABELS" \
   "$REFRESHED_REPOSITORY_LABEL_NAMES" || exit $?
 gh pr ready "$PR" --undo # skip only when already draft

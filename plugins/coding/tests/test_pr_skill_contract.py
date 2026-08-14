@@ -1430,8 +1430,37 @@ def run_repository_label_workflow(
                 [{"name": "docs", "description": "Documentation only"}],
             ],
         },
+        "update-delete-race": {
+            "selected": ["docs"],
+            "attached": ["retired"],
+            "repository_pages": [
+                [{"name": "docs", "description": "Documentation only"}]
+            ],
+            "delete_race": True,
+        },
+        "update-delete-failure": {
+            "selected": ["docs"],
+            "attached": ["retired"],
+            "repository_pages": [
+                [{"name": "docs", "description": "Documentation only"}]
+            ],
+            "delete_failure": True,
+        },
+        "update-description-drift": {
+            "selected": ["docs"],
+            "attached": [],
+            "repository_pages": [
+                [{"name": "docs", "description": "Documentation only"}]
+            ],
+            "repository_pages_after": [
+                [{"name": "docs", "description": "Release notes only"}]
+            ],
+        },
         "unavailable-selection": {
             "selected": ["not-in-repository"],
+            "selected_choices": [
+                {"name": "not-in-repository", "description": "Stale choice"}
+            ],
             "attached": [],
             "repository_pages": [
                 [{"name": "bug", "description": "Something is broken"}]
@@ -1461,9 +1490,14 @@ def run_repository_label_workflow(
     attached_labels.write_text(json.dumps(config["attached"]))
     repository_pages = tmp_path / "repository-pages.json"
     repository_pages.write_text(json.dumps(config["repository_pages"]))
+    repository_pages_after = tmp_path / "repository-pages-after.json"
+    repository_pages_after.write_text(
+        json.dumps(config.get("repository_pages_after", config["repository_pages"]))
+    )
     discovered_labels = tmp_path / "discovered-labels.json"
     api_log = tmp_path / "api.log"
     create_log = tmp_path / "create.log"
+    repository_reads = tmp_path / "repository-reads"
     attached_reads = tmp_path / "attached-reads"
     concurrent_marker = tmp_path / "concurrent-marker"
     git = fake_bin / "git"
@@ -1471,7 +1505,7 @@ def run_repository_label_workflow(
         """#!/usr/bin/env bash
 set -eu
 if [ "$*" = "remote get-url --push -- origin" ]; then
-  printf 'git@create.ghe.test:octo/create-target.git\n'
+  printf 'git@create.ghe.test:alvis/create-fork.git\n'
 else
   exit 69
 fi
@@ -1483,14 +1517,21 @@ fi
         """#!/usr/bin/env bash
 set -eu
 if [ "$1 $2" = "repo view" ]; then
-  [ "$3" = "git@create.ghe.test:octo/create-target.git" ] || exit 62
-  printf '{"nameWithOwner":"octo/create-target","url":"https://create.ghe.test/octo/create-target"}\n'
+  [ "$3" = "git@create.ghe.test:alvis/create-fork.git" ] || exit 62
+  printf '%s\n' '{"nameWithOwner":"alvis/create-fork","url":"https://create.ghe.test/alvis/create-fork","parent":{"nameWithOwner":"octo/create-target","url":"https://create.ghe.test/octo/create-target"}}'
 elif [ "$1" = api ]; then
   printf '%s\n' "$*" >>"$GH_API_LOG"
   [[ " $* " == *" --hostname $GH_EXPECTED_HOST "* ]] || exit 63
   if [[ " $* " == *" repos/$GH_EXPECTED_REPOSITORY/labels?per_page=100 "* ]]; then
     [[ " $* " == *" --paginate "* && " $* " == *" --slurp "* ]] || exit 64
-    cat "$GH_REPOSITORY_PAGES"
+    count=$(cat "$GH_REPOSITORY_READS")
+    count=$((count + 1))
+    printf '%s' "$count" >"$GH_REPOSITORY_READS"
+    if [ "$count" -ge 2 ] && [ -n "${GH_REPOSITORY_PAGES_AFTER:-}" ]; then
+      cat "$GH_REPOSITORY_PAGES_AFTER"
+    else
+      cat "$GH_REPOSITORY_PAGES"
+    fi
   elif [[ " $* " == *" repos/$GH_EXPECTED_REPOSITORY/issues/17/labels?per_page=100 "* ]]; then
     [[ " $* " == *" --paginate "* && " $* " == *" --slurp "* ]] || exit 70
     count=$(cat "$GH_ATTACHED_READS")
@@ -1523,6 +1564,17 @@ elif [ "$1" = api ]; then
     endpoint=${!#}
     prefix="repos/$GH_EXPECTED_REPOSITORY/issues/17/labels/"
     [[ "$endpoint" == "$prefix"* ]] || exit 72
+    if [ "${GH_DELETE_RACE:-0}" = 1 ]; then
+      jq -ce 'map(select(. != "retired"))' "$GH_ATTACHED_LABELS" \
+        >"$GH_ATTACHED_LABELS.next"
+      mv "$GH_ATTACHED_LABELS.next" "$GH_ATTACHED_LABELS"
+      printf 'HTTP 404: Not Found\n' >&2
+      exit 44
+    fi
+    if [ "${GH_DELETE_FAILURE:-0}" = 1 ]; then
+      printf 'HTTP 500: Internal Server Error\n' >&2
+      exit 45
+    fi
     encoded=${endpoint#"$prefix"}
     label=$(jq -er --arg encoded "$encoded" \
       '.[] | select((@uri) == $encoded)' "$GH_ATTACHED_LABELS") || exit 73
@@ -1536,6 +1588,7 @@ elif [ "$1 $2" = "pr create" ]; then
   printf '%s\n' "$*" >"$GH_CREATE_LOG"
   [[ " $* " != *" --label "* ]] || exit 67
   [[ " $* " == *" --repo $GH_EXPECTED_HOST/$GH_EXPECTED_REPOSITORY "* ]] || exit 76
+  [[ " $* " == *" --head alvis:feature "* ]] || exit 77
   printf 'https://create.ghe.test/octo/create-target/pull/17\n'
 elif [ "$1 $2" = "pr view" ]; then
   exit 74
@@ -1554,6 +1607,7 @@ fi
     action = "update" if scenario.startswith("update") else "create"
     repository = "octo/update-target" if action == "update" else "octo/create-target"
     host = "update.ghe.test" if action == "update" else "create.ghe.test"
+    repository_reads.write_text("0")
     attached_reads.write_text("0")
     script = tmp_path / "label-workflow.sh"
     pr_url = (
@@ -1573,15 +1627,38 @@ fi
     env["PATH"] = f"{fake_bin}:{env['PATH']}"
     env["GH_ATTACHED_LABELS"] = str(attached_labels)
     env["GH_REPOSITORY_PAGES"] = str(repository_pages)
+    env["GH_REPOSITORY_PAGES_AFTER"] = str(repository_pages_after)
     env["GH_DISCOVERED_LABELS"] = str(discovered_labels)
     env["GH_API_LOG"] = str(api_log)
     env["GH_CREATE_LOG"] = str(create_log)
+    env["GH_REPOSITORY_READS"] = str(repository_reads)
     env["GH_ATTACHED_READS"] = str(attached_reads)
     env["GH_CONCURRENT_MARKER"] = str(concurrent_marker)
     env["GH_EXPECTED_REPOSITORY"] = repository
     env["GH_EXPECTED_HOST"] = host
     env["SELECTED_LABELS"] = json.dumps(config["selected"])
+    selected_choices = config.get("selected_choices")
+    if selected_choices is None:
+        selected_values = config.get("selected")
+        repository_page_values = config.get("repository_pages")
+        if not isinstance(selected_values, list) or not all(
+            isinstance(value, str) for value in selected_values
+        ):
+            raise AssertionError("selected fixture values must be label names")
+        if not isinstance(repository_page_values, list):
+            raise AssertionError("repository page fixture must be a list")
+        selected_names = set(selected_values)
+        selected_choices = [
+            label
+            for page in repository_page_values
+            if isinstance(page, list)
+            for label in page
+            if isinstance(label, dict) and label.get("name") in selected_names
+        ]
+    env["SELECTED_LABEL_CHOICES"] = json.dumps(selected_choices)
     env["GH_POST_NOOP"] = "1" if config.get("post_noop") else "0"
+    env["GH_DELETE_RACE"] = "1" if config.get("delete_race") else "0"
+    env["GH_DELETE_FAILURE"] = "1" if config.get("delete_failure") else "0"
     if isinstance(concurrent := config.get("concurrent"), str):
         env["GH_CONCURRENT_LABEL"] = concurrent
     if final_override := config.get("final_override"):
@@ -1603,6 +1680,7 @@ fi
         ("create-paginated", ["docs", "bug"]),
         ("update", ["keep", "docs", "customer-request"]),
         ("update-concurrent", ["keep", "docs", "concurrent"]),
+        ("update-delete-race", ["docs"]),
     ],
 )
 def test_repository_label_workflow_accepts_zero_or_more_discovered_labels(
@@ -1643,9 +1721,26 @@ def test_repository_label_create_binds_the_resolved_target(tmp_path: Path) -> No
     completed = run_repository_label_workflow(tmp_path, "create-empty")
 
     assert completed.returncode == 0, completed.stderr
-    assert "--repo create.ghe.test/octo/create-target" in (
-        tmp_path / "create.log"
-    ).read_text()
+    create_args = (tmp_path / "create.log").read_text()
+    assert "--repo create.ghe.test/octo/create-target" in create_args
+    assert "--head alvis:feature" in create_args
+
+
+def test_repository_label_rejects_description_drift_before_mutation(
+    tmp_path: Path,
+) -> None:
+    completed = run_repository_label_workflow(tmp_path, "update-description-drift")
+
+    assert completed.returncode != 0
+    api_calls = (tmp_path / "api.log").read_text().splitlines()
+    assert not any("--method POST" in call or "--method DELETE" in call for call in api_calls)
+
+
+def test_repository_label_propagates_non_404_delete_failures(tmp_path: Path) -> None:
+    completed = run_repository_label_workflow(tmp_path, "update-delete-failure")
+
+    assert completed.returncode != 0
+    assert "HTTP 500: Internal Server Error" in completed.stderr
 
 
 @pytest.mark.parametrize("scenario", ["create-comma", "update-comma"])
