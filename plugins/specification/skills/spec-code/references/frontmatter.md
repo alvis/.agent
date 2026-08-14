@@ -20,7 +20,7 @@ parent: 01234567-89ab-cdef-0123-456789abcdef # only for an unsynced child
 - `ref` is the stable Notion identity and never derives a local filename.
 - `parent` is present only when needed to create an unsynced page.
 - `last_edited_time` is remote revision metadata returned and updated only by
-  Notion transport. The selected external body author preserves it byte-for-byte and never
+  Notion transport. The selected body author preserves it byte-for-byte and never
   replaces it with a local clock. An unsynced locally authored page omits this
   key until transport supplies it.
 - Local edit timestamps belong in ignored work evidence or the sync receipt,

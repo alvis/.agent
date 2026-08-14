@@ -78,8 +78,9 @@ DOCUMENT mode does NOT research; it extracts.
   derive reviewed versioned capability docs directly. Do not search a Notion
   database, create a remote page, author MDC, or claim a 1:1 remote mapping.
 - Only for an explicitly selected Notion destination, require the caller's
-  exact `--body-author=<plugin:skill>`, author through that installed
-  capability, and follow the transport flow below.
+  exact `--body-author=<plugin:skill>`; select `specification:mdc` for MDC,
+  author through that installed capability, and follow the transport flow
+  below.
 
 ## Notion sync considerations
 
@@ -112,12 +113,12 @@ project convention, or the absence of a local source.
 ```
 
 ```bash
-/spec-code "Retrospectively document this Next.js application" --capability=web-app --type=web-app --source-direction=local-to-notion --transport-root=<dir> --local-mdc=<path> --parent=<notion-parent-ref>
+/spec-code "Retrospectively document this Next.js application" --capability=web-app --type=web-app --source-direction=local-to-notion --transport-root=<dir> --local-mdc=<path> --parent=<notion-parent-ref> --body-author=specification:mdc
 # Scans Next.js project structure.
 # Documents actual pages, components, API routes.
 # Extracts UI component tree from code.
 # Captures current tech decisions, follows template structure.
-# Because the caller explicitly selected Notion, authors the given MDC path,
+# Because the caller explicitly selected Notion and `specification:mdc`, authors the given MDC path,
 # creates the page under the given parent through the validated create route,
 # and verification-pulls the canonical ref returned by transport.
 ```

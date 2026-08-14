@@ -433,8 +433,17 @@ def test_validator_rejects_non_exact_delimiter_and_symlink_input(
     assert "regular non-symlink" in result.stderr
 
 
-def test_body_author_is_external_and_bound_through_specification_calls() -> None:
-    assert not any(path.is_file() for path in (SKILLS / "mdc").rglob("*"))
+def test_body_author_is_bound_through_specification_calls() -> None:
+    moved_skill = SKILLS / "mdc"
+    required_mdc_files = (
+        moved_skill / "SKILL.md",
+        moved_skill / "references/closing-markers.md",
+        moved_skill / "references/editing-rules.md",
+        moved_skill / "references/examples.md",
+        moved_skill / "references/syntax.md",
+    )
+    for path in required_mdc_files:
+        assert path.is_file(), path
     assert TRANSPORT_METADATA_CHECK.is_file()
 
     contracts = (
@@ -445,13 +454,21 @@ def test_body_author_is_external_and_bound_through_specification_calls() -> None
         SKILLS / "sync-spec/SKILL.md",
         SKILLS / "sync-notion/SKILL.md",
     )
-    stale_owner = "specification:" + "mdc"
     stale_invocation = "Skill(" + "mdc)"
     for contract in contracts:
         text = contract.read_text(encoding="utf-8")
         assert "--body-author=<plugin:skill>" in text, contract
-        assert stale_owner not in text, contract
         assert stale_invocation not in text, contract
+
+    assert "--body-author=specification:mdc" in (
+        PLUGIN / "README.md"
+    ).read_text(encoding="utf-8")
+    assert "--body-author=specification:mdc" in (
+        PLUGIN / "agents/specification-expert/base.md"
+    ).read_text(encoding="utf-8")
+    assert "--body-author=specification:mdc" in (
+        moved_skill / "SKILL.md"
+    ).read_text(encoding="utf-8")
 
     sync_notion = (SKILLS / "sync-notion/SKILL.md").read_text(encoding="utf-8")
     assert "next_action: select_body_author" in sync_notion
