@@ -25,7 +25,16 @@ user. This skill is for Claude Code and writes user-scoped files under
 
 ## Workflow
 
-1. Run the installer:
+<IMPORTANT>
+Invoking this skill loads these instructions into context; it does not run
+anything by itself. Step 1's command is an action to execute immediately with
+a tool call, not documentation to read and assume complete. Never report an
+install as done, unchanged, or already-run without a tool call in this turn
+whose output shows the installer actually executed and step 2's checks
+actually passed.
+</IMPORTANT>
+
+1. Run the installer now, in this turn:
 
    ```bash
    bash "${CLAUDE_PLUGIN_ROOT}/skills/install-output-style/scripts/install-output-style.sh"
@@ -36,7 +45,8 @@ user. This skill is for Claude Code and writes user-scoped files under
    unchanged file. When an existing file differs, it saves a timestamped
    `.bak` copy before replacing it.
 
-2. Verify each expected file exists and matches its bundled asset. For the
+2. Verify each expected file exists and matches its bundled asset, by actually
+   running the checks below rather than assuming step 1 succeeded. For the
    current bundle, run:
 
    ```bash
@@ -51,7 +61,8 @@ user. This skill is for Claude Code and writes user-scoped files under
 <IMPORTANT>
 If `CLAUDE_PLUGIN_ROOT` is missing, the target directory is not writable, or a
 copy fails, report the exact failing path and stop. Do not claim installation
-until the matching-file check passes.
+until the matching-file check in step 2 has actually run and passed in this
+turn.
 </IMPORTANT>
 
 ## Verification
