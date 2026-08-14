@@ -361,8 +361,10 @@ host, then discover the complete live label inventory through the paginated
 repository API before any push or PR create/edit. For an existing PR, retain its
 absolute PR URL as `PR_URL` during per-head open-PR resolution; resolve its
 actual URL and head repository, derive the head host from that validated PR URL,
-retain the head owner/name, and require both to equal the selected push remote's
-resolved repository before any topology check or remote mutation. For a new PR,
+retain the head owner/name, and require both to match the selected push remote's
+resolved repository before any topology check or remote mutation. Compare GitHub
+host and owner/name identities case-insensitively, then retain the resolved PR
+URL's canonical target values for later API calls. For a new PR,
 resolve the selected push remote's push URL through `gh repo view <push-url>` and use
 its `parent` repository as the PR target when the remote is a fork; otherwise
 the push repository is the target. Keep the push repository owner separately so
@@ -408,6 +410,17 @@ bind_pr_url_target() {
   REPOSITORY=$owner/$repository_name
   PR_NUMBER=$pull_number
 }
+github_repository_identity_matches() {
+  local first_host=$1 first_repository=$2 second_host=$3 second_repository=$4
+  jq -en --arg first_host "$first_host" \
+    --arg first_repository "$first_repository" \
+    --arg second_host "$second_host" \
+    --arg second_repository "$second_repository" '
+      (($first_host | ascii_downcase) == ($second_host | ascii_downcase)) and
+      (($first_repository | ascii_downcase) ==
+        ($second_repository | ascii_downcase))
+    ' >/dev/null
+}
 bind_existing_pr_push_target() {
   local pr_url=$1 expected_repository expected_repository_host
   local resolved_pr_url push_repository_host
@@ -418,8 +431,9 @@ bind_existing_pr_push_target() {
   resolved_pr_url=$(jq -er '.url | select(type == "string" and length > 0)' \
     <<<"$PR_DATA") || return $?
   bind_pr_url_target "$resolved_pr_url" || return $?
-  if [ "$REPOSITORY" != "$expected_repository" ] || \
-    [ "$REPOSITORY_HOST" != "$expected_repository_host" ]; then
+  if ! github_repository_identity_matches \
+    "$expected_repository_host" "$expected_repository" \
+    "$REPOSITORY_HOST" "$REPOSITORY"; then
     printf 'resolved PR target differs from selected PR URL: selected=%s/%s resolved=%s/%s\n' \
       "$expected_repository_host" "$expected_repository" \
       "$REPOSITORY_HOST" "$REPOSITORY" >&2
@@ -446,8 +460,9 @@ bind_existing_pr_push_target() {
   esac
   push_repository_host=${PUSH_REPOSITORY_URL#https://}
   push_repository_host=${push_repository_host%%/*}
-  if [ "$PUSH_REPOSITORY" != "$HEAD_REPOSITORY" ] || \
-    [ "$push_repository_host" != "$HEAD_REPOSITORY_HOST" ]; then
+  if ! github_repository_identity_matches \
+    "$push_repository_host" "$PUSH_REPOSITORY" \
+    "$HEAD_REPOSITORY_HOST" "$HEAD_REPOSITORY"; then
     printf 'selected push remote does not match existing PR head: selected=%s/%s head=%s/%s\n' \
       "$push_repository_host" "$PUSH_REPOSITORY" \
       "$HEAD_REPOSITORY_HOST" "$HEAD_REPOSITORY" >&2

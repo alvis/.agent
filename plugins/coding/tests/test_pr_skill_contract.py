@@ -1464,7 +1464,11 @@ def run_existing_pr_push_target_preflight(
     )
     functions = "\n".join(
         extract_bash_function(publication, name)
-        for name in ("bind_pr_url_target", "bind_existing_pr_push_target")
+        for name in (
+            "bind_pr_url_target",
+            "github_repository_identity_matches",
+            "bind_existing_pr_push_target",
+        )
     )
     fake_bin = tmp_path / "bin"
     fake_bin.mkdir()
@@ -1512,6 +1516,7 @@ fi
         "REMOTE=selected\n"
         f"PR_URL={shlex.quote(pr_url)}\n"
         'bind_existing_pr_push_target "$PR_URL"\n'
+        '[ "$REPOSITORY_HOST/$REPOSITORY" = "$GH_CANONICAL_PR_TARGET" ]\n'
         "printf 'topology check\n' >>\"$REMOTE_MUTATION_LOG\"\n"
         "git push selected feature\n"
         'gh pr edit "$PR_URL" --base main\n'
@@ -1523,6 +1528,7 @@ fi
             "REMOTE_MUTATION_LOG": str(tmp_path / "mutations.log"),
             "GH_SELECTED_PR_URL": pr_url,
             "GH_RESOLVED_PR_URL": resolved_pr_url,
+            "GH_CANONICAL_PR_TARGET": "receiving.example/upstream/project",
             "HEAD_REPOSITORY": head_repository,
             "PUSH_REPOSITORY": push_repository,
             "PUSH_HOST": push_host,
@@ -1583,6 +1589,46 @@ def test_existing_pr_accepts_supported_head_repository_shape(tmp_path: Path) -> 
         "git push selected feature",
         ("gh pr edit https://receiving.example/upstream/project/pull/140 --base main"),
     ]
+
+
+def test_existing_pr_accepts_mixed_case_repository_identities(tmp_path: Path) -> None:
+    completed = run_existing_pr_push_target_preflight(
+        tmp_path,
+        head_repository="Contributor/Project",
+        push_repository="contributor/project",
+        push_host="RECEIVING.EXAMPLE",
+        pr_url="https://RECEIVING.EXAMPLE/Upstream/Project/pull/140",
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert (tmp_path / "mutations.log").read_text().splitlines() == [
+        "topology check",
+        "git push selected feature",
+        ("gh pr edit https://receiving.example/upstream/project/pull/140 --base main"),
+    ]
+
+
+@pytest.mark.parametrize(
+    "pr_url",
+    (
+        "https://other.example/upstream/project/pull/140",
+        "https://receiving.example/other/project/pull/140",
+    ),
+)
+def test_existing_pr_rejects_resolved_repository_identity_mismatch_before_mutation(
+    tmp_path: Path, pr_url: str
+) -> None:
+    completed = run_existing_pr_push_target_preflight(
+        tmp_path,
+        head_repository="contributor/project",
+        push_repository="contributor/project",
+        push_host="receiving.example",
+        pr_url=pr_url,
+    )
+
+    assert completed.returncode != 0
+    assert "resolved PR target differs from selected PR URL" in completed.stderr
+    assert not (tmp_path / "mutations.log").exists()
 
 
 def test_existing_pr_canonicalizes_a_trailing_slash_before_mutation(
