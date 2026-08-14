@@ -1322,6 +1322,15 @@ def extract_bash_block_containing(markdown: str, marker: str) -> str:
     return next(block for block in blocks if marker in block)
 
 
+def extract_bash_function(script: str, name: str) -> str:
+    match = re.search(
+        rf"^{name}\(\) \{{\n.*?^\}}$", script, flags=re.DOTALL | re.MULTILINE
+    )
+
+    assert match is not None
+    return match.group(0)
+
+
 def _write_executable_fixture(path: Path, contents: str) -> None:
     path.write_text(contents)
     path.chmod(0o755)
@@ -1438,6 +1447,136 @@ def _topology_entry(bookmark: str, pr_base: str, author_base_oid: str, /) -> str
         },
         separators=(",", ":"),
     )
+
+
+def run_existing_pr_push_target_preflight(
+    tmp_path: Path,
+    *,
+    head_repository: str,
+    head_host: str,
+    push_repository: str,
+    push_host: str,
+) -> subprocess.CompletedProcess[str]:
+    workflow = CREATE_UPDATE.read_text()
+    publication = extract_bash_block_containing(
+        workflow, "bind_existing_pr_push_target"
+    )
+    functions = "\n".join(
+        extract_bash_function(publication, name)
+        for name in ("bind_pr_url_target", "bind_existing_pr_push_target")
+    )
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    _write_executable_fixture(
+        fake_bin / "git",
+        """#!/usr/bin/env bash
+set -eu
+if [ "$*" = "remote get-url --push -- selected" ]; then
+  printf '%s\n' 'selected-push-url'
+else
+  printf 'git %s\n' "$*" >>"$REMOTE_MUTATION_LOG"
+fi
+""",
+    )
+    _write_executable_fixture(
+        fake_bin / "gh",
+        """#!/usr/bin/env bash
+set -eu
+if [ "$1 $2" = "pr view" ]; then
+  jq -cn --arg url "$PR_URL" --arg repository "$HEAD_REPOSITORY" \
+    --arg repository_url "https://$HEAD_HOST/$HEAD_REPOSITORY" \
+    '{url:$url,headRepository:{nameWithOwner:$repository,url:$repository_url}}'
+elif [ "$1 $2" = "repo view" ]; then
+  jq -cn --arg repository "$PUSH_REPOSITORY" \
+    --arg repository_url "https://$PUSH_HOST/$PUSH_REPOSITORY" \
+    '{nameWithOwner:$repository,url:$repository_url}'
+else
+  printf 'gh %s\n' "$*" >>"$REMOTE_MUTATION_LOG"
+fi
+""",
+    )
+    script = tmp_path / "existing-pr-push-target.sh"
+    script.write_text(
+        "set -eu\n"
+        f"{functions}\n"
+        "REMOTE=selected\n"
+        "PR_URL=https://receiving.example/upstream/project/pull/140\n"
+        'bind_existing_pr_push_target "$PR_URL"\n'
+        "printf 'topology check\n' >>\"$REMOTE_MUTATION_LOG\"\n"
+        "git push selected feature\n"
+        'gh pr edit "$PR_URL" --base main\n'
+    )
+    env = os.environ.copy()
+    env.update(
+        {
+            "PATH": f"{fake_bin}:{env['PATH']}",
+            "REMOTE_MUTATION_LOG": str(tmp_path / "mutations.log"),
+            "PR_URL": "https://receiving.example/upstream/project/pull/140",
+            "HEAD_REPOSITORY": head_repository,
+            "HEAD_HOST": head_host,
+            "PUSH_REPOSITORY": push_repository,
+            "PUSH_HOST": push_host,
+        }
+    )
+    return subprocess.run(
+        ["bash", str(script)],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+
+
+def test_existing_pr_rejects_a_different_fork_before_remote_mutation(
+    tmp_path: Path,
+) -> None:
+    completed = run_existing_pr_push_target_preflight(
+        tmp_path,
+        head_repository="contributor/project",
+        head_host="github.example",
+        push_repository="other-contributor/project",
+        push_host="github.example",
+    )
+
+    assert completed.returncode != 0
+    assert "selected=github.example/other-contributor/project" in completed.stderr
+    assert "head=github.example/contributor/project" in completed.stderr
+    assert not (tmp_path / "mutations.log").exists()
+
+
+def test_existing_pr_rejects_same_owner_and_name_on_a_different_host(
+    tmp_path: Path,
+) -> None:
+    completed = run_existing_pr_push_target_preflight(
+        tmp_path,
+        head_repository="contributor/project",
+        head_host="github.example",
+        push_repository="contributor/project",
+        push_host="other.example",
+    )
+
+    assert completed.returncode != 0
+    assert "selected=other.example/contributor/project" in completed.stderr
+    assert "head=github.example/contributor/project" in completed.stderr
+    assert not (tmp_path / "mutations.log").exists()
+
+
+def test_existing_pr_head_binding_precedes_topology_and_remote_mutation() -> None:
+    workflow = CREATE_UPDATE.read_text()
+    binding = workflow.index('bind_existing_pr_push_target "$PR_URL"')
+    topology = workflow.index(
+        'preflight_fork_publication_topology "${SELECTED_HEAD_BASES[@]}"'
+    )
+
+    assert binding < topology
+    for mutation in (
+        'jj bookmark create "$BOOKMARK"',
+        'git branch --force "$BOOKMARK"',
+        "scripts/restack.sh",
+        "PR=$(gh pr create",
+        'gh pr edit "$PR"',
+    ):
+        assert binding < workflow.index(mutation)
 
 
 def test_fork_stack_rejects_fork_only_base_before_remote_mutation(
@@ -1906,6 +2045,8 @@ def _build_repository_label_environment(
             "GH_PUBLICATION_COMPLETE": str(fixture.publication_complete),
             "GH_EXPECTED_REPOSITORY": target.repository,
             "GH_EXPECTED_HOST": target.host,
+            "GH_ACTION": target.action,
+            "GH_PR_URL": target.pr_url,
             "GH_PUSH_OWNER": scenario.push_owner,
             "GH_PUSH_OWNER_TYPE": scenario.push_owner_type,
             "GH_LABEL_PERMISSION": "1" if scenario.label_permission else "0",
@@ -1942,7 +2083,11 @@ def _install_repository_label_commands(fake_bin: Path, /) -> None:
         """#!/usr/bin/env bash
 set -eu
 if [ "$*" = "remote get-url --push -- origin" ]; then
-  printf 'git@create.ghe.test:%s/create-fork.git\n' "$GH_PUSH_OWNER"
+  if [ "$GH_ACTION" = update ]; then
+    printf 'git@update.ghe.test:%s/update-fork.git\n' "$GH_PUSH_OWNER"
+  else
+    printf 'git@create.ghe.test:%s/create-fork.git\n' "$GH_PUSH_OWNER"
+  fi
 else
   exit 69
 fi
@@ -1953,16 +2098,24 @@ fi
         """#!/usr/bin/env bash
 set -eu
 if [ "$1 $2" = "repo view" ]; then
-  [ "$3" = "git@create.ghe.test:$GH_PUSH_OWNER/create-fork.git" ] || exit 62
-  jq -cn --arg push_owner "$GH_PUSH_OWNER" '{
-    nameWithOwner: ($push_owner + "/create-fork"),
-    url: ("https://create.ghe.test/" + $push_owner + "/create-fork"),
-    parent: {
-      id: "R_parent",
-      name: "create-target",
-      owner: {id: "O_parent", login: "octo"}
-    }
-  }'
+  if [ "$GH_ACTION" = update ]; then
+    [ "$3" = "git@update.ghe.test:$GH_PUSH_OWNER/update-fork.git" ] || exit 62
+    jq -cn --arg push_owner "$GH_PUSH_OWNER" '{
+      nameWithOwner: ($push_owner + "/update-fork"),
+      url: ("https://update.ghe.test/" + $push_owner + "/update-fork")
+    }'
+  else
+    [ "$3" = "git@create.ghe.test:$GH_PUSH_OWNER/create-fork.git" ] || exit 62
+    jq -cn --arg push_owner "$GH_PUSH_OWNER" '{
+      nameWithOwner: ($push_owner + "/create-fork"),
+      url: ("https://create.ghe.test/" + $push_owner + "/create-fork"),
+      parent: {
+        id: "R_parent",
+        name: "create-target",
+        owner: {id: "O_parent", login: "octo"}
+      }
+    }'
+  fi
 elif [ "$1" = api ]; then
   printf '%s\n' "$*" >>"$GH_API_LOG"
   [[ " $* " == *" --hostname $GH_EXPECTED_HOST "* ]] || exit 63
@@ -2102,7 +2255,14 @@ elif [ "$1 $2" = "pr create" ]; then
   [[ " $* " == *" --head $GH_PUSH_OWNER:feature "* ]] || exit 77
   printf 'https://create.ghe.test/octo/create-target/pull/17\n'
 elif [ "$1 $2" = "pr view" ]; then
-  exit 74
+  [ "$GH_ACTION" = update ] || exit 74
+  jq -cn --arg url "$GH_PR_URL" --arg push_owner "$GH_PUSH_OWNER" '{
+    url: $url,
+    headRepository: {
+      nameWithOwner: ($push_owner + "/update-fork"),
+      url: ("https://update.ghe.test/" + $push_owner + "/update-fork")
+    }
+  }'
 elif [ "$1 $2" = "pr edit" ]; then
   [[ " $* " != *" --add-label "* && " $* " != *" --remove-label "* ]] || exit 68
   [ "$3" = "https://update.ghe.test/octo/update-target/pull/17" ] || exit 75

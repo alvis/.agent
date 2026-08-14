@@ -359,8 +359,10 @@ metadata only.
 Before submitting each PR, bind label work to that PR's target repository and
 host, then discover the complete live label inventory through the paginated
 repository API before any push or PR create/edit. For an existing PR, retain its
-absolute PR URL as `PR_URL` during per-head open-PR resolution and derive the
-host, owner/repository, and issue number from that URL. For a new PR, resolve
+absolute PR URL as `PR_URL` during per-head open-PR resolution; resolve its
+actual URL and head repository, retain the head repository's host and
+owner/name, and require both to equal the selected push remote's resolved
+repository before any topology check or remote mutation. For a new PR, resolve
 the selected push remote's push URL through `gh repo view <push-url>` and use
 its `parent` repository as the PR target when the remote is a fork; otherwise
 the push repository is the target. Keep the push repository owner separately so
@@ -403,9 +405,65 @@ bind_pr_url_target() {
   REPOSITORY=$owner/$repository_name
   PR_NUMBER=$pull_number
 }
+bind_existing_pr_push_target() {
+  local pr_url=$1 expected_repository expected_repository_host
+  local resolved_pr_url head_repository_url push_repository_host
+  bind_pr_url_target "$pr_url" || return $?
+  expected_repository=$REPOSITORY
+  expected_repository_host=$REPOSITORY_HOST
+  PR_DATA=$(gh pr view "$pr_url" --json url,headRepository) || return $?
+  resolved_pr_url=$(jq -er '.url | select(type == "string" and length > 0)' \
+    <<<"$PR_DATA") || return $?
+  bind_pr_url_target "$resolved_pr_url" || return $?
+  if [ "$REPOSITORY" != "$expected_repository" ] || \
+    [ "$REPOSITORY_HOST" != "$expected_repository_host" ]; then
+    printf 'resolved PR target differs from selected PR URL: selected=%s/%s resolved=%s/%s\n' \
+      "$expected_repository_host" "$expected_repository" \
+      "$REPOSITORY_HOST" "$REPOSITORY" >&2
+    return 1
+  fi
+  HEAD_REPOSITORY=$(jq -er '
+    .headRepository.nameWithOwner
+    | select(type == "string" and length > 0)
+  ' <<<"$PR_DATA") || return $?
+  head_repository_url=$(jq -er '
+    .headRepository.url | select(type == "string" and length > 0)
+  ' <<<"$PR_DATA") || return $?
+  case "$head_repository_url" in
+    https://*/*/*) ;;
+    *) printf 'invalid PR head repository URL: %s\n' \
+      "$head_repository_url" >&2; return 1 ;;
+  esac
+  HEAD_REPOSITORY_HOST=${head_repository_url#https://}
+  HEAD_REPOSITORY_HOST=${HEAD_REPOSITORY_HOST%%/*}
+  REMOTE_PUSH_URL=$(git remote get-url --push -- "$REMOTE") || return $?
+  PUSH_REPOSITORY_JSON=$(gh repo view "$REMOTE_PUSH_URL" \
+    --json nameWithOwner,url) || return $?
+  PUSH_REPOSITORY=$(jq -er \
+    '.nameWithOwner | select(type == "string" and length > 0)' \
+    <<<"$PUSH_REPOSITORY_JSON") || return $?
+  PUSH_REPOSITORY_URL=$(jq -er \
+    '.url | select(type == "string" and length > 0)' \
+    <<<"$PUSH_REPOSITORY_JSON") || return $?
+  case "$PUSH_REPOSITORY_URL" in
+    https://*/*/*) ;;
+    *) printf 'invalid push repository URL: %s\n' \
+      "$PUSH_REPOSITORY_URL" >&2; return 1 ;;
+  esac
+  push_repository_host=${PUSH_REPOSITORY_URL#https://}
+  push_repository_host=${push_repository_host%%/*}
+  if [ "$PUSH_REPOSITORY" != "$HEAD_REPOSITORY" ] || \
+    [ "$push_repository_host" != "$HEAD_REPOSITORY_HOST" ]; then
+    printf 'selected push remote does not match existing PR head: selected=%s/%s head=%s/%s\n' \
+      "$push_repository_host" "$PUSH_REPOSITORY" \
+      "$HEAD_REPOSITORY_HOST" "$HEAD_REPOSITORY" >&2
+    return 1
+  fi
+  PR=$resolved_pr_url
+  PR_URL=$resolved_pr_url
+}
 if [ -n "${PR_URL:-}" ]; then
-  PR=$PR_URL
-  bind_pr_url_target "$PR_URL" || exit $?
+  bind_existing_pr_push_target "$PR_URL" || exit $?
 else
   REMOTE_PUSH_URL=$(git remote get-url --push -- "$REMOTE") || exit $?
   PUSH_REPOSITORY_JSON=$(gh repo view "$REMOTE_PUSH_URL" \
