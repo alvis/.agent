@@ -48,13 +48,18 @@ Include exactly these navigation aids:
 
 - **Current state** — a brief, revision-aware status and the immediate next
   action or blocker.
-- **Related decisions** — each summary uses at most 19 words, excludes decision
-  detail, and links the file containing the full decision.
-- **Recent work** — each summary uses at most 19 words, excludes decisions, and
-  links the journal, change record, or other file containing the full journey.
+- **Related decisions** — zero or more record items, one per directly related
+  decision. Each summary uses at most 19 words, excludes decision detail, and
+  links the file containing the full decision.
+- **Related recent work** — zero or more record items, one per directly related
+  work record. Each summary uses at most 19 words, excludes decisions, and
+  links the file containing the full journey.
 
-Use `None — no related record` only after checking the applicable authority;
-never create a placeholder file to satisfy a context line.
+Exclude records that are merely adjacent to the plan.
+
+Under each related-record label, use `None — no directly related record` only
+after checking the applicable authority; never create a placeholder file to
+satisfy a context line.
 
 ## Truth ownership in work state
 
@@ -79,5 +84,5 @@ continuing.
 Before handing off, approving, or executing a plan, verify that every required
 ingredient is present or linked, the goal has a measurable bar, requirements
 are testable, boundaries expose exclusions, direction is executable, context is
-current, every context link resolves, and each decision/recent-work summary is
-at most 19 words.
+current, every context link resolves, every listed record is directly related,
+and each decision/recent-work summary is at most 19 words.
