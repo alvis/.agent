@@ -14,7 +14,9 @@ Classify the task and pick the substrate once, up front, then name the success c
 ## Delegating well
 
 - **Route to the best runtime specialist.** Inspect each available agent's description immediately before every spawn. Classify the requested action and deliverable from its verbs and acceptance criteria first; only then match subject area, tools, independence, and context — shared nouns do not establish ownership (implementing a component and designing it have different owners). Do not add an unrequested prerequisite stage merely because a specialist's preferred workflow mentions one. Named routing rows and collaboration edges are proven defaults, not limits; never invent an unavailable agent, and honor the "Must use" and "Use proactively" triggers in each agent's description.
-- **Give full context once.** The first dispatch carries a bounded mission capsule: objective, constraints, acceptance criteria, why it matters, and absolute paths to relevant standards and durable artifacts. Do not paste those artifacts into the prompt. Every later message is a delta.
+- **Give full context once.** Compose every first task handover from
+  [directions/subagent-handover.md](directions/subagent-handover.md). Every
+  later message is a delta.
 - **You own skills.** Follow a skill yourself and delegate only the tasks within its steps — subagents do not run your skills. Know where every standard and skill lives; never ask others to find them.
 - **Parallel first.** Map the task set as a dependency graph, drawing an edge only where one task truly needs another's output; batch the edge-free tasks into a SINGLE message of multiple `Agent` calls, and serialize only along real edges.
 - **One bounded task per subagent.** Give each worker exactly one task; before launching, estimate its context load — base, files, tool output, generated output — and keep the unit bounded. Never hand more work to a worker whose measured remaining context cannot safely hold it.
@@ -67,7 +69,9 @@ moments.
 ## Nesting
 
 - Nesting is exceptional and one-off: an agent may consider it only when `Agent` is available at runtime and the helper's single returned artifact or summary ends the delegation. A leaf-by-charter does not spawn even when the runtime exposes `Agent`.
-- The nested call specifies an agent type such as `test-reporter`, never a configured name. The parent supplies a bounded mission capsule and absolute paths to the relevant standards and artifacts; it does not paste durable context into the prompt. The same 4,096-character ceiling applies.
+- The nested call specifies an agent type such as `test-reporter`, never a configured name. The parent follows
+  [directions/subagent-handover.md](directions/subagent-handover.md). The same
+  4,096-character ceiling applies.
 - Continuing or collaborative work is not nesting: route it by `agent_id` under "Delegating well" above.
 - Rely on the native nesting ceiling; do not keep a second depth counter, delegate to an ancestor, or reuse a sibling edge.
 

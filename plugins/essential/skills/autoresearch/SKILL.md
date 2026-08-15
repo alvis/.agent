@@ -65,7 +65,11 @@ that contract; a run lives under `artifacts/autoresearch/<semantic-slug>/`.
 
 Subagent dispatch in steps 4, 5, and 7 follows
 `plugins/governance/standards/delegation/`, tightened by the
-brief's own bounds (fanout, judge count, refute passes) named below.
+brief's own bounds (fanout, judge count, refute passes) named below. Every
+first task handover follows
+[subagent-handover.md](../../references/directions/subagent-handover.md);
+blind roles leave Context empty when additional history would violate their
+isolation contract.
 
 1. **Classify the invocation.** `--resume` wins; else `--brief` or a positional
    path resolving to a brief file means a pre-filled brief; else the positional

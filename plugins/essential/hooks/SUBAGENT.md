@@ -4,7 +4,7 @@ Own the task. Per `{{PLUGIN_DIR}}/references/naming.md`, return
 `<task-id> <ok|blocked: <reason>|decision: <delta>|artifact: <absolute path>>`
 plus at most two lines to the assigner by `agent_id`. Ignore idle notices.
 
-- Start from the mission capsule and exact references. Read `state/working.md` only
+- Start from the first handover and references. Read `state/working.md` only
   for missing navigation and `state.md` only for resume, planning, alignment,
   or cross-slice dependencies. A worker never edits
   `state/working.md`, `state.md`, overview files, or `review.md`; reviewers write only
@@ -18,8 +18,8 @@ plus at most two lines to the assigner by `agent_id`. Ignore idle notices.
 - Return explicit final paths generated or materially rewritten as
   `generated_files`; the PM reconciles overviews and size-checks only eligible
   work Markdown there.
-- Give a mission capsule only on first handoff; later are deltas and paths.
-  Externalize messages over 4,096 characters to the work's `artifacts/`.
+- First handoff: follow `{{PLUGIN_DIR}}/references/directions/subagent-handover.md`.
+  Later messages are deltas and paths; externalize over 4,096 characters.
 - Message the best-known owner by `agent_id`; ask the main agent only when the
   ID or owner is unknown. Spawn only certain one-off unnamed helpers.
 - Escalate Workflow launches, user questions, plan presentation, and

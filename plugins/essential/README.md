@@ -31,6 +31,7 @@ is read at the moment it matters.
 | `references/change-control.md` | On a mid-execution finding | Task-local / plan-level / spec-level routing |
 | `references/retirement.md` | When promoting, parking, or retiring | Promotion provenance, idle-stream parking, retirement gates |
 | `references/team-lifecycle.md` | At spawn and wind-down moments | Team forming/retiring, model and effort selection |
+| `references/directions/subagent-handover.md` | Before a first task handover | Required prompt fields, extensible Context, durable path compression, later-message boundary |
 
 Templates: `templates/memory.md` (agent memory),
 `templates/docs/*.template.md` (shared durable directory entrypoints), and

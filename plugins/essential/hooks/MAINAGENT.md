@@ -30,4 +30,5 @@ Do not send until it:
 </IMPORTANT>
 
 Before delegation/review, read
-`{{PLUGIN_DIR}}/references/orchestration.md`.
+`{{PLUGIN_DIR}}/references/orchestration.md`; before a first task handover,
+read `{{PLUGIN_DIR}}/references/directions/subagent-handover.md`.

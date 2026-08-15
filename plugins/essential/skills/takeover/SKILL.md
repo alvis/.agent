@@ -190,20 +190,22 @@ resolver failure, an unparseable `state.md`), stop that stream and recommend
 
 11. Plan, then resume the stream's current runnable next action. Do not plan the
     work inline: first delegate the stream's planning to the relevant lead role,
-    giving it a bounded mission capsule — goal, next action, staged
-    specification, work ID/root, resolved decisions, contradictions, and original
-    user context. The lead returns a proposed **team** (coordinated parallel
+    composing the first task handover from
+    [subagent-handover.md](../../references/directions/subagent-handover.md).
+    Its task-specific Context names the next action, staged specification, work
+    ID/root, resolved decisions, contradictions, and original user context. The
+    lead returns a proposed **team** (coordinated parallel
     work) **or** a **structured multi-phase workflow**, with the task detail for
     each piece. Then execute that plan through the stream's declared continuation
     intent, handing off to the relevant implementation skill and
-    passing the lead's plan alongside the same capsule. Hand off once per runnable
+    passing the lead's plan alongside the same task context. Hand off once per runnable
     next action — the drive-to-completion loop in step 13 re-enters this step for
     each subsequent runnable action, and a completed action is never re-handed.
     Because publication is delegated downstream at completion (step 12), instruct
     the hand-off to **defer its own publication**: it saves work locally but does
     not open or update pull requests itself. Each stream keeps its own
     coordinator lease, so per-stream handoffs run sequentially or as per-stream
-    continuation capsules to the PM. Choose each skill by mapping that stream's
+    continuation handovers to the PM. Choose each skill by mapping that stream's
     capability-level continuation-intent descriptor to the relevant
     implementation skill. The descriptor comes from the `## Continuation` section
     of the on-disk `state.md`. When it is absent (state written before this field

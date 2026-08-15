@@ -30,6 +30,36 @@ One haiku agent per candidate runs `eval.programmatic.command` and parses the re
 inside the candidate's own worktree (after the brief's `setup_command` has run once per worktree, before any eval);
 in artifact mode it runs in the run dir with the candidate's artifact path substituted in.
 
+Its first task handover follows
+[subagent-handover.md](../../../references/directions/subagent-handover.md) and
+uses this payload:
+
+```text
+<work-id>
+
+Goal: Measure one candidate with the approved command, returning a trustworthy numeric score for the round.
+
+Requirements:
+- Run `eval.programmatic.command` with `timeout_s` and capture stdout, stderr, and exit code.
+- Accept stdout only when it parses to exactly one number on `metric.scale`.
+- Retry one harness error once, then return both attempts and the disqualification reason.
+- Return the parsed score or `disqualified: harness_error` for persistence in `scores.yaml`.
+
+Boundary:
+- Do not modify the candidate, eval harness, immutable paths, brief, or score files.
+- Do not infer or repair a malformed score.
+
+Directions:
+- Treat any output beyond one number and optional surrounding whitespace as malformed.
+
+Context:
+Path: <absolute run_dir>
+
+Inputs:
+- Approved evaluator and metric — research-brief.md
+- Candidate artifact — <candidate artifact path relative to run_dir>
+```
+
 1. Run the command with the brief's `timeout_s`. Capture stdout and exit code.
 2. **stdout must parse to exactly one number** on the metric's scale. Strip whitespace; a single trailing newline is
    fine; anything else — multiple numbers, prose, empty output, non-zero exit — is a harness error.
@@ -67,7 +97,10 @@ full odd strength.
 
 1. Take the median of the N judge scores. This is the consensus value; spread is `max − min`.
 2. If spread exceeds 30% of the scale's range, the panel disagrees materially: dispatch ONE extra tie-break judge
-   (same payload contract, still blind to the sibling scores) and re-take the median over N+1.
+   using the Independent Judge block in
+   [loop-workflow.md](loop-workflow.md) and the canonical first-handover
+   direction. Its `Context` stays empty, and it remains blind to sibling scores.
+   Re-take the median over N+1.
 3. Either way, log the disagreement in scores.yaml — the spread and, when a tie-break ran, a `tie_break: true` flag
    on its raw entry. High-spread candidates are exactly the ones the Verify phase and the round log should examine.
 

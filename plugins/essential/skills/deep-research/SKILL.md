@@ -39,7 +39,9 @@ that contract.
 
 Steps 2, 3, and 4 dispatch subagents per
 `plugins/governance/standards/delegation/`; skill-specific
-bounds are stated at each step.
+bounds are stated at each step. Compose each first task handover from
+[subagent-handover.md](../../references/directions/subagent-handover.md), with
+source batches or claims in its task-specific Context.
 
 1. **Plan the run.** Parse the topic and optional focus from `$ARGUMENTS` and
    pick the source strategy by topic type — technical/scientific: academic

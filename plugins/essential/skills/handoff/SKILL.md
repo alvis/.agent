@@ -90,7 +90,10 @@ that contract.
    subagents, so this session keeps its context for the decisions; the one
    exception is a step you would finish in a handful of tool calls, where
    dispatching costs more than it isolates. To pause a coding session rather
-   than hand a plan off, use `essential:handover`.
+   than hand a plan off, use `essential:handover`. Compose each phase's first
+   task handover from
+   [subagent-handover.md](../../references/directions/subagent-handover.md),
+   placing the approved plan and phase inputs in its extensible Context.
 4. Run the verification below; when a check fails, fix the cause and re-run
    that check. Repeat until every check passes or a concrete blocker remains,
    then report the blocker instead of looping.
