@@ -7,6 +7,9 @@ argument-hint: "[--auto-push]"
 
 # Finalize Commits
 
+Before any `jj` decision or command, follow
+`coding:references/jj.md`.
+
 Verify that every unpushed commit is independently shippable. This skill owns
 isolated per-commit QA and the finalization report. `coding:commit` is the sole
 owner of history mutations.

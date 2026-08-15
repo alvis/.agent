@@ -6,6 +6,9 @@ argument-hint: "[path] [--exclude-remote]"
 
 # Cleanup
 
+Before any `jj` decision or command, follow
+`coding:references/jj.md`.
+
 Own evidence-first cleanup of no-longer-needed development state: branches,
 registered worktrees/workspaces, jj changes, and ignored
 `.state/works/<work-id>/` directories. Inventory first, preserve ambiguity,

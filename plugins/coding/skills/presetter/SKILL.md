@@ -5,6 +5,9 @@ description: "Sets up, adapts, migrates, regenerates, and troubleshoots TypeScri
 
 # Presetter
 
+Before any `jj` decision or command, follow
+`coding:references/jj.md`.
+
 Presetter is a configuration-as-code layer for TypeScript toolchains. A checked-in
 preset stack defines variables, runnable scripts, and generated assets; `bootstrap`
 resolves that stack and writes tool configuration, while `run` composes preset tasks

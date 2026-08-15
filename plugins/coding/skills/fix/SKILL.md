@@ -7,6 +7,10 @@ argument-hint: "[specifier] [--area=AREA] [--note=...] [--plan=PATH]"
 
 # Fix Code Issues
 
+Before any `jj` decision or command, follow
+`coding:references/jj.md`. For review bugs in stacked
+changes, repair the owning change with the guide's `jj edit` route.
+
 Diagnose and repair concrete failures — failing tests, type errors, lint
 failures, broken CI, review findings — restoring green without adding
 behavior. `coding:write-code` owns new functionality; `coding:refactor` owns

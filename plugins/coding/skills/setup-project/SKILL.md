@@ -8,6 +8,9 @@ argument-hint: "<target-path> [--type=app|lib|service]"
 
 # Setup Project
 
+Before any `jj` decision or command, follow
+`coding:references/jj.md`.
+
 Ensures a target path is ready for development: a quick validation first, and
 a minimal bootstrap that mimics similar projects in the monorepo only when
 essential files are missing. Feature and business-logic code is owned by

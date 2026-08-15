@@ -7,6 +7,9 @@ argument-hint: "[path/to/scan] [--exclude=pattern]"
 
 # Find Unused Code
 
+Before any `jj` decision or command, follow
+`coding:references/jj.md`.
+
 Own read-only dead-code discovery: commented-out code blocks, unused exports
 and symbols, unused test helpers, and production code referenced only by
 tests. Removal belongs to the caller — `coding:lint` runs this skill as its

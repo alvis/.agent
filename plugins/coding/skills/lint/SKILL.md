@@ -7,6 +7,9 @@ argument-hint: "[specifier] [--scope=SCOPE] [--skip-unused] [--profile=ABSOLUTE_
 
 # Linting
 
+Before any `jj` decision or command, follow
+`coding:references/jj.md`.
+
 Set `CODING_LINT_SKILL_DIR` to the absolute directory containing this loaded
 `SKILL.md` before invoking its scripts.
 

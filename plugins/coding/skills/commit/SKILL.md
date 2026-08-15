@@ -18,6 +18,9 @@ hooks:
 
 # Save Any Code Change — jj-first, git-compatible
 
+Before any `jj` decision or command, follow
+`coding:references/jj.md`.
+
 Before any script call, set `CODING_COMMIT_SKILL_DIR` to the absolute directory
 containing this loaded `SKILL.md`. This works in both harnesses; ordinary Codex
 shell calls do not receive a plugin-root environment variable.
@@ -58,7 +61,10 @@ to the caller that owns any subsequent `coding:pr update`.
   partial-to-branch routes, and preserving the `--create-pr` compatibility
   entrypoint.
 - Do not use for: composing PR titles or bodies, general remote publication, or opening, updating, and polling PRs (`coding:pr create`), per-commit QA of an unpushed stack (`coding:finalize-commits`), or diagnosing code failures (`coding:fix`).
-- Tool precedence: `jj` first wherever it is installed and initialized for the repository — every change is then a jj change and jj auto-snapshots `@` on every op. On a jj-colocated repo `git commit` acts only as the conventional-commit emitter inside the save flow; on a git repository it is the save itself, and every route below runs its documented git form. Neither is hand-run outside this skill. `gh` is retained for history routes that inspect remote PR state; `coding:pr create` owns PR publication and CI, while this skill may run `jj git push` only in the two named direct-sync routes.
+- Tool precedence, functional colocation, initialization, workspace use, and
+  command selection come from `coding:references/jj.md`.
+  This skill applies that policy to the selected save route; `coding:pr`
+  remains the publication owner.
 
 <IMPORTANT>
 - Every workflow MUST end with a linear clean chain + working code. No exceptions. If a workflow cannot guarantee this, STOP and surface to the user.
@@ -73,7 +79,8 @@ to the caller that owns any subsequent `coding:pr update`.
   stage, reset, stash, or rewrite a non-selected dirty path, and never continue
   when exact isolation or the before/after preservation proof is unavailable.
 - The Conventional Commits subject regex MUST match BEFORE any mutation (see [references/conventional-commits.md](references/conventional-commits.md)); no emoji prefixes in commit subjects.
-- `git worktree` ≠ `jj workspace`. If the user accidentally used a git worktree, `AskUserQuestion` to move work back to HEAD before continuing.
+- Follow the shared guide's linked-Git-worktree guard before editing or
+  mutating history.
 </IMPORTANT>
 
 ## Inputs
@@ -86,7 +93,7 @@ to the caller that owns any subsequent `coding:pr update`.
 | `--prepare-paths-from=<scope-request>` | No-history preparation route for a lifecycle parent. Seal its ignored work-artifacts scope request into an immutable manifest and return the exact `--paths-from` invocation; do not save, finalize, or publish. |
 | `--paths-from=<manifest>` | Save only the manifest's exact dirty `selected_paths`; validate the ignored work-artifacts manifest and use [references/workflow-save-manifest.md](references/workflow-save-manifest.md). Requires `--manifest-sha256`. |
 | `--manifest-sha256=<sha256>` | Expected SHA-256 of the exact manifest bytes. Valid only with `--paths-from`; prevents a path or manifest swap between lifecycle handoff and save. |
-| `--retrospective` | Distribute pending edits on `@` into prior changes (stage 1: `jj absorb`; stage 2: `jj blame` + `jj squash --from @ --into <ancestor>`; stage 3: git fixup fallback). See `references/workflow-retrospective.md`. |
+| `--retrospective` | Distribute pending edits into their owning prior changes. See `references/workflow-retrospective.md` and the shared Jujutsu guide. |
 | `--reorder [--up-to <rev>]` | Reorder history into a clean linear chain up to target rev (default `main@origin`). Content-equivalence guard via `verify.sh`. See `references/workflow-reorder.md`. |
 | `--create-pr` | Compatibility entrypoint: finish the selected save/history route, then invoke `coding:pr create` with the resolved change or stack. |
 | `--branch-prefix <name>` | Forward the branch/bookmark prefix to `coding:pr create` when `--create-pr` is present. |
@@ -98,9 +105,9 @@ to the caller that owns any subsequent `coding:pr update`.
   manifest-scoped route additionally requires a checksum-bound manifest under
   the resolved work root's ignored artifacts directory. Producer receipts must
   use the strict generated-files schema and reconcile exactly to the
-  publication set. The helper capability-probes the installed jj commands,
-  revsets, templates, operation pinning, and structural Git colocation; no jj
-  version string alone authorizes the scoped route. Publication
+  publication set. The helper capability-probes the shared guide's required
+  operations and structural colocation; no version string alone authorizes the
+  scoped route. Publication
   prerequisites are checked by `coding:pr create`. The directions above bind
   branch naming, earliest-owner fix routing, and public-history safety.
   Pull-request size and implementation-composition standards are review inputs
@@ -119,7 +126,7 @@ The skill self-routes by reading the working-copy diff, the changes since the pa
 | User asks "edit commit X" | auto-detected | `references/workflow-edit.md` |
 | Proposed work unrelated to current `@` | auto-detected | `references/workflow-parallel.md` |
 | `@` is empty | auto-detected | `references/scenario-empty-changes.md` |
-| Divergent change ID in `jj log` | auto-detected | `references/scenario-divergent.md` |
+| Divergent change ID | auto-detected | `references/scenario-divergent.md` |
 | Target already merged on origin | auto-detected | `references/workflow-correct-merged.md` |
 | Blame-trace fixups into prior changes | `--retrospective` | `references/workflow-retrospective.md` |
 | Reorder existing history | `--reorder [--up-to <rev>]` | `references/workflow-reorder.md` |
@@ -132,15 +139,15 @@ Before writing any new code, plan the change structure so commits/PRs end up ind
 
    | Route | Rewrites history? | Backup |
    |---|---|---|
-   | Manifest-scoped save (`jj split` or Git path-limited commit) | No prior history | capture sealed HEAD/jj state plus the route's immutable exact-index backup and rollback handle |
-   | Default save (`jj describe` + `git commit`) | No | skip |
-   | Split current change (`jj split`) | No | skip |
-   | Parallel workspace (`jj new` / `jj workspace add`) | No | skip |
+   | Manifest-scoped save | No prior history | capture sealed VCS state plus the route's immutable exact-index backup and rollback handle |
+   | Default save | No | skip |
+   | Split current change | No | skip |
+   | Parallel workspace | No | skip |
    | Empty / divergent | No | skip |
-   | Edit prior change (`jj edit`) | Yes | run |
-   | `--retrospective` (`jj absorb` / `jj squash`) | Yes | run |
-   | `--reorder` (`jj rebase`) | Yes | run |
-   | Partial hunks → existing branch (`git add -p` + `git commit` + `jj git import` + `jj bookmark move --allow-backwards`) | Yes (bookmark move, possibly backward) | run |
+   | Edit prior change | Yes | run |
+   | `--retrospective` | Yes | run |
+   | `--reorder` | Yes | run |
+   | Partial hunks → existing branch | Yes (ref movement, possibly backward) | run |
    | Correct merged target (`git rebase` fallback) | Yes | run |
 
    When backup runs, the PreToolUse hook fires it on the first rewriting op and injects `Auto-backup: GIT_TREE_SHA=... CONTENT_HASH=... BACKUP_PATH=...` into context. If the route rewrites history but the hook didn't fire, run manually:
@@ -149,23 +156,18 @@ Before writing any new code, plan the change structure so commits/PRs end up ind
    bash "${CODING_COMMIT_SKILL_DIR}/scripts/backup.sh"
    ```
 
-   For every route, capture `jj op log -n1 --no-graph -T 'self.id().short()'` as a rollback handle (`jj op restore <id>` undoes any jj operation).
+   For every `jj` rewrite route, capture the rollback handle specified by the
+   shared Jujutsu guide.
 
 2. **Detect mode.** `--prepare-paths-from` runs only the producer contract and
    returns before proposing or mutating history; it cannot combine with another
    operation flag. A valid `--paths-from`/`--manifest-sha256` pair forces the
    manifest-scoped route and cannot be combined with `--retrospective`,
    `--reorder`, a named partial-to-branch target, or `--create-pr`. Otherwise,
-   read working-copy state and pick exactly one route:
-
-   ```bash
-   jj diff --stat               # file count + LOC          (git: git diff --stat HEAD)
-   jj log -r 'visible_heads()'  # bookmarks, divergence     (git: git log --oneline @{upstream}..HEAD)
-   jj bookmark list             # existing stack state      (git: git branch --list)
-   ```
-
-   Choose by the routing table above. A history-operation flag forces its
-   route; `--create-pr` adds the post-save publication handoff.
+   read working-copy state with the shared Jujutsu guide's inspection commands
+   (or the route's Git equivalents) and pick exactly one route from the table
+   above. A history-operation flag forces its route; `--create-pr` adds the
+   post-save publication handoff.
 
 3. **Propose the plan** to the user before any mutation. For multi-change routes (`--retrospective`, `--reorder`, `--create-pr`, auto-split), show the ordered list of operations. With `--dry-run`, skip local mutation but still perform the `coding:pr create --dry-run` handoff when `--create-pr` is present.
 
@@ -184,7 +186,7 @@ The PostToolUse hook auto-runs `verify.sh` after any successful rewriting op and
 | PASS | PASS | OK → report |
 | FAIL | PASS | git tree drift → STOP, show diff, await user |
 | PASS | FAIL | filesystem drift → STOP, show diff, await user |
-| FAIL | FAIL | corruption → STOP, recover via `jj op restore <id>` |
+| FAIL | FAIL | corruption → STOP, restore the captured VCS operation |
 
 If the hook didn't fire, run manually:
 

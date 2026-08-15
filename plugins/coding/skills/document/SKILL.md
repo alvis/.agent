@@ -7,6 +7,9 @@ argument-hint: "[--project=<path>] [--architecture|--no-architecture] [--readme-
 
 # Document package
 
+Before any `jj` decision or command, follow
+`coding:references/jj.md`.
+
 Set `CODING_DOCUMENT_SKILL_DIR` to the absolute directory containing this loaded
 `SKILL.md` before invoking its scripts.
 

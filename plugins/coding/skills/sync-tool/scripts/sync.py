@@ -62,7 +62,7 @@ class ToolEntry:
 
 REGISTRY: tuple[ToolEntry, ...] = (
     ToolEntry(name='brew', installer='brew.sh', min_version='4.0.0', macos_only=True),
-    ToolEntry(name='jj', installer='jj.sh', min_version='0.18.0'),
+    ToolEntry(name='jj', installer='jj.sh', min_version='0.44.0'),
     ToolEntry(name='gh', installer='gh.sh', min_version='2.0.0'),
     ToolEntry(name='fallow', installer='fallow.sh', min_version='2.0.0'),
     ToolEntry(
