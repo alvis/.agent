@@ -53,49 +53,7 @@ be created directly on its bound SHA. A target absent both locally and remotely
 is new and remains bound to the current `HEAD` creation base:
 
 ```bash
-case "$REMOTE_TARGET_SHA" in
-  "")
-    case "$LOCAL_TARGET_SHA" in
-      "")
-        TARGET_ROUTE=new-target
-        TARGET_BASE=$TARGET_CREATION_BASE
-        ;;
-      *)
-        if test "$TARGET_CREATION_BASE" != "$LOCAL_TARGET_SHA"; then
-          printf '%s\n' 'HEAD must equal local target before partial commit' >&2
-          exit 1
-        fi
-        TARGET_ROUTE=local-only
-        TARGET_BASE=$LOCAL_TARGET_SHA
-        ;;
-    esac
-    ;;
-  *)
-    if test -n "$LOCAL_TARGET_SHA"; then
-      if test "$LOCAL_TARGET_SHA" != "$REMOTE_TARGET_SHA"; then
-        printf '%s\n' \
-          'local and remote target bookmarks diverge; reconcile before partial commit' >&2
-        exit 1
-      fi
-      if test "$TARGET_CREATION_BASE" != "$LOCAL_TARGET_SHA"; then
-        printf '%s\n' \
-          'HEAD must equal synchronized target before partial commit' >&2
-        exit 1
-      fi
-      TARGET_ROUTE=synchronized
-      TARGET_BASE=$LOCAL_TARGET_SHA
-    else
-      if test "$TARGET_CREATION_BASE" != "$REMOTE_TARGET_SHA"; then
-        printf '%s\n' 'HEAD must equal fetched target before partial commit' >&2
-        exit 1
-      fi
-      TARGET_ROUTE=remote-only
-      TARGET_BASE=$REMOTE_TARGET_SHA
-    fi
-    ;;
-esac
-test -n "$TARGET_BASE"
-printf 'TARGET_ROUTE=%s\nTARGET_BASE=%s\n' "$TARGET_ROUTE" "$TARGET_BASE"
+source "${CODING_COMMIT_SKILL_DIR}/scripts/classify-target-route.sh"
 ```
 
 If the target is already merged on origin → defer to [workflow-correct-merged.md](./workflow-correct-merged.md).
@@ -140,21 +98,8 @@ Capture the new change id from the second line.
 ### 5. Set the target bookmark
 
 ```bash
-case "$TARGET_ROUTE" in
-  remote-only)
-    jj bookmark create <target> --revision "$REMOTE_TARGET_SHA"
-    jj bookmark move <target> --to <new-change-id>
-    ;;
-  local-only|synchronized)
-    jj bookmark move <target> --to <new-change-id>
-    ;;
-  new-target)
-    jj bookmark set <target> --revision <new-change-id>
-    ;;
-  *)
-    exit 3
-    ;;
-esac
+source "${CODING_COMMIT_SKILL_DIR}/scripts/move-target-bookmark.sh" \
+  <target> <new-change-id>
 ```
 
 - Run exactly the classified branch. For `remote-only`, create the missing
@@ -198,81 +143,7 @@ Capture the action's complete `CI_PARITY_RECEIPT_JSON`, its canonical
 push:
 
 ```bash
-RECEIPT_TARGET_SHA=$(jq -er \
-  '.target.sha | select(type == "string" and length > 0)' \
-  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
-RECEIPT_TARGET_BASE=$(jq -er \
-  '.target.base | select(type == "string" and length > 0)' \
-  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
-RECEIPT_TARGET_KIND=$(jq -er \
-  '.target.kind | select(type == "string" and length > 0)' \
-  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
-RECEIPT_APPLICABILITY_MODE=$(jq -er \
-  '.applicability_mode | select(type == "string" and length > 0)' \
-  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
-RECEIPT_EXECUTION_ENGINE=$(jq -er \
-  '.execution_engine | select(. == "jj-run")' \
-  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
-RECEIPT_COMMAND_RESULTS_JSON=$(jq -ecS \
-  '.workflow_command_results | select(type == "array")' \
-  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
-EXPECTED_COMMAND_RESULTS_JSON=$(jq -ecS \
-  'select(type == "array")' \
-  <<<"$CI_PARITY_EXPECTED_WORKFLOW_COMMAND_RESULTS_JSON") || exit 42
-test "$RECEIPT_TARGET_SHA" = "$TARGET_SHA" || exit 42
-test "$RECEIPT_TARGET_BASE" = "$TARGET_BASE" || exit 42
-test "$RECEIPT_TARGET_KIND" = "$TARGET_KIND" || exit 42
-test "$RECEIPT_APPLICABILITY_MODE" = conservative_pull_request || exit 42
-test "$RECEIPT_EXECUTION_ENGINE" = jj-run || exit 42
-test "$RECEIPT_COMMAND_RESULTS_JSON" = "$EXPECTED_COMMAND_RESULTS_JSON" || exit 42
-
-RECEIPT_OVERALL=$(jq -er '.overall | select(type == "string")' \
-  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
-CANONICAL_EXPECTED_SECRET_NAMES_JSON=$(jq -ec \
-  'select(type == "array" and . == (sort | unique))' \
-  <<<"$CI_PARITY_EXPECTED_MISSING_SECRET_NAMES_JSON") || exit 42
-CANONICAL_RECEIPT_SECRET_NAMES_JSON=$(jq -ec \
-  '.missing_secret_approval.names
-   | select(type == "array" and . == (sort | unique))' \
-  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
-test "$CANONICAL_RECEIPT_SECRET_NAMES_JSON" = \
-  "$CANONICAL_EXPECTED_SECRET_NAMES_JSON" || exit 42
-case "$RECEIPT_OVERALL" in
-  pass)
-    test "$CANONICAL_EXPECTED_SECRET_NAMES_JSON" = '[]' || exit 42
-    jq -e 'all(.workflow_command_results[];
-      (.status | type) == "number" and .status == 0)' \
-      <<<"$CI_PARITY_RECEIPT_JSON" >/dev/null || exit 42
-    jq -e '.missing_secret_approval == {
-      "approved": false, "names": [], "sha": null
-    }' <<<"$CI_PARITY_RECEIPT_JSON" >/dev/null || exit 42
-    ;;
-  approved_without_local_run)
-    EXPECTED_SECRET_NAMES_JSON=$(jq -ec \
-      'select(type == "array" and length > 0)
-       | select(all(.[]; type == "string" and length > 0))
-       | select(. == (sort | unique))' \
-      <<<"$CI_PARITY_EXPECTED_MISSING_SECRET_NAMES_JSON") || exit 42
-    RECEIPT_SECRET_NAMES_JSON=$(jq -ec \
-      '.missing_secret_approval.names
-       | select(type == "array" and length > 0)
-       | select(all(.[]; type == "string" and length > 0))
-       | select(. == (sort | unique))' \
-      <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
-    test "$(jq -er '.missing_secret_approval.approved' \
-      <<<"$CI_PARITY_RECEIPT_JSON")" = true || exit 42
-    test "$(jq -er '.missing_secret_approval.sha' \
-      <<<"$CI_PARITY_RECEIPT_JSON")" = "$TARGET_SHA" || exit 42
-    test "$RECEIPT_SECRET_NAMES_JSON" = "$EXPECTED_SECRET_NAMES_JSON" || exit 42
-    jq -e 'all(.workflow_command_results[];
-      .status == "not_run_missing_secret")' \
-      <<<"$CI_PARITY_RECEIPT_JSON" >/dev/null || exit 42
-    ;;
-  *)
-    exit 42
-    ;;
-esac
-printf 'CI_PARITY_RECEIPT_GATE=accepted\n'
+source "${CODING_COMMIT_SKILL_DIR}/../../scripts/validate-ci-parity-receipt.sh"
 ```
 
 On the exception path, its `sha` equals the exact `TARGET_SHA` and its `names`
@@ -284,17 +155,7 @@ bookmark sync, not PR publication; do not invoke a publication action.
 Choose one push from `TARGET_ROUTE`; an unknown route stops without publishing:
 
 ```bash
-case "$TARGET_ROUTE" in
-  remote-only|synchronized)
-    jj git push --bookmark <target>
-    ;;
-  local-only|new-target)
-    jj git push --bookmark <target> --allow-new
-    ;;
-  *)
-    exit 3
-    ;;
-esac
+source "${CODING_COMMIT_SKILL_DIR}/scripts/push-target-bookmark.sh" <target>
 ```
 
 Run exactly one matching push. Do not derive or generate a numbered `pr` bookmark.

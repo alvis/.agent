@@ -16,6 +16,13 @@ SIZE_THRESHOLDS = WRITE_PR / "assets" / "size-thresholds.json"
 CLASSIFIER = WRITE_PR / "scripts" / "classify-pr-size.py"
 MESSAGE_SCANNER = WRITE_PR / "scripts" / "scan-pr-message.py"
 LABEL_LISTER = WRITE_PR / "scripts" / "list-repository-labels.sh"
+REMOTE_RESOLVER = WRITE_PR / "scripts" / "resolve-push-remote.sh"
+VERIFICATION_TARGET_SELECTOR = WRITE_PR / "scripts" / "select-verification-target.sh"
+WORKFLOW_SELECTOR = WRITE_PR / "scripts" / "select-workflow-applicability.sh"
+SECRET_GATE = WRITE_PR / "scripts" / "gate-missing-secrets.sh"
+STACK_LISTER = WRITE_PR / "scripts" / "list-github-stacks.sh"
+PR_UPDATER = WRITE_PR / "scripts" / "update-pr.sh"
+MERGE_VCS_SELECTOR = WRITE_PR / "scripts" / "select-merge-vcs.sh"
 COMMIT_SKILL = PLUGIN / "skills" / "commit" / "SKILL.md"
 COMMIT_DIRECTIONS = (
     PLUGIN / "skills" / "commit" / "references" / "conventional-commits.md"
@@ -26,6 +33,11 @@ PARTIAL_TO_BRANCH = (
 CORRECT_MERGED = (
     PLUGIN / "skills" / "commit" / "references" / "workflow-correct-merged.md"
 )
+COMMIT_SCRIPTS = PLUGIN / "skills" / "commit" / "scripts"
+TARGET_ROUTE_CLASSIFIER = COMMIT_SCRIPTS / "classify-target-route.sh"
+TARGET_BOOKMARK_MOVER = COMMIT_SCRIPTS / "move-target-bookmark.sh"
+TARGET_BOOKMARK_PUSHER = COMMIT_SCRIPTS / "push-target-bookmark.sh"
+RECEIPT_GATE = PLUGIN / "scripts" / "validate-ci-parity-receipt.sh"
 CREATE_UPDATE = WRITE_PR / "references" / "create-update.md"
 VERIFY_CI_PARITY = WRITE_PR / "references" / "verify-ci-parity.md"
 STACKED_PRS = WRITE_PR / "references" / "stacked-prs.md"
@@ -52,8 +64,27 @@ GIT_RULE_FILES = {
 def _fenced_block_containing(markdown: str, token: str) -> str:
     blocks = re.findall(r"```(?:bash|text)\n(.*?)```", markdown, re.DOTALL)
     matches = [block for block in blocks if token in block]
-    assert len(matches) == 1
-    return matches[0]
+    if matches:
+        assert len(matches) == 1
+        return matches[0]
+    script = {
+        "SELECTED_STACK_JSON": VERIFICATION_TARGET_SELECTOR,
+        "CI_PARITY_WORKFLOW_DECISION": WORKFLOW_SELECTOR,
+        "CI_PARITY_SECRET_GATE": SECRET_GATE,
+        "CI_PARITY_RECEIPT_GATE": RECEIPT_GATE,
+        'case "$REMOTE_TARGET_SHA"': TARGET_ROUTE_CLASSIFIER,
+        "jj bookmark create <target>": TARGET_BOOKMARK_MOVER,
+        "jj git push --bookmark <target>": TARGET_BOOKMARK_PUSHER,
+    }.get(token)
+    assert script is not None
+    content = script.read_text()
+    if script == TARGET_BOOKMARK_MOVER:
+        return content.replace("TARGET=$1", "TARGET=<target>").replace(
+            "NEW_CHANGE_ID=$2", "NEW_CHANGE_ID=<new-change-id>"
+        )
+    if script == TARGET_BOOKMARK_PUSHER:
+        return content.replace("TARGET=$1", "TARGET=<target>")
+    return content
 
 
 def _run_shell_contract(block: str, environment: dict[str, str]) -> dict[str, str]:
@@ -94,11 +125,18 @@ def _assert_target_gate_precedes_push(workflow: str) -> None:
         index
         for index, line in enumerate(lines)
         if line.startswith("jj git push --bookmark")
+        or "push-target-bookmark.sh" in line
     ]
 
     assert len(gates) == 1
     assert pushes
     gate = gates[0]
+    if not target_definitions["TARGET_BASE"]:
+        target_definitions["TARGET_BASE"] = [
+            index
+            for index, line in enumerate(lines)
+            if "classify-target-route.sh" in line
+        ]
     assert all(positions and max(positions) < gate for positions in target_definitions.values())
     assert gate < min(pushes)
 
@@ -557,8 +595,6 @@ def test_pr_create_qualifies_head_with_selected_push_remote_owner(
     tmp_path: Path, push_repository: str, expected_head: str
 ) -> None:
     workflow = CREATE_UPDATE.read_text()
-    binding = workflow.split("#### Bind the push remote", 1)[1]
-    binding = binding.split("```bash\n", 1)[1].split("\n```", 1)[0]
     creation = workflow.split("When the head has no open PR", 1)[1]
     creation = creation.split("```bash\n", 1)[1].split("\n```", 1)[0]
     fake_bin = tmp_path / "bin"
@@ -610,7 +646,8 @@ def test_pr_create_qualifies_head_with_selected_push_remote_owner(
                 'BODY="body"\n'
                 "PR_BASE=main\n"
                 "BOOKMARK=fix/labels\n"
-                f"{binding}\n"
+                f'CODING_PR_SKILL_DIR="{WRITE_PR}"\n'
+                'source "$CODING_PR_SKILL_DIR/scripts/resolve-push-remote.sh"\n'
                 f"{creation}"
             ),
         ],
@@ -620,6 +657,23 @@ def test_pr_create_qualifies_head_with_selected_push_remote_owner(
 
     arguments = argument_log.read_text().splitlines()
     assert arguments[arguments.index("--head") + 1] == expected_head
+
+
+def test_create_update_binds_remote_before_publication_and_reuses_it() -> None:
+    workflow = (WRITE_PR / "references" / "create-update.md").read_text()
+    resolver = REMOTE_RESOLVER.read_text()
+    normalized = " ".join(workflow.split())
+
+    binding = workflow.index("scripts/resolve-push-remote.sh")
+    first_restack = workflow.index("scripts/restack.sh")
+    assert binding < first_restack
+    assert "REMOTE=${CALLER_REMOTE:-}" in resolver
+    assert 'git remote get-url --push -- "$REMOTE"' in resolver
+    assert 'git remote get-url --push -- "$CANDIDATE"' in resolver
+    assert "sole remote whose push URL resolves through GitHub" in normalized
+    assert "Record `REMOTE`" in workflow
+    assert 'jj git fetch --remote "$REMOTE"' in workflow
+    assert 'git fetch -- "$REMOTE"' in workflow
 
 
 def test_stack_publication_and_inspection_have_no_implicit_origin() -> None:
@@ -1329,7 +1383,9 @@ def test_divergent_local_and_remote_partial_target_fails_before_mutation(
     assert rejected.returncode != 0
     assert rejected.stdout == ""
     assert "local and remote target bookmarks diverge" in rejected.stderr
-    assert partial.index(classification) < partial.index("### 1. Surface the hunk plan")
+    assert partial.index("scripts/classify-target-route.sh") < partial.index(
+        "### 1. Surface the hunk plan"
+    )
 
 
 @pytest.mark.parametrize("target_kind", ("remote", "local-only"))
@@ -1447,7 +1503,9 @@ def test_existing_partial_target_rejects_divergent_head_before_mutation(
         "local-only": "must equal local target",
     }[target_kind]
     assert expected_error in rejected.stderr
-    assert partial.index(selector) < partial.index("### 1. Surface the hunk plan")
+    assert partial.index("scripts/classify-target-route.sh") < partial.index(
+        "### 1. Surface the hunk plan"
+    )
 
 
 def test_changed_commit_references_are_portable() -> None:
@@ -1635,6 +1693,7 @@ def test_pr_label_attachment_preserves_exact_names(
     gh.chmod(0o755)
     environment = os.environ | {
         "PATH": f"{fake_bin}:{os.environ['PATH']}",
+        "CODING_PR_SKILL_DIR": str(WRITE_PR),
         "GH_COMMAND_LOG": str(command_log),
         "GH_API_LOG": str(api_log),
         "GH_INPUT_LOG": str(input_log),
@@ -1730,8 +1789,6 @@ def test_invalid_selected_labels_stop_before_publication_mutation(
 
     assert completed.returncode != 0
     assert not mutation_log.exists()
-
-
 def test_generated_files_section_is_conditional_and_emoji_named() -> None:
     workflow = (WRITE_PR / "references" / "create-update.md").read_text()
     template = MESSAGE_TEMPLATE.read_text()
@@ -2061,6 +2118,7 @@ def test_generic_stack_contract_delegates_github_listing_without_restatement() -
 
 def test_github_stack_listing_uses_only_the_paginated_rest_inventory() -> None:
     github_stacks = (WRITE_PR / "references" / "github-stacks.md").read_text()
+    lister = STACK_LISTER.read_text()
     list_section = github_stacks.split("## List or check out", 1)[1].split(
         "## Create, extend, and publish", 1
     )[0]
@@ -2070,15 +2128,15 @@ def test_github_stack_listing_uses_only_the_paginated_rest_inventory() -> None:
     assert forbidden_cli not in github_stacks
     assert "unconditionally inventory" in normalized
     assert "GET /repos/{owner}/{repo}/stacks" in github_stacks
-    assert "gh api --paginate --slurp" in list_section
-    assert '"repos/$REPOSITORY/stacks?per_page=100"' in list_section
+    assert "gh api --paginate --slurp" in lister
+    assert '"repos/$REPOSITORY/stacks?per_page=100"' in lister
     assert "fully merged and closed stacks" in github_stacks
-    assert "number," in list_section
-    assert "url," in list_section
-    assert "base: .base.ref" in list_section
-    assert "open," in list_section
-    assert "pullRequests: [.pull_requests[]" in list_section
-    assert "headSha: .head.sha" in github_stacks
+    assert "number," in lister
+    assert "url," in lister
+    assert "base: .base.ref" in lister
+    assert "open," in lister
+    assert "pullRequests: [.pull_requests[]" in lister
+    assert "headSha: .head.sha" in lister
     assert "Do not run `gh auth status`" in github_stacks
 
 
@@ -2225,10 +2283,7 @@ def test_github_stack_mutation_snippets_guard_every_dependency_boundary() -> Non
 
 def test_github_stack_snippets_stop_before_consuming_failed_commands() -> None:
     github_stacks = (WRITE_PR / "references" / "github-stacks.md").read_text()
-    discovery_command = github_stacks.index("REPOSITORY=$(gh repo view")
-    discovery_start = github_stacks.rfind("```bash", 0, discovery_command)
-    discovery_end = github_stacks.index("```", discovery_command)
-    discovery = github_stacks[discovery_start:discovery_end]
+    discovery = STACK_LISTER.read_text()
     checkout_command = github_stacks.index('gh stack checkout "$STACK_SELECTOR"')
     checkout_start = github_stacks.rfind("```bash", 0, checkout_command)
     checkout_end = github_stacks.index("```", checkout_command)
@@ -2381,29 +2436,31 @@ def test_jj_merge_publishes_only_remaining_affected_bookmarks_once() -> None:
 
 def test_merge_uses_functional_jj_colocation_proof() -> None:
     merge = (WRITE_PR / "references" / "merge.md").read_text()
+    selector = MERGE_VCS_SELECTOR.read_text()
 
-    assert "jj root" not in merge
-    assert "command -v jj" in merge
-    assert "git rev-parse HEAD" in merge
-    assert "jj log -r @- --no-graph -T 'commit_id'" in merge
-    assert '[ "$GIT_HEAD" = "$JJ_HEAD" ]' in merge
+    assert "jj root" not in merge + selector
+    assert "command -v jj" in selector
+    assert "git rev-parse HEAD" in selector
+    assert "jj log -r @- --no-graph -T 'commit_id'" in selector
+    assert '[ "$GIT_HEAD" = "$JJ_HEAD" ]' in selector
     assert "fully supported Git route" in merge
-    assert "git status --short" in merge
-    assert "git worktree list" in merge
+    assert "git status --short" in selector
+    assert "git worktree list" in selector
 
 
 def test_merge_binds_remote_and_destination_before_inspection() -> None:
     merge = (WRITE_PR / "references" / "merge.md").read_text()
+    selector = MERGE_VCS_SELECTOR.read_text()
 
     remote_gate = merge.index("create-update.md#bind-the-push-remote")
     destination_binding = merge.index("DESTINATION=${CALLER_DESTINATION:-}")
-    first_inspection = merge.index('jj log -r "$DESTINATION@$REMOTE..@"')
+    first_inspection = merge.index("scripts/select-merge-vcs.sh")
     assert remote_gate < first_inspection
     assert destination_binding < first_inspection
     assert "sole owner of remote" in merge
     assert "GITHUB_REMOTES" not in merge
     assert "git remote get-url" not in merge
-    assert 'jj git fetch --remote "$REMOTE"' in merge
+    assert 'jj git fetch --remote "$REMOTE"' in selector
     assert 'git fetch -- "$REMOTE"' in merge
     for hard_coded in (
         "main@origin",
@@ -2427,9 +2484,10 @@ def test_review_resolves_canonical_coordinates_before_api_calls() -> None:
     workflow = (WRITE_PR / "references" / "review-workflow.md").read_text()
     publishing = (WRITE_PR / "references" / "review-publishing.md").read_text()
     loop = (WRITE_PR / "references" / "review-loop.md").read_text()
+    loop_fetcher = (WRITE_PR / "scripts" / "fetch-review-loop-discussion.sh").read_text()
 
     assert "scripts/resolve-pr.sh" in workflow
-    assert "scripts/resolve-pr.sh" in loop
+    assert "scripts/resolve-pr.sh" in loop_fetcher
     assert "baseRefName,baseRefOid" in workflow
     assert "$PR_NUMBER" in workflow
     assert "$PR_NUMBER" in publishing
@@ -2439,9 +2497,11 @@ def test_review_resolves_canonical_coordinates_before_api_calls() -> None:
         assert 'gh api "repos/' not in content
         assert "gh api graphql -F" not in content
         assert "gh api --method" not in content
-    assert '--hostname "$HOST"' in workflow
+    assert '--hostname "$HOST"' in (
+        WRITE_PR / "scripts" / "fetch-review-discussion.sh"
+    ).read_text()
     assert '--hostname "$HOST"' in publishing
-    assert '--hostname "$HOST"' in loop
+    assert '--hostname "$HOST"' in loop_fetcher
 
 
 def test_resolver_accepts_canonical_enterprise_url(tmp_path: Path) -> None:

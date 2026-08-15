@@ -146,35 +146,7 @@ push URL resolves through GitHub. Every Git remote lookup uses `--` before the
 name so a remote beginning with `-` remains data, not an option:
 
 ```bash
-REMOTE=${CALLER_REMOTE:-}
-CURRENT_BRANCH=$(git branch --show-current) || exit $?
-if [ -z "$REMOTE" ] && [ -n "$CURRENT_BRANCH" ]; then
-  REMOTE=$(git config --get -- "branch.$CURRENT_BRANCH.pushRemote") || REMOTE=
-fi
-if [ -z "$REMOTE" ]; then
-  REMOTE=$(git config --get -- remote.pushDefault) || REMOTE=
-fi
-if [ -z "$REMOTE" ]; then
-  GITHUB_REMOTES=()
-  while IFS= read -r CANDIDATE; do
-    PUSH_URL=$(git remote get-url --push -- "$CANDIDATE") || exit $?
-    if gh repo view "$PUSH_URL" --json nameWithOwner >/dev/null 2>&1; then
-      GITHUB_REMOTES[${#GITHUB_REMOTES[@]}]=$CANDIDATE
-    fi
-  done < <(git remote || exit $?)
-  [ "${#GITHUB_REMOTES[@]}" -eq 1 ] || {
-    printf 'remote resolution requires one GitHub push remote; found %s\n' \
-      "${#GITHUB_REMOTES[@]}" >&2
-    exit 1
-  }
-  REMOTE=${GITHUB_REMOTES[0]}
-fi
-PUSH_URL=$(git remote get-url --push -- "$REMOTE") || exit $?
-PUSH_REPOSITORY=$(
-  gh repo view "$PUSH_URL" --json nameWithOwner --jq .nameWithOwner
-) || exit $?
-PUSH_OWNER=${PUSH_REPOSITORY%%/*}
-printf 'REMOTE=%s\nPUSH_OWNER=%s\n' "$REMOTE" "$PUSH_OWNER"
+source "${CODING_PR_SKILL_DIR}/scripts/resolve-push-remote.sh"
 ```
 
 Record `REMOTE` and `PUSH_OWNER` in the publication plan. On zero or ambiguous
@@ -210,22 +182,7 @@ last selected head is the target revision and the first selected head's base is
 the target base revision. The tip's immediate PR base is not the selected canary base.
 
 ```bash
-SELECTED_HEAD_COUNT=$(jq -er 'length | select(. > 0)' <<<"$SELECTED_STACK_JSON")
-TARGET_SHA=$(jq -er '.[-1].head | select(type == "string" and length > 0)' \
-  <<<"$SELECTED_STACK_JSON")
-TARGET_BASE=$(jq -er '.[0].base | select(type == "string" and length > 0)' \
-  <<<"$SELECTED_STACK_JSON")
-case "$SELECTED_HEAD_COUNT" in
-  1)
-    TARGET_KIND=standalone
-    ;;
-  *)
-    test "$SELECTED_HEAD_COUNT" -gt 1 || exit 2
-    TARGET_KIND=stack-tip
-    ;;
-esac
-printf 'TARGET_KIND=%s\nTARGET_SHA=%s\nTARGET_BASE=%s\n' \
-  "$TARGET_KIND" "$TARGET_SHA" "$TARGET_BASE"
+source "${CODING_PR_SKILL_DIR}/scripts/select-verification-target.sh"
 ```
 
 With `--no-verify`, record `local_verification: skipped_by_user` with the exact
@@ -265,81 +222,7 @@ the same gate for the complete ordered receipt set before every entry or
 re-entry to publication:
 
 ```bash
-RECEIPT_TARGET_SHA=$(jq -er \
-  '.target.sha | select(type == "string" and length > 0)' \
-  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
-RECEIPT_TARGET_BASE=$(jq -er \
-  '.target.base | select(type == "string" and length > 0)' \
-  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
-RECEIPT_TARGET_KIND=$(jq -er \
-  '.target.kind | select(type == "string" and length > 0)' \
-  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
-RECEIPT_APPLICABILITY_MODE=$(jq -er \
-  '.applicability_mode | select(type == "string" and length > 0)' \
-  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
-RECEIPT_EXECUTION_ENGINE=$(jq -er \
-  '.execution_engine | select(. == "jj-run")' \
-  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
-RECEIPT_COMMAND_RESULTS_JSON=$(jq -ecS \
-  '.workflow_command_results | select(type == "array")' \
-  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
-EXPECTED_COMMAND_RESULTS_JSON=$(jq -ecS \
-  'select(type == "array")' \
-  <<<"$CI_PARITY_EXPECTED_WORKFLOW_COMMAND_RESULTS_JSON") || exit 42
-test "$RECEIPT_TARGET_SHA" = "$TARGET_SHA" || exit 42
-test "$RECEIPT_TARGET_BASE" = "$TARGET_BASE" || exit 42
-test "$RECEIPT_TARGET_KIND" = "$TARGET_KIND" || exit 42
-test "$RECEIPT_APPLICABILITY_MODE" = conservative_pull_request || exit 42
-test "$RECEIPT_EXECUTION_ENGINE" = jj-run || exit 42
-test "$RECEIPT_COMMAND_RESULTS_JSON" = "$EXPECTED_COMMAND_RESULTS_JSON" || exit 42
-
-RECEIPT_OVERALL=$(jq -er '.overall | select(type == "string")' \
-  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
-CANONICAL_EXPECTED_SECRET_NAMES_JSON=$(jq -ec \
-  'select(type == "array" and . == (sort | unique))' \
-  <<<"$CI_PARITY_EXPECTED_MISSING_SECRET_NAMES_JSON") || exit 42
-CANONICAL_RECEIPT_SECRET_NAMES_JSON=$(jq -ec \
-  '.missing_secret_approval.names
-   | select(type == "array" and . == (sort | unique))' \
-  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
-test "$CANONICAL_RECEIPT_SECRET_NAMES_JSON" = \
-  "$CANONICAL_EXPECTED_SECRET_NAMES_JSON" || exit 42
-case "$RECEIPT_OVERALL" in
-  pass)
-    test "$CANONICAL_EXPECTED_SECRET_NAMES_JSON" = '[]' || exit 42
-    jq -e 'all(.workflow_command_results[];
-      (.status | type) == "number" and .status == 0)' \
-      <<<"$CI_PARITY_RECEIPT_JSON" >/dev/null || exit 42
-    jq -e '.missing_secret_approval == {
-      "approved": false, "names": [], "sha": null
-    }' <<<"$CI_PARITY_RECEIPT_JSON" >/dev/null || exit 42
-    ;;
-  approved_without_local_run)
-    EXPECTED_SECRET_NAMES_JSON=$(jq -ec \
-      'select(type == "array" and length > 0)
-       | select(all(.[]; type == "string" and length > 0))
-       | select(. == (sort | unique))' \
-      <<<"$CI_PARITY_EXPECTED_MISSING_SECRET_NAMES_JSON") || exit 42
-    RECEIPT_SECRET_NAMES_JSON=$(jq -ec \
-      '.missing_secret_approval.names
-       | select(type == "array" and length > 0)
-       | select(all(.[]; type == "string" and length > 0))
-       | select(. == (sort | unique))' \
-      <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
-    test "$(jq -er '.missing_secret_approval.approved' \
-      <<<"$CI_PARITY_RECEIPT_JSON")" = true || exit 42
-    test "$(jq -er '.missing_secret_approval.sha' \
-      <<<"$CI_PARITY_RECEIPT_JSON")" = "$TARGET_SHA" || exit 42
-    test "$RECEIPT_SECRET_NAMES_JSON" = "$EXPECTED_SECRET_NAMES_JSON" || exit 42
-    jq -e 'all(.workflow_command_results[];
-      .status == "not_run_missing_secret")' \
-      <<<"$CI_PARITY_RECEIPT_JSON" >/dev/null || exit 42
-    ;;
-  *)
-    exit 42
-    ;;
-esac
-printf 'CI_PARITY_RECEIPT_GATE=accepted\n'
+source "${CODING_PR_SKILL_DIR}/../../scripts/validate-ci-parity-receipt.sh"
 ```
 
 A rewrite, base-map change, bookmark/PR identity change, or command/result-set
@@ -486,8 +369,7 @@ PR=$(gh pr create --repo "$HOST/$REPOSITORY" --draft --title "$TITLE" --body-fil
 When the head has one open PR, edit it and retain draft state:
 
 ```bash
-gh pr edit "$PR" --title "$TITLE" --body-file - --base "$PR_BASE" <<<"$BODY"
-gh pr ready "$PR" --undo # skip only when already draft
+source "${CODING_PR_SKILL_DIR}/scripts/update-pr.sh"
 ```
 
 #### Attach selected repository labels
