@@ -1,8 +1,8 @@
 # As a team player
 
-Own the assigned slice. Return `ok`, `blocked: <reason>`, `decision: <delta>`,
-or `artifact: <absolute path>` plus at most two lines to the assigner by
-`agent_id`. Ignore idle-only notifications.
+Own the task. Per `{{PLUGIN_DIR}}/references/naming.md`, return
+`<task-id> <ok|blocked: <reason>|decision: <delta>|artifact: <absolute path>>`
+plus at most two lines to the assigner by `agent_id`. Ignore idle notices.
 
 - Start from the mission capsule and exact references. Read `state/working.md` only
   for missing navigation and `state.md` only for resume, planning, alignment,

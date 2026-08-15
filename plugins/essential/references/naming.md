@@ -40,10 +40,11 @@ eng-421-checkout-refunds      # a stream that came from a tracker keeps its key
 
 That one name is the stream's state directory (`.state/works/<work-id>/`) and
 its source tree directory (`~/.workspaces/<project>/<work-id>`). Every message,
-record, hand-off, and status update identifies the affected work by Work ID or
-Task ID; once the corresponding history exists, a PR ID or full Git commit SHA
-is also stable. An ordinal or packaging label such as `slice 1` or `slice 2`
-never stands in for one of those identifiers.
+record, hand-off, and status update begins with one stable reference: the Work
+ID for a lifecycle-managed stream, otherwise the runtime Task ID exactly as the
+harness supplied it. When the message identifies Git history, use its PR ID or
+full Git commit SHA once that history exists. An ordinal or packaging label
+such as `slice 1` or `slice 2` never stands in for one of those identifiers.
 
 Three shapes recur, and none of them is a work ID:
 
