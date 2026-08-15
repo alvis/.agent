@@ -82,10 +82,16 @@ local state into the plugin repository.
 5. Rerun affected local checks. On zero exits, the parent resumes the
    [core publication phase](create-update.md#3-publish-bottom-up): push the
    repaired bookmark, synchronize/re-push all restacked descendants, repair PR
-   bases, and verify the stack. Unless the original invocation supplied
-   `--no-review`, run [review-loop.md](review-loop.md) against the new heads
-   before polling CI again; any review-driven fix republishes and starts another
-   fresh review pass. A nonzero result gets one new evidence-backed fixer cycle;
+   bases, and verify the stack through a nested
+   `coding:pr update <bottom-affected-pr> --publish-only`. The owning main agent retains review
+   iteration under
+   [create/update step 4](create-update.md#4-converge-review-comments-unless-skipped);
+   this repair never resets it. Unless the original invocation supplied
+   `--no-review` or the maximum is exhausted, run
+   [review-loop.md](review-loop.md) against the new heads before polling CI
+   again; any review-driven fix republishes before replies. At exhaustion,
+   follow create/update's `review_exhausted` path. A nonzero result gets one new
+   evidence-backed fixer cycle;
    unchanged evidence requiring user/external state is a blocker, never
    permission to weaken checks.
 

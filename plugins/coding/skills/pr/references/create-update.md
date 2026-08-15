@@ -113,6 +113,7 @@ remains.
 | `--branch-prefix <name>` | Override the derived stack bookmark prefix. A prefix other than a resolved stream's `<type>/<work-id>` publishes a branch that will not resolve back to its work state — expected for a branch predating that convention, deliberate otherwise. |
 | `--remote <name>` | Select the named push remote explicitly; remote names are treated as values even when they begin with `-`. |
 | `--no-review` | Skip the post-push `coding:pr review` convergence loop. It never skips local checks, publication, or hosted CI. |
+| `--max-iteration <count>` | Set the maximum number of attempted exhaustive whole-stack reviews. Reject before mutation unless `<count>` is an ASCII decimal integer greater than zero; the default is `3`. |
 | `--publish-only` | Stop after the verified core publication phase so an existing review or repair caller can continue its convergence loop. |
 | `--dry-run` | Print the test, publication, and monitoring plan without agents or local/remote mutations. |
 
@@ -552,12 +553,19 @@ hosted-CI convergence; the invoking review or red-CI workflow owns the next step
 
 ### 4. Converge review comments unless skipped
 
+For a top-level create or update, the owning main agent retains
+`MAX_ITERATION` from `--max-iteration` or its default and starts
+`REVIEW_ITERATION` at zero in its working context. It keeps both values across
+nested publish-only and CI-repair calls without putting them on another CLI;
+only [review-loop.md](review-loop.md) increments the current iteration.
+
 After every selected head is pushed or updated and its remote OID is verified,
 load and follow [review-loop.md](review-loop.md), unless `--no-review` is
 present. A review-driven fix republishes the affected stack, resets the expected
 head OIDs, and runs the loop again with a fresh subagent before CI monitoring.
 If the loop returns `action: repair_ci_then_review`, enter step 5 immediately
-without marking review convergence complete or incrementing its retry count.
+without marking review convergence complete or attempting another review
+against unchanged CI.
 After the poller reports a red repair, the parent accepts the fix, saves it,
 and republishes through the owned workflow; if CI instead becomes green, no
 repair is needed. Then return to step 4 and run a fresh review pass before
@@ -571,6 +579,10 @@ complete or retrying the review. After CI is green, report the published drafts
 with that list under `approval_blocked: authorization_required`. A later
 invocation reruns review against every then-current head and base; review alone
 verifies each authorization at the moment it would submit `APPROVE`.
+
+If the loop returns `action: review_exhausted`, record the unresolved findings
+and enter step 5. Converge hosted CI normally; once it is green, report green CI
+and missing substantive approval instead of dispatching another review.
 
 ### 5. Schedule and consume the initial poll
 
@@ -871,9 +883,10 @@ passes its base; text-only callers default to the first parent. Never invoke `gh
   `jj git push` on the jj path,
   `git push --force-with-lease` on the git path; every PR is draft, uses the
   authored title/body, and has the intended stack base.
-- Review convergence passed on each final head with no unresolved P0/P1/P2
-  finding or mandatory chore, including replies and repair heads, or
-  `--no-review` was explicitly recorded.
+- Review convergence produced a substantive `APPROVE` on each final head,
+  including required replies and repair heads;
+  `--no-review` was explicitly recorded; or the configured review maximum was
+  exhausted and green CI plus missing substantive approval is reported.
 - Self-contained black-zone drafts may be reported as published and green while
   carrying `approval_blocked: authorization_required` plus the complete list
   of blocked PR URLs and exact head/base OIDs. This is not review convergence
