@@ -1,5 +1,8 @@
 # Plan change structure BEFORE writing code
 
+Follow `essential:references/directions/plan.md`; this reference adds commit and
+pull-request structure to that shared plan contract.
+
 This reference is consulted at the START of any non-trivial task, before code edits begin. The goal: structure work so that commits and PRs end up independently mergeable, with no forward references, and no "split by directory" anti-patterns. See [SKILL.md](../SKILL.md) for the overall pipeline.
 
 ## First principle: domain coherence

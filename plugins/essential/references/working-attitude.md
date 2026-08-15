@@ -43,27 +43,15 @@ workflow contracts determine who accepts it and when execution may begin.
 
 <report>
 
-### Goal and requirements
+Follow [Making plans](directions/plan.md), then add only these risk-specific
+details:
 
-Restate the intended outcome and the criteria that will show it is complete.
-
-### Blocking questions
-
-Ask only when a wrong answer would throw work away rather than require a local
-adjustment. Recommend a default for each question. If nothing is genuinely
-blocking, write `0 — none`.
-
-### Assumptions and scope
-
-Number each falsifiable assumption. Cover only relevant inputs, failure modes,
-boundaries, state, environment, dependencies, permissions, non-goals, and
-validation limits.
-
-### Plan and validation
-
-Name the artifacts or decisions to create or modify, their key contracts or
-metrics, the order of work, and the evidence that will validate the result. For
-each material choice, name the rejected alternative and why in one clause.
+- Under Boundary, number every falsifiable assumption and cover only relevant
+  failure modes, dependencies, permissions, non-goals, and validation limits.
+- Under Direction, name the evidence that validates each material step and the
+  rejected alternative for each material choice, with its reason in one clause.
+- After Context, list only blocking questions whose wrong answer would throw
+  work away, with a recommended default; write `0 — none` when there are none.
 
 </report>
 
