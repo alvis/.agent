@@ -1,9 +1,9 @@
 ---
-name: install-output-style
+name: install-output-styles
 description: "Install bundled Claude Code output-style Markdown files into ~/.claude/output-styles. Use when asked to install, refresh, or repair a response style shipped with this skill; do not use for editing style content or project-scoped .claude/output-styles files."
 ---
 
-# Install Output Style
+# Install Output Styles
 
 Install the output-style Markdown files bundled with this skill for the current
 user. This skill is for Claude Code and writes user-scoped files under
@@ -37,7 +37,7 @@ actually passed.
 1. Run the installer now, in this turn:
 
    ```bash
-   bash "${CLAUDE_PLUGIN_ROOT}/skills/install-output-style/scripts/install-output-style.sh"
+   bash "${CLAUDE_PLUGIN_ROOT}/skills/install-output-styles/scripts/install-output-styles.sh"
    ```
 
    The installer creates `~/.claude/output-styles/`, copies every bundled
@@ -51,7 +51,7 @@ actually passed.
 
    ```bash
    test -f "$HOME/.claude/output-styles/eli5.md"
-   cmp -s "${CLAUDE_PLUGIN_ROOT}/skills/install-output-style/assets/eli5.md" "$HOME/.claude/output-styles/eli5.md"
+   cmp -s "${CLAUDE_PLUGIN_ROOT}/skills/install-output-styles/assets/eli5.md" "$HOME/.claude/output-styles/eli5.md"
    ```
 
 3. Tell the user how to activate the style: run `/config`, choose `ELI5`
