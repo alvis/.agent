@@ -201,6 +201,11 @@ Higher-level workflows own the revision set, execution order, failure
 attribution, and any explicit skip. Follow their reference instead of choosing
 an ad hoc revset or inferring a skip from another flag.
 
+`coding:pr create|update` requires this runner for its local publication gate:
+it validates the selected tip first, then each PR bookmark bottom-up through the
+tip. It stops at the earliest failing surface so the owning bookmark/PR is fixed
+before publication. Only that action's explicit `--no-verify` skips the gate.
+
 ## Fix a review bug in a stack
 
 When review finds a bug in stacked commits, stacked branches, or stacked PRs,

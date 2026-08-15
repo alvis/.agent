@@ -703,6 +703,89 @@ def test_ci_parity_target_selection_covers_the_selected_surface() -> None:
     }
 
 
+def test_ci_parity_requires_jj_run_with_an_exact_resolved_target(
+    tmp_path: Path,
+) -> None:
+    contract = VERIFY_CI_PARITY.read_text()
+    selector = _fenced_block_containing(contract, "CI_PARITY_EXECUTION_ENGINE")
+    target = "a" * 40
+
+    missing = _run_shell_contract_result(
+        selector,
+        {
+            "PATH": "/bin:/usr/bin",
+            "SOURCE_REPO_ROOT": "/repo",
+            "TARGET_SHA": target,
+        },
+    )
+    assert missing.returncode == 42
+    assert missing.stdout == ""
+
+    jj = tmp_path / "jj"
+    jj.write_text("#!/bin/sh\nprintf '%s' 'not-the-target'\n")
+    jj.chmod(0o755)
+    mismatch = _run_shell_contract_result(
+        selector,
+        {
+            "PATH": f"{tmp_path}:/bin:/usr/bin",
+            "SOURCE_REPO_ROOT": "/repo",
+            "TARGET_SHA": target,
+        },
+    )
+    assert mismatch.returncode == 42
+    assert mismatch.stdout == ""
+
+    jj.write_text(f"#!/bin/sh\nprintf '%s' '{target}'\n")
+    selected = _run_shell_contract(
+        selector,
+        {
+            "PATH": f"{tmp_path}:/bin:/usr/bin",
+            "SOURCE_REPO_ROOT": "/repo",
+            "TARGET_SHA": target,
+        },
+    )
+    assert selected == {"CI_PARITY_EXECUTION_ENGINE": "jj-run"}
+
+
+def test_jj_ci_parity_runner_is_clean_read_only_and_revision_bound() -> None:
+    contract = VERIFY_CI_PARITY.read_text()
+    runner = _fenced_block_containing(contract, "CI_TASK_SCRIPT")
+
+    assert 'jj --repository "$SOURCE_REPO_ROOT" --ignore-working-copy run' in runner
+    assert '--clean --ignore-changes --root -r "$TARGET_SHA"' in runner
+    assert "CI_SHELL_TEMPLATE" in runner
+    assert "'{0}'" in runner
+    assert '"$CI_SHELL" -c "$CI_TASK_SCRIPT"' not in runner
+    assert "--ignore-errors" not in runner
+    assert "JJ_COMMIT_ID" in contract
+    assert "The public verifier remains read-only" in contract
+
+
+def test_jj_ci_parity_runner_preserves_shell_failure_flags() -> None:
+    runner = _fenced_block_containing(
+        VERIFY_CI_PARITY.read_text(), "CI_TASK_SCRIPT"
+    )
+    executable_runner = """jj() {
+  while test "$1" != --; do shift; done
+  shift
+  "$@"
+}
+""" + runner
+
+    failed = _run_shell_contract_result(
+        executable_runner,
+        {
+            "CI_SHELL_TEMPLATE": "bash --noprofile --norc -eo pipefail {0}",
+            "CI_TASK_SCRIPT": "false\nprintf 'masked-success\\n'",
+            "SOURCE_REPO_ROOT": "/repo",
+            "TARGET_SHA": "target-sha",
+        },
+    )
+
+    assert failed.returncode != 0
+    assert "masked-success" not in failed.stdout
+
+
 def test_ci_parity_workflow_selection_ignores_unevaluated_filters() -> None:
     contract = VERIFY_CI_PARITY.read_text()
     selector = _fenced_block_containing(contract, "CI_PARITY_WORKFLOW_DECISION")
@@ -831,6 +914,7 @@ def test_ci_parity_receipt_consumers_accept_only_the_exact_local_run() -> None:
     ]
     receipt = {
         "applicability_mode": "conservative_pull_request",
+        "execution_engine": "jj-run",
         "missing_secret_approval": {"approved": False, "names": [], "sha": None},
         "overall": "pass",
         "target": {
@@ -860,6 +944,50 @@ def test_ci_parity_receipt_consumers_accept_only_the_exact_local_run() -> None:
         }
 
 
+@pytest.mark.parametrize("execution_engine", [None, "git-worktree"])
+def test_ci_parity_receipt_consumers_reject_other_execution_engines(
+    execution_engine: str | None,
+) -> None:
+    command_results = [
+        {
+            "command": "uvx pytest",
+            "kind": "test",
+            "ref": "target-sha",
+            "source": ".github/workflows/ci.yml:test",
+            "status": 0,
+        }
+    ]
+    receipt = {
+        "applicability_mode": "conservative_pull_request",
+        "missing_secret_approval": {"approved": False, "names": [], "sha": None},
+        "overall": "pass",
+        "target": {
+            "base": "target-base",
+            "kind": "standalone",
+            "sha": "target-sha",
+        },
+        "workflow_command_results": command_results,
+    }
+    if execution_engine is not None:
+        receipt["execution_engine"] = execution_engine
+    environment = {
+        "CI_PARITY_EXPECTED_MISSING_SECRET_NAMES_JSON": "[]",
+        "CI_PARITY_EXPECTED_WORKFLOW_COMMAND_RESULTS_JSON": json.dumps(
+            command_results
+        ),
+        "CI_PARITY_RECEIPT_JSON": json.dumps(receipt),
+        "TARGET_BASE": "target-base",
+        "TARGET_KIND": "standalone",
+        "TARGET_SHA": "target-sha",
+    }
+
+    for consumer in (CREATE_UPDATE, PARTIAL_TO_BRANCH, CORRECT_MERGED):
+        gate = _fenced_block_containing(
+            consumer.read_text(), "CI_PARITY_RECEIPT_GATE"
+        )
+        assert _run_shell_contract_result(gate, environment).returncode == 42
+
+
 def test_ci_parity_receipt_consumers_reject_a_changed_base() -> None:
     command_results = [
         {
@@ -872,6 +1000,7 @@ def test_ci_parity_receipt_consumers_reject_a_changed_base() -> None:
     ]
     receipt = {
         "applicability_mode": "conservative_pull_request",
+        "execution_engine": "jj-run",
         "missing_secret_approval": {"approved": False, "names": [], "sha": None},
         "overall": "pass",
         "target": {
@@ -913,6 +1042,7 @@ def test_ci_parity_receipt_consumers_reject_missing_secret_name_mismatch() -> No
     ]
     receipt = {
         "applicability_mode": "conservative_pull_request",
+        "execution_engine": "jj-run",
         "missing_secret_approval": {
             "approved": True,
             "names": ["API_TOKEN"],
@@ -960,6 +1090,7 @@ def test_ci_parity_pass_receipt_rejects_nonempty_expected_secret_names() -> None
     ]
     receipt = {
         "applicability_mode": "conservative_pull_request",
+        "execution_engine": "jj-run",
         "missing_secret_approval": {"approved": False, "names": [], "sha": None},
         "overall": "pass",
         "target": {
