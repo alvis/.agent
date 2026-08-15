@@ -7,7 +7,7 @@ Delegate on signal, not reflex. The Project Manager owns delivery across teams; 
 Classify the task and pick the substrate once, up front, then name the success criteria before launch — a run with no stop condition is not ready:
 
 - **Inline** — don't dispatch when dispatching would save no context, add no independence, and only cost latency or a lossy hand-off. Work you can finish in a handful of tool calls is inline; prefer one subagent over several.
-- **Parallel slices** — independent, dispatch-and-score work whose siblings needn't talk → parallel `Agent` calls in a SINGLE message, one slice each.
+- **Parallel tasks** — independent, dispatch-and-score work whose siblings needn't talk → parallel `Agent` calls in a SINGLE message, one stable reference from [naming.md](naming.md) each.
 - **Agent Team** — ongoing, high-signal multi-role coordination where warm context avoids repeated setup → persistent teammates around a warm core. A need to relay reasoning or evidence is not sufficient; put durable detail in artifacts.
 - **Dynamic Workflow** — high-volume structured iteration toward a measurable target: fan-out plus adversarial verify plus a bounded, resumable correction loop, e.g. linting 100 projects with a fix → lint → re-fix-or-pass loop. A subagent never launches `Workflow` itself — it composes the input and asks the main agent to run it.
 
@@ -32,7 +32,7 @@ Explore the approach freely; ship narrowly. The requested scope is the deliverab
 
 - **4,096 characters is a hard ceiling.** Before every `Agent`, `Task`, or `SendMessage` call, inspect the body. If it would exceed 4,096 characters, externalize the detail before sending. A lead or reviewer that receives an overlong inline body returns `blocked: externalize message` rather than adjudicating it.
 - **Reference durable artifacts.** Put long evidence, decisions, and state in a task-owned file at a known-readable absolute path. Do not persist secrets or transient credentials. Send the path plus at most two lines describing what it contains and why it matters; the recipient chooses whether to read it.
-- **Use terse deltas after dispatch.** Prefer `ok`, `blocked: <one line>` with optional `need: <one line>`, `decision: <one line>`, `artifact: <absolute path>` plus one explanatory line, `hold: <one line>`, or `cancel: <one line>`. Do not restate rails, SHAs, paths, or evidence already delivered.
+- **Use terse deltas after dispatch.** Prefix every delta with the stable reference required by [naming.md](naming.md); an ordinal label such as `slice 1` is never a reference. Then prefer `ok`, `blocked: <one line>` with optional `need: <one line>`, `decision: <one line>`, `artifact: <absolute path>` plus one explanatory line, `hold: <one line>`, or `cancel: <one line>`. Apart from that reference, do not restate rails, paths, or evidence already delivered.
 - **Do not narrate lifecycle events.** Record idle, completion, and availability changes silently unless they alter the task. An idle-only notice gets no prose reply.
 - **Minimize round trips.** Batch related decisions, keep at most one unresolved request on a task edge, and send again only for changed state, a blocker, a decision, or a requested result. Reconcile crossed messages once; ignore stale updates.
 
@@ -51,7 +51,7 @@ The main session owns the authoritative uncertainty ledger and user decisions. A
 Only the main agent assigns a configurable teammate `name` or label. Use `<short-name>-<role>-<task>` in lowercase kebab-case:
 
 - Select the short name from the three preferences at the end of the role's description: `tech-lead` with preferred name Raj becomes `raj-tech-lead-fix-auth`.
-- Keep the role equal to the role-only definition name and use an ultra-short verb-object task. Give parallel slices distinct task qualifiers (`…-audit-auth-api`, `…-audit-auth-ui`).
+- Keep the role equal to the role-only definition name and use an ultra-short verb-object task. Give parallel tasks distinct semantic qualifiers (`…-audit-auth-api`, `…-audit-auth-ui`), while messages retain their stable reference from [naming.md](naming.md).
 - If the chosen short name is already used by a living teammate, use another preferred name; use a numeric suffix only after all three suggestions would still collide.
 - Nested agents omit configured names entirely. A permitted one-off nested spawn supplies only its `subagent_type`, task, and context.
 - Configured names are human-readable labels, not addresses. Capture the returned `agent_id` and use only that ID for direct communication.

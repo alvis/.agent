@@ -1,6 +1,7 @@
 # Naming
 
-Read this before naming a work stream, a branch, or a generated document.
+Read this before naming or citing a work stream, task, branch, pull request,
+commit, or generated document.
 Every name here is decided by following these rules — there is no deriving
 executable, and none should be written.
 
@@ -24,7 +25,7 @@ was never the identity, only the usual shortest route to one.
 
 A slug naming what the work is about, kept at or under 32 bytes — the ID is
 repeated in every state path, in the source tree path, and in a branch that
-itself nests under a type and over a slice, so 32 keeps the longest of those
+itself nests under a type and over a numbered child, so 32 keeps the longest of those
 (`feat/<work-id>/01-<scope>`) inside a terminal column and a PR title. That
 bound is the convention, not a gate: a longer name chosen deliberately is
 honoured, and only the shape is enforced, since a name outside the grammar
@@ -38,7 +39,12 @@ eng-421-checkout-refunds      # a stream that came from a tracker keeps its key
 ```
 
 That one name is the stream's state directory (`.state/works/<work-id>/`) and
-its source tree directory (`~/.workspaces/<project>/<work-id>`).
+its source tree directory (`~/.workspaces/<project>/<work-id>`). Every message,
+record, hand-off, and status update begins with one stable reference: the Work
+ID for a lifecycle-managed stream, otherwise the runtime Task ID exactly as the
+harness supplied it. When the message identifies Git history, use its PR ID or
+full Git commit SHA once that history exists. An ordinal or packaging label
+such as `slice 1` or `slice 2` never stands in for one of those identifiers.
 
 Three shapes recur, and none of them is a work ID:
 
@@ -87,8 +93,8 @@ feat/<work-id>/02-contract
 feat/<work-id>/03-docs
 ```
 
-So a work ID of `work-id-naming` gives `feat/work-id-naming`, and its stack
-slices are `feat/work-id-naming/01-resolver` and so on. The type describes the
+So a work ID of `work-id-naming` gives `feat/work-id-naming`, and its numbered
+branches are `feat/work-id-naming/01-resolver` and so on. The type describes the
 branch, never the identity: it is not part of the ID or the state path, and
 `fix/work-id-naming` resolves to the same stream as `feat/work-id-naming`.
 
@@ -96,7 +102,7 @@ Git stores refs as files, so `feat/<work-id>` and `feat/<work-id>/01-resolver`
 cannot both exist — creating the second while the first is present fails with
 `cannot lock ref`, locally and on the remote alike. A stream that grows past
 one pull request therefore cannot add a numbered branch beside the bare one;
-it **renames** the bare branch into the first slice, which frees the namespace
+it **renames** the bare branch into the first numbered branch, which frees the namespace
 in the same operation that vacates it. Both refs need it: `git branch -m`
 (or `jj bookmark rename`) clears the local namespace, and the forge's own
 branch rename clears the remote one while retargeting the open pull request —
@@ -108,10 +114,12 @@ anything: a stale `origin/<type>/<work-id>` fails the next
 `--force-with-lease` with `stale info`, because the lease is a claim about a
 remote value that no longer exists, and the same stale flat ref blocks
 fetching the numbered child that has taken its name. Only once both renames
-and that prune have landed do the later slices push.
+and that prune have landed do the later numbered branches push.
 
-The segment after the ordinal is free-form: name the slice, not the PR
-archetype selected from `coding:skills/pr/references/create-update.md`.
+The segment after the ordinal is a semantic scope label for branch readability,
+not an identity or a substitute for the stable reference above. Name that scope,
+not the PR archetype selected from
+`coding:skills/pr/references/create-update.md`.
 
 Naming the branch this way is what lets the workspace resolution step select
 the stream from whichever branch is checked out. Only these two shapes

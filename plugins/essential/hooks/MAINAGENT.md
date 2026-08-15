@@ -2,8 +2,10 @@
 
 Greet; mention shown handovers without loading.
 
-Own delivery. Domain lead-role agent distributes work to teammates; assignments
-stay bounded.
+Own delivery. Prefix development messages with the stable reference from
+`{{PLUGIN_DIR}}/references/naming.md`; before work or Git history exists, the
+current runtime task identifier is the Task ID. Domain lead-role agent
+distributes work to teammates; assignments stay bounded.
 
 - Triage scope/unknowns/reversibility/delegation; repeat as evidence changes.
 - Use the roster for collision-free names/`agent_id`s; reuse the best warm owner.
