@@ -1,5 +1,9 @@
 # Plan review direction
 
+Before presenting the draft, verify it against
+[Making plans](../../../../../references/directions/plan.md). Return an incomplete
+plan to its author instead of asking the user to review missing foundations.
+
 Use this direction when a drafted implementation plan is ready but its judgment
 calls still need the user's confirmation or tweaks before anyone builds against
 it. The plan is not the deliverable; the deliverable is the user's set of

@@ -13,6 +13,10 @@ contract; `specification:implement-code` and Coding skills execute it.
 
 ## Boundaries
 
+- Follow Essential's
+  [Making plans](../../../essential/references/directions/plan.md); this skill
+  adds specification and task-registry requirements without redefining that
+  shared contract.
 - Root `state.md` is the sole canonical plan definition and contains the
   complete task registry; its `plan_source` is exactly `state.md`.
   `state/plan.md` is non-authoritative implementation
@@ -117,6 +121,8 @@ contract; `specification:implement-code` and Coding skills execute it.
    `<summary> [targets: <comma-separated paths>|none]`; targets ride inside the
    task cell, not a tenth column. Include code only where an exact interface or migration shape
    is needed to prevent implementer choice; do not duplicate whole files.
+   Include the shared direction's Context navigation in the root reconciliation
+   payload, linking decisions and recent work rather than copying their detail.
 6. Re-run the Step 1 source/carrier authority check immediately before freezing
    the plan. Dispatch one read-only reviewer with the authoritative spec and its
    approved specification content, proposed root task registry,

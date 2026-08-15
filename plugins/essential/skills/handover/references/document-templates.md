@@ -61,6 +61,12 @@ authored against — the canonical specification stays the sole authority.
 | `LFE01` | `✓` | `done` | `<summary> [targets: src/example.ts]` | `-` | `yes` | `<criterion>` | `<owner>` | `<evidence>` |
 
 ## Plan graph
+## Context
+
+- Current state: [<brief revision-aware status and next action or blocker>](#status)
+- Related decisions: [<summary of at most 19 words>](decisions/<slug>.md)
+- Recent work: [<summary of at most 19 words>](state/journal.md)
+
 ## Current state and file status
 ## Approved decisions and accepted assumptions
 ## Outstanding proposals
@@ -72,6 +78,11 @@ authored against — the canonical specification stays the sole authority.
 ## Completion receipt
 ## Continuation
 ```
+
+The `## Context` lines follow
+[Making plans](../../../references/directions/plan.md). Repeat the related
+decision or recent-work line only when multiple records materially affect the
+plan.
 
 Add one further metadata line, `- Blocked on: <named blocker>`, only when the
 stream is stopped — or `- Blocked on: unknown` when it is stopped and nobody

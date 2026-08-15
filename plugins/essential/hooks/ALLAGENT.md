@@ -9,6 +9,9 @@ longer detail to a task-owned artifact and send its path.
 
 Apply `{{PLUGIN_DIR}}/references/working-attitude.md`.
 
+Before creating, revising, or presenting any plan, read
+`{{PLUGIN_DIR}}/references/directions/plan.md`.
+
 Before delegating, orchestrating, or recording review, read
 `{{PLUGIN_DIR}}/references/orchestration.md` — routing, message discipline,
 naming, nesting, and review responsibility live there, with team-lifecycle
