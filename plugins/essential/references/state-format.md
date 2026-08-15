@@ -244,7 +244,9 @@ resume procedure in Essential's [change-control.md](change-control.md).
 `state/journal.md` is append-only: one line per status transition, decision,
 plan or charter revision, sync event, sweep, or lease event —
 `- <ISO-8601> <actor>@<capability_id> rev:<N> <event-type> <subject>: <transition or summary> [evidence: <ref>] [invalidates: <ids>]` —
-newest last, never rewritten or deleted. `<event-type>` is one of
+newest last, never rewritten or deleted. `<subject>` follows the stable-reference
+contract in [naming.md](naming.md): use a Work ID, Task ID, PR ID, or full Git
+commit SHA, never an ordinal-only label such as `slice 1`. `<event-type>` is one of
 `status|decision|revision|sync|sweep|lease`; `rev:<N>` is the
 `State revision` the writer was at; `invalidates:` names outputs or evidence
 the event made stale. A bulk rewrite across many streams — a migration, a
