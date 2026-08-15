@@ -31,9 +31,9 @@ and the overall verdict through
 
 ```text
 /coding:pr author [<commit-ref>] [--base <ref>]
-/coding:pr verify --target <git-sha> --base <git-sha> [--kind standalone|stack-tip]
-/coding:pr create [<commit-ref>] [--branch-prefix <name>] [--remote <name>] [--no-review] [--max-iteration <count>] [--publish-only] [--dry-run]
-/coding:pr update [<pr-number-or-url> | <commit-ref>] [--branch-prefix <name>] [--remote <name>] [--no-review] [--max-iteration <count>] [--publish-only] [--dry-run]
+/coding:pr verify --target <revision-anchor> --base <revision-anchor> [--kind standalone|stack-tip]
+/coding:pr create [<commit-ref>] [--branch-prefix <name>] [--remote <name>] [--no-verify] [--no-review] [--max-iteration <count>] [--publish-only] [--dry-run]
+/coding:pr update [<pr-number-or-url> | <commit-ref>] [--branch-prefix <name>] [--remote <name>] [--no-verify] [--no-review] [--max-iteration <count>] [--publish-only] [--dry-run]
 /coding:pr review [<pr-number-or-url> | <source-tree-path>] [--repo <owner/name>] [--area=<list>] [--dry-run]
 /coding:pr stack list
 /coding:pr stack checkout <stack-number-or-pr-number-or-pr-url-or-local-branch>
@@ -60,18 +60,20 @@ or `merge`, rather than the explicit `stack` route.
 - `verify` runs the fail-closed local test/lint gate for one exact target and
   base without publishing. Load and follow
   [references/verify-ci-parity.md](references/verify-ci-parity.md); callers must
-  pass resolved Git SHAs, and `--kind` defaults to `standalone`. Because these
+  pass resolved immutable revision IDs, and `--kind` defaults to `standalone`. Because these
   inputs do not identify a base ref or event type, workflow applicability is
   conservative and the receipt records that mode.
 - `create` opens new draft PRs for one saved change or a conventional linear
   stack. Load and follow
   [references/create-update.md](references/create-update.md) with
-  `ACTION=create`, and always load
+  `ACTION=create`, including its default tip-first and bottom-up local
+  verification gate, and always load
   [references/stacked-prs.md](references/stacked-prs.md).
 - `update` republishes existing PR heads for a conventional linear stack,
   refreshes their title, body, and bases, and drives CI to green. Load and follow
   [references/create-update.md](references/create-update.md) with
-  `ACTION=update`, and always load
+  `ACTION=update`, including its default tip-first and bottom-up local
+  verification gate, and always load
   [references/stacked-prs.md](references/stacked-prs.md).
 - `review` publishes one external review per PR, or one holistic review unit for
   a linear stack with findings attributed to its PR surfaces. As the

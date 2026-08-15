@@ -64,14 +64,19 @@ labels come only from the receiving repository's live inventory below.
   batch push, restack, and PR-base mechanics. The parent alone accepts
   fixer edits and performs commit, push, and restack mutations; the poller may
   dispatch exactly one scoped fixer when the red branch requires it.
-- Before every push, verify the standalone selected head or the selected
-  stack's tip locally at its exact Git SHA with the test and lint commands from
-  the applicable `pull_request` GitHub Actions workflows at that revision. A
-  missing required secret is the only exception: stop and ask the user either
-  to supply it from an explicit source or to approve pushing that exact SHA
-  without the local run for the exact lexically sorted missing-secret names.
-  Never infer approval from another flag or caller, guess a secret source, pass
-  an empty value, or push after any other local failure.
+- Before every push, unless the caller explicitly supplied `--no-verify`, run
+  the applicable `pull_request` test and lint tasks through read-only `jj run`
+  at exact revision anchors. Run the selected tip first as a canary, then every selected
+  PR surface bottom-up through the tip. A missing required secret is the only
+  per-surface exception: stop and ask the user either to supply it from an
+  explicit source or to approve that exact revision and the exact lexically sorted
+  missing-secret names. Never infer approval from another flag or caller,
+  guess a secret source, pass an empty value, or push after any other local
+  failure.
+- `--no-verify` skips only this invocation's local revision-bound parity gate and
+  must be recorded with every skipped bookmark and PR. It never skips hosted
+  CI, review, publication checks, or authoring checks and is never implied by
+  `--no-review`, `--publish-only`, a commit-time flag, or missing secrets.
 - `--no-review` skips only remote PR review dispatch and comment convergence.
   It never skips local checks or hosted CI.
 - `--publish-only` returns after leased pushes, metadata updates, and head/base
@@ -96,6 +101,7 @@ labels come only from the receiving repository's live inventory below.
 | `<commit-ref>` | Publish a resolvable jj change ID/revset/bookmark or git branch/SHA and its selected stack. Any jj revset (`@`, `@-`, a change id) or git ref (`HEAD`, `HEAD~1`, a SHA) also selects the commit to author from; behavior is deterministic given the ref. |
 | `--branch-prefix <name>` | Override the derived stack bookmark prefix. A prefix other than a resolved stream's `<type>/<work-id>` publishes a branch that will not resolve back to its work state — expected for a branch predating that convention, deliberate otherwise. |
 | `--remote <name>` | Select the named push remote explicitly; remote names are treated as values even when they begin with `-`. |
+| `--no-verify` | Explicitly skip the local revision-bound test/lint gate for this publication only. Record every skipped bookmark and PR; hosted CI and all other publication gates remain mandatory. |
 | `--no-review` | Skip the post-push `coding:pr review` convergence loop. It never skips local checks, publication, or hosted CI. |
 | `--max-iteration <count>` | Set the maximum number of attempted exhaustive whole-stack reviews. Reject before mutation unless `<count>` is an ASCII decimal integer greater than zero; the default is `3`. |
 | `--publish-only` | Stop after the verified core publication phase so an existing review or repair caller can continue its convergence loop. |
@@ -111,7 +117,11 @@ labels come only from the receiving repository's live inventory below.
   command failing, or the two ids differing — selects the git path, which is
   fully supported and never requires initializing `jj`. Authoring PR text alone
   needs neither, so the text-only path is never blocked by the publication
-  prerequisites.
+  prerequisites. Unless `--no-verify` is explicit, local CI parity additionally
+  requires jj 0.44 or newer, an initialized colocated repository, and exact
+  target resolution so every test and lint task can run through `jj run`; follow
+  the shared jj guide and `coding:sync-tool` instead of substituting a Git
+  runner.
 
 ## State gate
 
@@ -193,11 +203,11 @@ print the exact plan and stop.
 ### 2. Verify exact local CI parity before publication
 
 After stack discovery, resolve each selected head and its intended PR base to
-exact Git SHAs. Encode them in `SELECTED_STACK_JSON` as objects with `head` and
-`base` fields, ordered bottom-up; a standalone target has one object. Derive the
-target from that map: the last selected head is the target SHA and the first
-selected head's base is the target base. The tip's immediate PR base is not the
-selected surface base.
+immutable revision IDs. Encode them in `SELECTED_STACK_JSON` as objects with `head` and
+`base` fields plus the discovered `bookmark` and PR identity, ordered bottom-up;
+a standalone target has one object. Derive the canary target from that map: the
+last selected head is the target revision and the first selected head's base is
+the target base revision. The tip's immediate PR base is not the selected canary base.
 
 ```bash
 SELECTED_HEAD_COUNT=$(jq -er 'length | select(. > 0)' <<<"$SELECTED_STACK_JSON")
@@ -218,16 +228,41 @@ printf 'TARGET_KIND=%s\nTARGET_SHA=%s\nTARGET_BASE=%s\n' \
   "$TARGET_KIND" "$TARGET_SHA" "$TARGET_BASE"
 ```
 
-Invoke the public parity action with those three bound inputs:
+With `--no-verify`, record `local_verification: skipped_by_user` with the exact
+ordered bookmark, PR, head, and base map, then continue to publication. Do not
+create a parity receipt, treat the skip as a missing-secret approval, or reuse
+the skip after this invocation.
+
+Otherwise invoke the public parity action with the three bound canary inputs:
 
 ```text
 coding:pr verify --target "$TARGET_SHA" --base "$TARGET_BASE" --kind "$TARGET_KIND"
 ```
 
-Capture the action's complete `CI_PARITY_RECEIPT_JSON`, its canonical
+For a standalone surface, that successful canary is the complete local gate.
+For a stack, a successful canary proves the integrated tip first; next, rebind
+`TARGET_SHA` and `TARGET_BASE` to each object's `head` and immediate `base`, set
+`TARGET_KIND=standalone`, and invoke the same public action bottom-up through
+the tip. The tip is deliberately run again against its immediate PR base so
+both the integrated stack and every independently publishable PR surface have
+exact evidence.
+
+If the canary is red, do not push or repair it immediately. Run the same action
+bottom-up until the first red surface. The first failure is the earliest broken
+bookmark/PR even when a later commit masks that failure at the tip; retain its
+command output and the verifier's diagnosis. Stop the traversal there, fix the
+root cause in that owning change through `coding:commit` and the shared `jj edit`
+route when applicable, then restart stack discovery and the entire tip-first
+gate. If the canary is green but a bottom-up surface is red, apply the same
+earliest-surface rule. Never test higher surfaces after the first bottom-up
+failure because their inputs will be invalidated by the repair.
+
+For every successful action, capture its complete `CI_PARITY_RECEIPT_JSON`, its canonical
 `CI_PARITY_EXPECTED_WORKFLOW_COMMAND_RESULTS_JSON`, and its canonical
-`CI_PARITY_EXPECTED_MISSING_SECRET_NAMES_JSON`. Consume them before every entry
-or re-entry to publication:
+`CI_PARITY_EXPECTED_MISSING_SECRET_NAMES_JSON`; bind the receipt to the
+surface's bookmark and PR identity. Consume each receipt immediately and replay
+the same gate for the complete ordered receipt set before every entry or
+re-entry to publication:
 
 ```bash
 RECEIPT_TARGET_SHA=$(jq -er \
@@ -242,6 +277,9 @@ RECEIPT_TARGET_KIND=$(jq -er \
 RECEIPT_APPLICABILITY_MODE=$(jq -er \
   '.applicability_mode | select(type == "string" and length > 0)' \
   <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
+RECEIPT_EXECUTION_ENGINE=$(jq -er \
+  '.execution_engine | select(. == "jj-run")' \
+  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
 RECEIPT_COMMAND_RESULTS_JSON=$(jq -ecS \
   '.workflow_command_results | select(type == "array")' \
   <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
@@ -252,6 +290,7 @@ test "$RECEIPT_TARGET_SHA" = "$TARGET_SHA" || exit 42
 test "$RECEIPT_TARGET_BASE" = "$TARGET_BASE" || exit 42
 test "$RECEIPT_TARGET_KIND" = "$TARGET_KIND" || exit 42
 test "$RECEIPT_APPLICABILITY_MODE" = conservative_pull_request || exit 42
+test "$RECEIPT_EXECUTION_ENGINE" = jj-run || exit 42
 test "$RECEIPT_COMMAND_RESULTS_JSON" = "$EXPECTED_COMMAND_RESULTS_JSON" || exit 42
 
 RECEIPT_OVERALL=$(jq -er '.overall | select(type == "string")' \
@@ -303,16 +342,22 @@ esac
 printf 'CI_PARITY_RECEIPT_GATE=accepted\n'
 ```
 
-A rewrite, base-map change, or command/result-set change invalidates the
-receipt and restarts discovery before this step.
+A rewrite, base-map change, bookmark/PR identity change, or command/result-set
+change invalidates the complete receipt set and restarts discovery before this
+step.
 
 ### 3. Publish bottom-up
 
-Before every entry or re-entry to this phase, rerun the receipt gate above
-against the current bound inputs. On the exception path, its `sha` equals the
-exact `TARGET_SHA` and its `names` equal the verifier's exact lexically sorted
-missing-secret names. A SHA-only approval or any name/order mismatch cannot
-form a complete receipt and returns to step 2 before a remote mutation.
+Before every entry or re-entry to this phase, either confirm the invocation's
+explicit `--no-verify` record still matches the complete selected stack or
+rerun the receipt gate above against every current bound surface in the ordered
+receipt set. On a missing-secret exception path, each approval's `sha` equals
+that surface's exact `TARGET_SHA` and its `names` equal the verifier's exact
+lexically sorted missing-secret names. A SHA-only approval or any name/order
+mismatch, like a missing surface receipt, returns to step 2 before a remote
+mutation.
+For each rebound surface, its `sha` equals the exact `TARGET_SHA`; its sorted
+names and complete receipt remain inseparable from that target.
 
 Require a saved, clean, linear chain to the selected `ROOT_BASE`/`DESTINATION`
 at authoritative `$REMOTE`, standalone green changes, conventional descriptions per
@@ -400,8 +445,8 @@ jj bookmark create "$BOOKMARK" --revision "$CHANGE_ID"
 ```
 
 Never run that command for an update or to move an existing bookmark. Collect
-every affected unmerged bookmark and its exact expected local Git SHA for the
-single batch publication below.
+every affected unmerged bookmark and its exact expected local revision anchor
+for the single batch publication below.
 
 On the git path, prepare the local branch; the helper owns its only push:
 
@@ -858,11 +903,14 @@ passes its base; text-only callers default to the first parent. Never invoke `gh
   bundled default has no placeholder or dropped-section stub. The same
   head OID, base/empty-tree OID, template, thresholds, and placeholder map yield
   byte-identical `title\n\nbody` without timestamps or random IDs.
-- The applicable `pull_request` test and lint commands passed locally at the
-  exact standalone head or selected stack-tip SHA, with their revision-bound
-  sources and results recorded. The sole exception records the user's explicit
-  approval to push that same SHA without the local run for the verifier's exact
-  lexically sorted missing-secret names.
+- Unless `--no-verify` was explicitly recorded, the applicable `pull_request`
+  test and lint tasks passed through read-only `jj run` first at the exact
+  selected tip and then at every selected PR head bottom-up, with
+  revision-bound sources and results. The sole per-surface exception records
+  the user's explicit approval for that exact revision and the verifier's exact
+  lexically sorted missing-secret names. A
+  `--no-verify` run instead reports every skipped bookmark, PR, head, and base;
+  hosted CI remains mandatory.
 - Every head was pushed under a lease — one explicit affected-bookmark
   `jj git push` on the jj path,
   `git push --force-with-lease` on the git path; every PR is draft, uses the

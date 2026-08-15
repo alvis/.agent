@@ -210,6 +210,9 @@ RECEIPT_TARGET_KIND=$(jq -er \
 RECEIPT_APPLICABILITY_MODE=$(jq -er \
   '.applicability_mode | select(type == "string" and length > 0)' \
   <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
+RECEIPT_EXECUTION_ENGINE=$(jq -er \
+  '.execution_engine | select(. == "jj-run")' \
+  <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
 RECEIPT_COMMAND_RESULTS_JSON=$(jq -ecS \
   '.workflow_command_results | select(type == "array")' \
   <<<"$CI_PARITY_RECEIPT_JSON") || exit 42
@@ -220,6 +223,7 @@ test "$RECEIPT_TARGET_SHA" = "$TARGET_SHA" || exit 42
 test "$RECEIPT_TARGET_BASE" = "$TARGET_BASE" || exit 42
 test "$RECEIPT_TARGET_KIND" = "$TARGET_KIND" || exit 42
 test "$RECEIPT_APPLICABILITY_MODE" = conservative_pull_request || exit 42
+test "$RECEIPT_EXECUTION_ENGINE" = jj-run || exit 42
 test "$RECEIPT_COMMAND_RESULTS_JSON" = "$EXPECTED_COMMAND_RESULTS_JSON" || exit 42
 
 RECEIPT_OVERALL=$(jq -er '.overall | select(type == "string")' \
