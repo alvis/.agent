@@ -1,5 +1,20 @@
 # Create or Update Pull Requests
 
+## Workflow at a glance
+
+1. Resolve the requested change or linear stack, its GitHub push remote, open
+   PRs, exact heads and bases, and the required PR shape.
+2. Run applicable pull-request tests and lint through `jj run`: integrated tip
+   first, then every independently publishable surface bottom-up.
+3. Publish saved bookmarks bottom-up, author and scan each PR body, apply its
+   available archetype label, and verify the remote head, base, draft state,
+   body, and labels.
+4. Perform PR review with a fresh independent subagent unless explicitly
+   skipped, converging findings by repairing the owning change and restarting
+   invalidated discovery and verification gates.
+5. Poll every published PR until hosted CI is green; diagnose the first red
+   surface, fix its root cause, republish, and repeat without hiding blockers.
+
 Load the complete workflow from `coding:pr create` or `coding:pr update`;
 `coding:pr author` loads only [Author the PR text](#author-the-pr-text). Turn
 one saved change or stack into live, green draft PRs. This workflow composes
