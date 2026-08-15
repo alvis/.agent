@@ -200,18 +200,11 @@ compose eject <plugin>     # materialise a plugin's config into the repo
 Requires **Node 20+** and **pnpm 9+**.
 
 ```bash
-# clone and bootstrap
 git clone https://github.com/example/compose.git
 cd compose
 pnpm install
-
-# build all packages in topological order
 pnpm build
-
-# run the full test suite
 pnpm test
-
-# link the CLI locally for smoke-testing on another repo
 pnpm --filter @scope/compose link --global
 ```
 

@@ -17,17 +17,10 @@ The skill tries the cheapest mechanism first and falls through.
 `jj absorb` automatically distributes each hunk on `@` into the nearest mutable ancestor whose context matches that hunk. This handles the common "I made a typo in commit C" case with zero LLM reasoning.
 
 ```bash
-# Snapshot rollback handle first
-jj op log -n1 --no-graph -T 'self.id().short()'
-
-# Distribute all hunks
-jj absorb
-
-# Or interactively pick hunks
-jj absorb -i
-
-# Or scope by file
-jj absorb path/to/file.ts
+jj op log -n1 --no-graph -T 'self.id().short()' # rollback handle
+jj absorb                                      # distribute all hunks
+jj absorb -i                                   # or pick hunks
+jj absorb path/to/file.ts                      # or scope by file
 ```
 
 After absorb, check what (if anything) remains on `@`:
