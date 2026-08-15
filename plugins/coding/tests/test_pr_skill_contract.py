@@ -15,6 +15,7 @@ PR_SKILL = WRITE_PR / "SKILL.md"
 SIZE_THRESHOLDS = WRITE_PR / "assets" / "size-thresholds.json"
 CLASSIFIER = WRITE_PR / "scripts" / "classify-pr-size.py"
 MESSAGE_SCANNER = WRITE_PR / "scripts" / "scan-pr-message.py"
+LABEL_LISTER = WRITE_PR / "scripts" / "list-repository-labels.sh"
 COMMIT_SKILL = PLUGIN / "skills" / "commit" / "SKILL.md"
 COMMIT_DIRECTIONS = (
     PLUGIN / "skills" / "commit" / "references" / "conventional-commits.md"
@@ -547,19 +548,78 @@ def test_restack_requires_explicit_root_base_and_reports_partial_progress() -> N
     assert post_verify.index("restacked[") < post_verify.index('gh pr edit "$bookmark"')
 
 
-def test_create_update_binds_remote_before_publication_and_reuses_it() -> None:
-    workflow = (WRITE_PR / "references" / "create-update.md").read_text()
-    normalized = " ".join(workflow.split())
+@pytest.mark.parametrize(
+    ("push_repository", "expected_head"),
+    (("octo/widgets", "octo:fix/labels"), ("fork-owner/widgets", "fork-owner:fix/labels")),
+    ids=("same-repository", "fork"),
+)
+def test_pr_create_qualifies_head_with_selected_push_remote_owner(
+    tmp_path: Path, push_repository: str, expected_head: str
+) -> None:
+    workflow = CREATE_UPDATE.read_text()
+    binding = workflow.split("#### Bind the push remote", 1)[1]
+    binding = binding.split("```bash\n", 1)[1].split("\n```", 1)[0]
+    creation = workflow.split("When the head has no open PR", 1)[1]
+    creation = creation.split("```bash\n", 1)[1].split("\n```", 1)[0]
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    argument_log = tmp_path / "pr-create-arguments"
+    git = fake_bin / "git"
+    git.write_text(
+        "#!/usr/bin/env bash\n"
+        'if [ "$1 $2" = "branch --show-current" ]; then\n'
+        "  printf 'fix/labels\\n'\n"
+        'elif [ "$1 $2 $3 $4 $5" = "remote get-url --push -- push" ]; then\n'
+        "  printf 'https://github.example/push/widgets.git\\n'\n"
+        "else\n"
+        "  exit 1\n"
+        "fi\n"
+    )
+    git.chmod(0o755)
+    gh = fake_bin / "gh"
+    gh.write_text(
+        "#!/usr/bin/env bash\n"
+        'if [ "$#" -eq 7 ] &&\n'
+        '  [ "$*" = "repo view https://github.example/push/widgets.git '
+        '--json nameWithOwner --jq .nameWithOwner" ]; then\n'
+        "  printf '%s\\n' \"$PUSH_REPOSITORY\"\n"
+        'elif [ "$1 $2" = "pr create" ]; then\n'
+        "  printf '%s\\n' \"$@\" >\"$ARGUMENT_LOG\"\n"
+        "  printf 'https://github.example/octo/widgets/pull/41\\n'\n"
+        "else\n"
+        "  exit 1\n"
+        "fi\n"
+    )
+    gh.chmod(0o755)
+    environment = os.environ | {
+        "PATH": f"{fake_bin}:{os.environ['PATH']}",
+        "ARGUMENT_LOG": str(argument_log),
+        "PUSH_REPOSITORY": push_repository,
+    }
 
-    binding = workflow.index("REMOTE=${CALLER_REMOTE:-}")
-    first_restack = workflow.index("scripts/restack.sh")
-    assert binding < first_restack
-    assert 'git remote get-url --push -- "$REMOTE"' in workflow
-    assert 'git remote get-url --push -- "$CANDIDATE"' in workflow
-    assert "sole remote whose push URL resolves through GitHub" in normalized
-    assert "Record `REMOTE`" in workflow
-    assert 'jj git fetch --remote "$REMOTE"' in workflow
-    assert 'git fetch -- "$REMOTE"' in workflow
+    subprocess.run(
+        [
+            "bash",
+            "-c",
+            (
+                "set -euo pipefail\n"
+                "CALLER_REMOTE=push\n"
+                "HOST=github.example\n"
+                "REPOSITORY=octo/widgets\n"
+                'TITLE="fix: preserve labels"\n'
+                'BODY="body"\n'
+                "PR_BASE=main\n"
+                "BOOKMARK=fix/labels\n"
+                f"{binding}\n"
+                f"{creation}"
+            ),
+        ],
+        check=True,
+        env=environment,
+    )
+
+    arguments = argument_log.read_text().splitlines()
+    assert arguments[arguments.index("--head") + 1] == expected_head
 
 
 def test_stack_publication_and_inspection_have_no_implicit_origin() -> None:
@@ -1313,36 +1373,232 @@ def test_black_zone_requires_complete_body_and_live_authorization_receipt() -> N
     )
 
 
-def test_archetype_is_a_preflighted_label_not_pr_content() -> None:
-    workflow = (WRITE_PR / "references" / "create-update.md").read_text()
-    template = MESSAGE_TEMPLATE.read_text()
-    normalized_workflow = " ".join(workflow.split())
+def test_repository_label_inventory_is_complete_and_deterministic(
+    tmp_path: Path,
+) -> None:
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    call_log = tmp_path / "gh-args"
+    gh = fake_bin / "gh"
+    gh.write_text(
+        "#!/usr/bin/env bash\n"
+        'printf \'%s\\n\' "$@" >"$GH_CALL_LOG"\n'
+        'printf \'%s\\n\' \'[[{"name":"zeta","description":"later"},'
+        '{"name":"Alpha","description":"first","color":"ffffff"}],'
+        '[{"name":"beta","description":"second"},'
+        '{"name":"zeta","description":null}]]\'\n'
+    )
+    gh.chmod(0o755)
+    environment = os.environ | {
+        "PATH": f"{fake_bin}:{os.environ['PATH']}",
+        "GH_CALL_LOG": str(call_log),
+    }
 
-    assert (
-        "Before submitting each PR, preflight the repository labels"
-        in normalized_workflow
+    first = subprocess.run(
+        ["bash", str(LABEL_LISTER), "github example", "octo/widgets repository"],
+        check=True,
+        capture_output=True,
+        text=True,
+        env=environment,
     )
-    assert "continue without it and record that it was skipped" in workflow
-    assert (
-        "Never create, silently substitute, or require an unavailable label"
-        in normalized_workflow
+    assert json.loads(first.stdout) == [
+        {"name": "Alpha", "description": "first"},
+        {"name": "beta", "description": "second"},
+        {"name": "zeta", "description": None},
+        {"name": "zeta", "description": "later"},
+    ]
+    assert call_log.read_text().splitlines() == [
+        "api",
+        "--hostname",
+        "github example",
+        "--paginate",
+        "--slurp",
+        "repos/octo/widgets repository/labels?per_page=100",
+    ]
+
+
+def test_repository_label_inventory_propagates_api_errors(tmp_path: Path) -> None:
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    gh = fake_bin / "gh"
+    gh.write_text("#!/usr/bin/env bash\nprintf 'label lookup failed\\n' >&2\nexit 42\n")
+    gh.chmod(0o755)
+    environment = os.environ | {
+        "PATH": f"{fake_bin}:{os.environ['PATH']}",
+    }
+
+    completed = subprocess.run(
+        ["bash", str(LABEL_LISTER), "github.example", "octo/widgets"],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=environment,
     )
-    assert "AVAILABLE_ARCHETYPES=" in workflow
-    assert "verify one archetype label remains when" in workflow
-    assert '--label "$ARCHETYPE"' in workflow
-    assert "PR=$(gh pr create" in workflow
-    assert '--remove-label "$label"' in workflow
-    assert 'gh pr view "$PR" --json labels' in workflow
-    assert "[.labels[].name | select(. as $label" in workflow
-    assert 'EXPECTED_ARCHETYPES=$(jq -cn --arg label "$ARCHETYPE"' in workflow
-    assert 'test "$ACTUAL_ARCHETYPES" = "$EXPECTED_ARCHETYPES"' in workflow
-    assert workflow.index("ARCHETYPE_LABELS='[") < workflow.index("PR=$(gh pr create")
-    assert "If unavailable, omit" in template
-    assert "label is never rendered in the title or" in template
-    assert "attach the exact archetype label only when it exists" in normalized_workflow
-    assert "If absent, omit it and report the skip" in normalized_workflow
-    assert "never create or substitute a label" in normalized_workflow
-    assert "## Category" not in template
+
+    assert completed.returncode == 42
+    assert completed.stdout == ""
+    assert completed.stderr == "label lookup failed\n"
+
+
+@pytest.mark.parametrize(
+    (
+        "operation_marker",
+        "operation_setup",
+        "selected_labels",
+        "expected_commands",
+        "expected_payload",
+    ),
+    [
+        (
+            "When the head has no open PR",
+            "",
+            '["api,breaking", "docs"]',
+            ["pr create", "pr view", "api --method"],
+            {"labels": ["api,breaking", "docs"]},
+        ),
+        (
+            "When the head has one open PR",
+            'PR="https://github.example/octo/widgets/pull/41"',
+            '["api,breaking"]',
+            ["pr edit", "pr ready", "pr view", "api --method"],
+            {"labels": ["api,breaking"]},
+        ),
+        ("When the head has no open PR", "", "[]", ["pr create"], None),
+    ],
+    ids=("create", "update", "no-labels"),
+)
+def test_pr_label_attachment_preserves_exact_names(
+    tmp_path: Path,
+    operation_marker: str,
+    operation_setup: str,
+    selected_labels: str,
+    expected_commands: list[str],
+    expected_payload: dict[str, list[str]] | None,
+) -> None:
+    workflow = CREATE_UPDATE.read_text()
+    preflight = workflow.split("#### Validate selected repository labels", 1)[1]
+    preflight = preflight.split("```bash\n", 1)[1].split("\n```", 1)[0]
+    operation = workflow.split(operation_marker, 1)[1]
+    operation = operation.split("```bash\n", 1)[1].split("\n```", 1)[0]
+    attachment = workflow.split("#### Attach selected repository labels", 1)[1]
+    attachment = attachment.split("```bash\n", 1)[1].split("\n```", 1)[0]
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    command_log = tmp_path / "gh-commands"
+    api_log = tmp_path / "gh-api-args"
+    input_log = tmp_path / "gh-input"
+    gh = fake_bin / "gh"
+    gh.write_text(
+        "#!/usr/bin/env bash\n"
+        'printf \'%s %s\\n\' "$1" "${2:-}" >>"$GH_COMMAND_LOG"\n'
+        'if [ "$1 $2" = "pr create" ]; then\n'
+        '  [[ " $* " == *" --repo github.example/octo/widgets "* ]] || exit 1\n'
+        "  printf '%s\\n' 'https://github.example/octo/widgets/pull/41'\n"
+        'elif [ "$1 $2" = "pr view" ]; then\n'
+        "  printf '41\\n'\n"
+        'elif [ "$1" = api ]; then\n'
+        '  printf \'%s\\n\' "$@" >"$GH_API_LOG"\n'
+        '  cat >"$GH_INPUT_LOG"\n'
+        "fi\n"
+    )
+    gh.chmod(0o755)
+    environment = os.environ | {
+        "PATH": f"{fake_bin}:{os.environ['PATH']}",
+        "GH_COMMAND_LOG": str(command_log),
+        "GH_API_LOG": str(api_log),
+        "GH_INPUT_LOG": str(input_log),
+        "REPOSITORY_LABELS": '[{"name":"api,breaking"},{"name":"docs"}]',
+    }
+
+    subprocess.run(
+        [
+            "bash",
+            "-c",
+            "\n".join(
+                (
+                    "set -euo pipefail",
+                    "HOST=github.example",
+                    "REPOSITORY=octo/widgets",
+                    'TITLE="fix: preserve labels"',
+                    'BODY="body"',
+                    "PR_BASE=main",
+                    "BOOKMARK=fix/labels",
+                    "PUSH_OWNER=octo",
+                    f"SELECTED_LABELS='{selected_labels}'",
+                    operation_setup,
+                    preflight,
+                    operation,
+                    attachment,
+                )
+            ),
+        ],
+        check=True,
+        env=environment,
+    )
+
+    assert command_log.read_text().splitlines() == expected_commands
+    if expected_payload is None:
+        assert not api_log.exists()
+        assert not input_log.exists()
+        return
+    assert api_log.read_text().splitlines() == [
+        "api",
+        "--method",
+        "POST",
+        "--hostname",
+        "github.example",
+        "repos/octo/widgets/issues/41/labels",
+        "--input",
+        "-",
+    ]
+    assert json.loads(input_log.read_text()) == expected_payload
+
+
+@pytest.mark.parametrize(
+    "selected_labels",
+    ("{", '{"name":"docs"}', '["docs", null]', '["unknown"]'),
+    ids=("malformed", "object", "non-string-member", "unknown"),
+)
+def test_invalid_selected_labels_stop_before_publication_mutation(
+    tmp_path: Path, selected_labels: str
+) -> None:
+    workflow = CREATE_UPDATE.read_text()
+    preflight = workflow.split("#### Validate selected repository labels", 1)[1]
+    preflight = preflight.split("```bash\n", 1)[1].split("\n```", 1)[0]
+    mutation_log = tmp_path / "mutations"
+    environment = os.environ | {
+        "MUTATION_LOG": str(mutation_log),
+        "REPOSITORY_LABELS": '[{"name":"docs"}]',
+        "SELECTED_LABELS": selected_labels,
+    }
+
+    completed = subprocess.run(
+        [
+            "bash",
+            "-c",
+            "\n".join(
+                (
+                    "set -euo pipefail",
+                    "git() { printf 'mutation\\n' >>\"$MUTATION_LOG\"; }",
+                    "jj() { printf 'mutation\\n' >>\"$MUTATION_LOG\"; }",
+                    "gh() { printf 'mutation\\n' >>\"$MUTATION_LOG\"; }",
+                    preflight,
+                    "git push origin HEAD",
+                    "jj git push",
+                    "gh pr create",
+                    "gh pr edit 41",
+                    "gh api --method POST repos/octo/widgets/issues/41/labels",
+                )
+            ),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=environment,
+    )
+
+    assert completed.returncode != 0
+    assert not mutation_log.exists()
 
 
 def test_generated_files_section_is_conditional_and_emoji_named() -> None:

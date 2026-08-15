@@ -10,13 +10,12 @@ template of its own checked in (e.g. `.github/PULL_REQUEST_TEMPLATE.md`).
 When a repo template exists, that template takes precedence and is emitted
 verbatim instead of this one.
 
-Publication metadata: classify every PR with the archetype selected in
+Body and scanner metadata: classify every PR with the archetype selected in
 [create-update.md](../references/create-update.md#select-the-pr-archetype).
-Before publication, inspect the
-repository's existing labels
-and attach the selected archetype when it is available. If unavailable, omit
-it, report it as skipped, and continue; never create or substitute labels. The
-label is never rendered in the title or body.
+Archetype drives conditional body evidence and scanner input only. Repository
+label discovery, selection, and attachment follow
+[create-update.md](../references/create-update.md#discover-and-select-repository-labels).
+Attached labels are never rendered in the title or body.
 
 Always required: Summary + Goal + Requirements + Context + Verification. Goal
 states the outcome; Requirements lists observable behavior, never generic

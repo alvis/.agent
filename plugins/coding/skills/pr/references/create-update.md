@@ -35,26 +35,10 @@ the bundled body shape.
 
 ### Select the PR archetype
 
-Select the one archetype that best describes the implementation surface.
-Before publication, list the repository labels and attach the exact archetype
-label only when it exists. If absent, omit it and report the skip; never create
-or substitute a label. Remove other available archetype labels so at most one
-remains.
-
-| Surface | Archetype |
-|---|---|
-| Design proposal without production code | `rfc` |
-| Types, interfaces, schemas, or JSDoc-only API shape | `code-spec` |
-| External API, IPC, or wire format | `contract` |
-| Pure entities, value objects, invariants, and unit tests | `domain-model` |
-| Business behavior fulfilling an existing shape | `implementation` |
-| Module wiring, adapters, dependency injection, or end-to-end tests | `integration` |
-| Add, flip, or remove a feature flag | `feature-flag` |
-| Schema migration, backfill, or config-format upgrade | `migration` |
-| User-facing visual or interaction change | `ui` |
-| Rename, move, codemod, formatting sweep, or pure restructuring | `mechanical-refactor` |
-| Dead-code, deprecation, or lint-debt removal | `cleanup` |
-| Logs, metrics, traces, dashboards, alerts, or instrumentation | `observability` |
+For each head, choose the `--archetype` value accepted by
+`scripts/scan-pr-message.py` that best describes its implementation surface.
+This controls conditional body evidence and scanner behavior only; repository
+labels come only from the receiving repository's live inventory below.
 
 ## Boundaries
 
@@ -160,9 +144,7 @@ fi
 if [ -z "$REMOTE" ]; then
   REMOTE=$(git config --get -- remote.pushDefault) || REMOTE=
 fi
-if [ -n "$REMOTE" ]; then
-  git remote get-url --push -- "$REMOTE" >/dev/null || exit $?
-else
+if [ -z "$REMOTE" ]; then
   GITHUB_REMOTES=()
   while IFS= read -r CANDIDATE; do
     PUSH_URL=$(git remote get-url --push -- "$CANDIDATE") || exit $?
@@ -177,11 +159,17 @@ else
   }
   REMOTE=${GITHUB_REMOTES[0]}
 fi
-printf 'REMOTE=%s\n' "$REMOTE"
+PUSH_URL=$(git remote get-url --push -- "$REMOTE") || exit $?
+PUSH_REPOSITORY=$(
+  gh repo view "$PUSH_URL" --json nameWithOwner --jq .nameWithOwner
+) || exit $?
+PUSH_OWNER=${PUSH_REPOSITORY%%/*}
+printf 'REMOTE=%s\nPUSH_OWNER=%s\n' "$REMOTE" "$PUSH_OWNER"
 ```
 
-Record `REMOTE` in the publication plan. On zero or ambiguous GitHub candidates,
-preserve the candidate evidence and stop rather than selecting one.
+Record `REMOTE` and `PUSH_OWNER` in the publication plan. On zero or ambiguous
+GitHub candidates, preserve the candidate evidence and stop rather than selecting
+one.
 
 Inspect the selected tool's working state — `jj status`, `jj log`, and
 `jj bookmark list`, or `git status --short`, `git log --oneline`, and
@@ -351,28 +339,42 @@ repository default branch only when none exists, then resolve that exact base
 commit as `AUTHOR_BASE_OID`. New-stack bookmarks do not yet exist, so author
 each head against `AUTHOR_BASE_OID`, never `PR_BASE`.
 
-Select one archetype label for each head using the
-[archetype table](#select-the-pr-archetype). Before submitting each PR, preflight
-the repository labels before any push or PR create/edit. If the selected label exists, attach it; if it is
-unavailable, continue without it and record that it was skipped. Never create,
-silently substitute, or require an unavailable label. Do not call any label
-creation command. Bind the canonical set before either publication branch and
-resolve repository names read-only:
+#### Discover and select repository labels
+
+Bind `HOST` and `REPOSITORY` to the receiving repository for this PR, using
+the existing PR URL on update or the intended PR target on create. Fetch its
+complete label inventory before publication:
 
 ```bash
-ARCHETYPE_LABELS='["rfc","code-spec","contract","domain-model","implementation","integration","feature-flag","migration","ui","mechanical-refactor","cleanup","observability"]'
-REPOSITORY_LABELS=$(gh label list --limit 1000 --json name)
-AVAILABLE_ARCHETYPES=$(jq -c --argjson archetypes "$ARCHETYPE_LABELS" \
-  '[.[].name | select(. as $name | $archetypes | index($name))]' \
-  <<<"$REPOSITORY_LABELS")
+REPOSITORY_LABELS=$(bash \
+  "${CODING_PR_SKILL_DIR}/scripts/list-repository-labels.sh" \
+  "$HOST" "$REPOSITORY")
 ```
 
-Use `AVAILABLE_ARCHETYPES` for the existence check, stale-label cleanup, and
-post-publication verification. Set `ARCHETYPE_AVAILABLE=true` only when the
-selected label is in that array; otherwise set it to `false`, report the
-skipped label, and omit every `--label`/`--add-label` operation for it. Split
-each exact `title\n\nbody` into that head's `TITLE` and `BODY`; malformed output
-aborts the whole selection before any ref or remote mutation.
+<IMPORTANT>
+The helper returns deterministic JSON containing every exact label `name` and
+`description` from every API page. Inspect both fields and choose zero or more
+suitable names only from that output. Never create, guess, substitute, or
+remove labels. Set `SELECTED_LABELS` to a JSON array of those exact choices,
+including `[]` when no label is suitable.
+</IMPORTANT>
+
+#### Validate selected repository labels
+
+Validate every per-head selection before any ref or remote mutation:
+
+```bash
+jq -e --argjson repository_labels "$REPOSITORY_LABELS" '
+  type == "array" and all(.[];
+    type == "string" and
+    (. as $selected | any($repository_labels[]; .name == $selected))
+  )
+' \
+  >/dev/null <<<"$SELECTED_LABELS" || exit $?
+```
+
+Split each exact `title\n\nbody` into that head's `TITLE` and `BODY`; malformed
+output aborts the whole selection before any ref or remote mutation.
 
 After every per-head `PR_BASE` is resolved, bind the batch root to the first
 selected affected head's exact base:
@@ -429,52 +431,34 @@ publication. Do not follow a jj batch with gh-stack rebase, sync, push, or
 submit. Preserve stderr and the helper's `restacked` and `errors` arrays so a
 failure reports verified partial state rather than implying an all-or-nothing
 result.
-When the head has no open PR, create a draft with the selected label only when
-`ARCHETYPE_AVAILABLE=true`; otherwise create the draft without an archetype
-label:
+When the head has no open PR, create a draft:
 
 ```bash
-if [ "$ARCHETYPE_AVAILABLE" = true ]; then
-  PR=$(gh pr create --draft --title "$TITLE" --body-file - \
-    --base "$PR_BASE" --head "$BOOKMARK" --label "$ARCHETYPE" <<<"$BODY")
-else
-  PR=$(gh pr create --draft --title "$TITLE" --body-file - \
-    --base "$PR_BASE" --head "$BOOKMARK" <<<"$BODY")
-fi
+PR=$(gh pr create --repo "$HOST/$REPOSITORY" --draft --title "$TITLE" --body-file - \
+  --base "$PR_BASE" --head "$PUSH_OWNER:$BOOKMARK" <<<"$BODY")
 ```
 
-When the head has one open PR, edit it and retain draft state. Discover its
-current labels, remove every stale available archetype label, add the selected
-one only when it is available, and verify one archetype label remains when
-available and none remains when the selected label is unavailable:
+When the head has one open PR, edit it and retain draft state:
 
 ```bash
 gh pr edit "$PR" --title "$TITLE" --body-file - --base "$PR_BASE" <<<"$BODY"
-CURRENT_LABELS=$(gh pr view "$PR" --json labels --jq '.labels[].name')
-while IFS= read -r label; do
-  if jq -e --arg label "$label" 'index($label) != null' <<<"$AVAILABLE_ARCHETYPES" >/dev/null &&
-     [ "$label" != "$ARCHETYPE" ]; then
-    gh pr edit "$PR" --remove-label "$label"
-  fi
-done <<<"$CURRENT_LABELS"
-if [ "$ARCHETYPE_AVAILABLE" = true ]; then
-  gh pr edit "$PR" --add-label "$ARCHETYPE"
-fi
 gh pr ready "$PR" --undo # skip only when already draft
 ```
 
-After either create or update, verify the post-publication label invariant:
+#### Attach selected repository labels
+
+After either path binds `PR`, add nonempty selections as JSON so commas
+remain inside exact names. This endpoint adds to existing labels; it does not
+remove them.
 
 ```bash
-ACTUAL_ARCHETYPES=$(gh pr view "$PR" --json labels | jq -c --argjson archetypes \
-  "$AVAILABLE_ARCHETYPES" \
-  '[.labels[].name | select(. as $label | $archetypes | index($label))] | sort')
-if [ "$ARCHETYPE_AVAILABLE" = true ]; then
-  EXPECTED_ARCHETYPES=$(jq -cn --arg label "$ARCHETYPE" '[$label]')
-else
-  EXPECTED_ARCHETYPES='[]'
+if jq -e 'length > 0' >/dev/null <<<"$SELECTED_LABELS"; then
+  PR_NUMBER=$(gh pr view "$PR" --repo "$HOST/$REPOSITORY" \
+    --json number --jq .number)
+  jq -ce '{labels: .}' <<<"$SELECTED_LABELS" |
+    gh api --method POST --hostname "$HOST" \
+      "repos/$REPOSITORY/issues/$PR_NUMBER/labels" --input - >/dev/null
 fi
-test "$ACTUAL_ARCHETYPES" = "$EXPECTED_ARCHETYPES"
 ```
 
 Publish a genuinely necessary self-contained black-zone unit as a draft
