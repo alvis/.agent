@@ -54,7 +54,7 @@ CONTEXT_PAYLOAD_EVENTS = {
     "hooks/MAINAGENT.md": {"SessionStart"},
     "hooks/SUBAGENT.md": {"SubagentStart"},
 }
-CLAUDE_ONLY_SHARED_SKILLS = ("install-output-style", "install-statusline")
+CLAUDE_ONLY_SHARED_SKILLS = ("install-output-styles", "install-statusline")
 RESOURCE_ROOT = re.compile(
     r"\$\{([A-Z][A-Z0-9_]*_(?:PLUGIN_ROOT|PLUGIN_DIR|SKILL_DIR))\}"
 )
