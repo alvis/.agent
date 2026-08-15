@@ -26,9 +26,9 @@ a worker's model and effort.
   before the first one-off nested spawn; default to three. `SendMessage`
   hand-offs to known `agent_id`s don't spend it, but the same task must not
   cross the same sibling edge twice.
-- **Hand off by reference.** The first message names the objective,
-  acceptance criteria, and relevant absolute artifact paths within the
-  4,096-character ceiling. Later messages carry only deltas. If
+- **Hand off by reference.** The first message follows
+  [directions/subagent-handover.md](directions/subagent-handover.md). Later
+  messages carry only deltas. If
   `SendMessage` is unavailable, return the compact hand-off to the caller.
 - **Keep agent definitions role-specific.** An agent's `Collaboration`
   section lists only outbound collaborators as concise bullets; it never

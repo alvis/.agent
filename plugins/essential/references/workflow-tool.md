@@ -50,6 +50,12 @@ export const meta = {
 
 ## Minimal example
 
+Every `agent()` task below is a first handover and therefore follows
+[directions/subagent-handover.md](directions/subagent-handover.md). The caller
+passes absolute file paths in `args.files`; the verification finding carries
+the absolute evidence path in `x.path`. `args.work_id` is the resolved stable
+reference required by `references/naming.md`.
+
 ```js
 export const meta = {
   name: 'review-changes',
@@ -58,9 +64,40 @@ export const meta = {
 }
 const results = await pipeline(
   args.files,
-  f => agent(`Review ${f} for defects; return findings.`, { phase: 'Review', schema: FINDINGS }),
+  f => agent(`${args.work_id}
+
+Goal: Identify actionable defects in the changed file with evidence sufficient for independent verification.
+
+Requirements:
+- Return findings that satisfy the FINDINGS schema.
+
+Boundary:
+- Review only; do not modify files.
+
+Directions:
+- Prioritize semantic correctness and regressions.
+
+Context:
+Inputs:
+- Changed file — ${f}`, { phase: 'Review', schema: FINDINGS }),
   r => parallel(r.findings.map(x => () =>
-    agent(`Adversarially verify: ${x.title}`, { phase: 'Verify', schema: VERDICT })
+    agent(`${args.work_id}
+
+Goal: Determine whether the reported defect is real, reproducible, and material.
+
+Requirements:
+- Return a verdict that satisfies the VERDICT schema.
+
+Boundary:
+- Verify only; do not modify files or broaden the finding.
+
+Directions:
+- Try to falsify the finding before accepting it.
+
+Context:
+Inputs:
+- Reported defect evidence — ${x.path}
+Finding: ${x.title}`, { phase: 'Verify', schema: VERDICT })
       .then(v => ({ ...x, verdict: v })))),
 )
 return { confirmed: results.flat().filter(Boolean).filter(x => x.verdict?.isReal) }

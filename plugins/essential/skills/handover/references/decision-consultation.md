@@ -8,8 +8,10 @@ a recheck trigger.
 For each decision, present context and viable options with tradeoffs, always
 including:
 
-- **Perform research** — dispatch bounded research and store its lowercase
-  output under `proposals/` with status `open`.
+- **Perform research** — dispatch bounded research using
+  [subagent-handover.md](../../../references/directions/subagent-handover.md),
+  with the unresolved decision and evidence paths in Context, and store its
+  lowercase output under `proposals/` with status `open`.
 - **Defer decision** — record owner/deadline, blocked tasks, and a pivot signal.
 
 Process outcomes:

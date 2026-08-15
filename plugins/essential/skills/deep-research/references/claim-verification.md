@@ -35,7 +35,10 @@ For each batch of ranked claims, dispatch **exactly three independent
 adversarial-verifier subagents**. Each verifier votes **once per claim** — three
 independent agents over the same claim give three independent votes. Keep at
 most ~25 claims per verifier and each report under ~1000 tokens. The three
-verifiers must not see each other's verdicts.
+verifiers must not see each other's verdicts. Compose each first task handover
+from [subagent-handover.md](../../../references/directions/subagent-handover.md):
+put the skeptical checklist and output shape in Requirements, isolation in
+Boundary, and only the assigned claim batch and source paths in Context.
 
 Each verifier is instructed to be skeptical and to **try to refute** each claim,
 returning per claim: `refuted` (boolean), `evidence` (specific, not generic),
