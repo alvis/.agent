@@ -22,7 +22,7 @@ Both mechanisms share one contract:
 
 ## Mechanism gate
 
-- **Mechanism A — ephemeral parallel execution**: when that capability is available AND `eval.backend` ∈
+- **Mechanism A — deterministic scripted execution**: when that capability is available AND `eval.backend` ∈
   {`programmatic`, `judges`}. These backends score without user input, so whole rounds run unattended.
 - **Mechanism B — sequential inline**: when parallel execution is unavailable or disabled, OR `eval.backend: human`. Human
   scoring needs per-round user input; under A every round would stop and resume — workable via `pending_decision`
@@ -168,7 +168,7 @@ One dispatch per refute pass, on the current winner.
 
 ---
 
-## Mechanism A — ephemeral parallel execution
+## Mechanism A — deterministic scripted execution
 
 Initiate the workflow with the design below. Pass it: the parsed brief (full frontmatter as data), `run_dir`,
 `baseline_score`, and — on resume — `resume_state` `{round, survivors, best-so-far}` reconstructed from `rounds/`.
@@ -247,7 +247,7 @@ pending_decisions:
 
 ### Illustrative workflow script skeleton
 
-Plain JS (no TS). No `Date.now()` / `Math.random()` — the parallel-execution runtime requires determinism so the cached
+Plain JS (no TS). No `Date.now()` / `Math.random()` — the scripted-execution runtime requires determinism so the cached
 prefix replays identically on resume; timestamps and seeds are passed in via args.
 
 ```js
@@ -318,7 +318,7 @@ Identical round semantics, driven inline by the orchestrator. Per round:
    rules, same persisted outputs as Mechanism A.
 2. **Score** — dispatch Score agents in parallel per `references/eval-backends.md`. Judges remain independent
    because each judge is a separate dispatch carrying the Independent Judge prompt block (rubric + one candidate,
-   nothing else); independence is structural, not promised. **Human scoring** runs through the graphical or structured user-input capability in
+   nothing else); independence is structural, not promised. **Human scoring** runs through the graphical or structured user-input tool in
    batteries per round, `eval.human.per_round_batch` candidates per battery, answers written to
    `rounds/round-NN/scores.yaml` — this is why B is preferred for the human backend.
 3. **Verify** — the same refute pass: the Adversarial Refuter prompt block dispatched on the winner,

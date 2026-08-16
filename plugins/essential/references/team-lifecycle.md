@@ -40,5 +40,7 @@ Choose the lowest intelligence whose `best_for` examples cover the task, using
 the authoritative ranks and examples in
 `skills/install-agents/references/intelligence-levels.json`. Agent metadata
 declares the role's level; harness adapters alone translate it into native
-model and effort fields. Resolve `inherit` to one active harness projection
-before dispatch, or treat the agent as ineligible.
+model and effort fields. Resolve `inherit` from the active harness projection
+before dispatch. Use its exact configured rank, or the highest configured rank
+for the same model when the active effort exceeds every configured effort.
+Treat other missing or ambiguous projections as ineligible.

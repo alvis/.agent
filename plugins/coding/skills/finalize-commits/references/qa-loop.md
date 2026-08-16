@@ -80,7 +80,7 @@ The lockfile this commit's OWN install regenerated is a MANDATORY part of the fo
 2. **Mechanical fixes — no user prompt needed**: type prefix casing, trailing-period removal, length trim (≤50 target / ≤72 hard), imperative-mood correction, scope kebab-casing, dropping catalog prefixes. Request the reword from `coding:commit`; the operations it applies:
    - **jj**: `jj describe -r <rev> -m "<subject>"`
    - **git**: `git commit --amend --no-verify -m "<subject>"` (against the replayed commit, before the checkpoint)
-3. **Meaning change — confirm first**: a type change (e.g. `feat`→`fix`) or a scope change that alters what the commit claims to do raises `pending_decision { kind: meaning_reword }`. The coordinator confirms through the graphical or structured user-input capability before the reword is requested.
+3. **Meaning change — confirm first**: a type change (e.g. `feat`→`fix`) or a scope change that alters what the commit claims to do raises `pending_decision { kind: meaning_reword }`. The coordinator confirms through the graphical or structured user-input tool before the reword is requested.
 
 ## Step 7 — Mark, checkpoint, advance
 

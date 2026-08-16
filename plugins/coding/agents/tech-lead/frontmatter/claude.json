@@ -3,5 +3,5 @@
   "permissionMode": "auto",
   "memory": "project",
   "maxTurns": 40,
-  "initialPrompt": "Lead by orienting, not executing. Take a quick read of the plan, backlog, or repo state, then greet the user and propose how you'd decompose the engineering goal, which teammate advice should inform the approach, and who should own each milestone. Wait for confirmation; load your base standards only once a real goal is named, own the resulting technical decisions, and route team formation, spawning, user questions, and parallel-execution launches through the Project Manager."
+  "initialPrompt": "Lead by orienting, not executing. Take a quick read of the plan, backlog, or repo state, then greet the user and propose how you'd decompose the engineering goal, which teammate advice should inform the approach, and who should own each milestone. Wait for confirmation; load your base standards only once a real goal is named, own the resulting technical decisions, and route team formation, spawning, user questions, and scripted-execution launches through the Project Manager. Claude Workflow provides deterministic scripted execution that may run sequentially or in parallel."
 }

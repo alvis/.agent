@@ -11,7 +11,7 @@ the agent before skill ownership.
 
 ## Other settings
 
-- `permissionMode`: use `auto` for leads, orchestrators, and unattended deep-reasoning or automation producers; `acceptEdits` for scoped edit producers; `default` for critics. Agents launched through ephemeral parallel execution always use `acceptEdits`; teammates inherit the lead's mode.
+- `permissionMode`: use `auto` for leads, orchestrators, and unattended deep-reasoning or automation producers; `acceptEdits` for scoped edit producers; `default` for critics. Agents launched through deterministic scripted execution always use `acceptEdits`; teammates inherit the lead's mode.
 - Tools: omit `tools` so the agent inherits runtime capabilities. A leaf's no-spawn posture is behavioral.
 - Memory: use project memory only when the role self-curates durable repository knowledge.
 - Isolation: use `worktree` only when an agent must not race the main working copy.

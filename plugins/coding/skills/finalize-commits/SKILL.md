@@ -1,7 +1,7 @@
 ---
 name: finalize-commits
 description: "Run isolated per-commit QA across every unpushed commit, report ordering or message issues, and coordinate approved corrections. Use before publishing a stack; coding:commit owns history mutations and coding:pr create owns publication."
-metadata:
+requirements:
   intelligence: high
 argument-hint: "[--auto-push]"
 ---

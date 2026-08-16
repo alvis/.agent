@@ -1,7 +1,7 @@
 ---
 name: modernize
 description: 'Apply version-supported syntax and API upgrades based on the project runtime and toolchain. Use when replacing legacy constructs with supported modern equivalents; do not claim general refactoring, dependency upgrades, or behavioral feature work.'
-metadata:
+requirements:
   intelligence: medium
 context: fork
 argument-hint: "<area> [--dry-run] [--target-version=X.Y]"

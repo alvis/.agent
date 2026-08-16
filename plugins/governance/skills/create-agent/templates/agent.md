@@ -54,7 +54,7 @@ Keep this object empty until Codex supports a native scalar per-agent field not 
 |---|---|
 | Main session (Project Manager or another user-facing entry agent) | per-role, from the table below |
 | Spawned subagent (via the runtime's subagent-dispatch capability) | per-role, from the table below |
-| Ephemeral parallel-execution worker | **always `acceptEdits`** — no exceptions, the run has no interactive channel to fall back to |
+| Deterministic scripted-execution worker | **always `acceptEdits`** — no exceptions, the run has no interactive channel to fall back to |
 | Teammate (member of an Agent Team) | **inherits the appointed lead's `permissionMode`** — a teammate never sets its own |
 
 Per-role default (main-session/spawned-subagent scenarios only — workflow and teammate override above):

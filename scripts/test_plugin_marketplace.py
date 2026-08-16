@@ -261,7 +261,7 @@ def skill_frontmatter(path: Path) -> tuple[str, str, str]:
     text = path.read_text()
     assert text.startswith("---\n")
     _, header, _ = text.split("---\n", 2)
-    intelligence_entries = quick_validate.metadata_intelligence_entries(
+    intelligence_entries = quick_validate.requirements_intelligence_entries(
         header.splitlines()
     )
     assert len(intelligence_entries) == 1
@@ -576,6 +576,25 @@ def test_shared_skills_follow_the_cross_harness_agent_skills_contract() -> None:
             )
 
 
+def test_canonical_skill_owners_meet_their_mandated_skill_requirements() -> None:
+    intelligence_levels = load_json(INTELLIGENCE_LEVELS_PATH)
+    owner_skills = (
+        ("code-quality-critic", "pr"),
+        ("testing-evangelist", "complete-test"),
+    )
+
+    for owner, skill in owner_skills:
+        metadata = load_json(
+            ROOT / "plugins/coding/agents" / owner / "frontmatter/meta.json"
+        )
+        _, _, requirement = skill_frontmatter(
+            ROOT / "plugins/coding/skills" / skill / "SKILL.md"
+        )
+        assert intelligence_levels[metadata["intelligence"]]["rank"] >= (
+            intelligence_levels[requirement]["rank"]
+        ), f"{owner} cannot execute its mandated coding:{skill} workflow"
+
+
 def test_shared_prose_uses_capabilities_instead_of_harness_tool_names() -> None:
     allowlisted_adapter_parts = {
         ("frontmatter", "claude.json"),
@@ -591,9 +610,6 @@ def test_shared_prose_uses_capabilities_instead_of_harness_tool_names() -> None:
             for adapter_parts in allowlisted_adapter_parts
         )
     ]
-    parallel_reference = ROOT / "plugins/essential/references/parallel-execution.md"
-    if parallel_reference not in shared_paths:
-        shared_paths.append(parallel_reference)
     intelligence_levels = load_json(INTELLIGENCE_LEVELS_PATH)
     concrete_model_names = {
         fields["model"]
@@ -620,6 +636,34 @@ def test_shared_prose_uses_capabilities_instead_of_harness_tool_names() -> None:
                     )
 
     assert failures == []
+
+
+def test_claude_workflow_is_described_as_deterministic_scripted_execution() -> None:
+    adapters = (
+        ROOT / "plugins/coding/agents/tech-lead/frontmatter/claude.json",
+        ROOT / "plugins/coding/agents/ai-research-lead/frontmatter/claude.json",
+        ROOT / "plugins/web/agents/design-lead/frontmatter/claude.json",
+    )
+
+    for adapter in adapters:
+        prompt = load_json(adapter)["initialPrompt"]
+        assert "Claude Workflow provides deterministic scripted execution" in prompt
+        assert "may run sequentially or in parallel" in prompt
+
+
+def test_shared_prose_uses_exact_user_input_wording() -> None:
+    wording = re.compile(
+        r"(?:the )?graphical or structured user-input (?:capability|tool)",
+        re.IGNORECASE,
+    )
+
+    for path in tracked_paths():
+        if path.suffix not in {".md", ".json"} or "tests" in path.parts:
+            continue
+        for match in wording.finditer(path.read_text(encoding="utf-8")):
+            assert match.group(0).lower().removeprefix("the ") == (
+                "graphical or structured user-input tool"
+            ), path.relative_to(ROOT)
 
 
 def test_shipped_qualified_capabilities_exist_in_this_marketplace() -> None:

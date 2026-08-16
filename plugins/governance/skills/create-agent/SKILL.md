@@ -1,7 +1,7 @@
 ---
 name: create-agent
 description: "Creates a new specialist agent from a shared base prompt plus split metadata, Claude, and Codex JSON sources, proposing intelligence and permissions by role archetype and confirming them with the user before writing. Use when adding a new subagent, defining a new specialist role, scaffolding an agent definition, or when update-agent hands off new-agent creation."
-metadata:
+requirements:
   intelligence: high
 context: fork
 argument-hint: "<role description> [--plugin=<owner>] [--intelligence=...] [--permission=...] [--yes]"
@@ -67,7 +67,7 @@ anything is written. `update-agent` owns changes to existing definitions.
      carried by its charter, its convergence predicate, and Essential's shared
      orchestration policy — never by a per-agent hook.
 4. Confirm before writing: compose one battery of at most four questions for the
-   graphical or structured user-input capability,
+   graphical or structured user-input tool,
    covering intelligence level and — only when they deviate from
    the archetype default — permissionMode and leaf-vs-spawn posture. List the
    recommended value first marked "(Recommended)" with a free-text override

@@ -218,8 +218,10 @@ def yaml_scalar(source: str) -> str | None:
     return source
 
 
-def root_flow_entries(source: str) -> list[tuple[int, int]] | None:
-    """Return entry spans when the frontmatter root is a flow mapping."""
+def root_flow_mapping(
+    source: str,
+) -> tuple[list[tuple[int, int]], int] | None:
+    """Return entry spans and closing offset for one complete flow mapping."""
     opening = next(
         (index for index, character in enumerate(source) if not character.isspace()),
         None,
@@ -255,13 +257,19 @@ def root_flow_entries(source: str) -> list[tuple[int, int]] | None:
         elif character in "]}":
             if character == "}" and depth == 1:
                 entries.append((entry_start, index))
-                return entries
+                return entries, index
             depth = max(0, depth - 1)
         elif character == "," and depth == 1:
             entries.append((entry_start, index))
             entry_start = index + 1
         index += 1
-    return entries
+    return None
+
+
+def root_flow_entries(source: str) -> list[tuple[int, int]] | None:
+    """Return entry spans when the frontmatter root is a flow mapping."""
+    mapping = root_flow_mapping(source)
+    return None if mapping is None else mapping[0]
 
 
 def flow_mapping_keys(
@@ -336,15 +344,61 @@ def normalized_selection_field(key: str) -> str:
     return key.replace("-", "").replace("_", "").lower()
 
 
-def metadata_intelligence_entries(
-    frontmatter: list[str],
-) -> list[tuple[str | None, int]]:
-    """Read block-style metadata.intelligence entries."""
+def flow_mapping_items(
+    source: str, line: int,
+) -> tuple[list[tuple[str | None, str | None, int]], int | None]:
+    """Read direct simple-key items from one flow-style mapping."""
+    mapping = root_flow_mapping(source)
+    if mapping is None:
+        return [], None
+    spans, closing = mapping
+    entries = []
+    for start, end in spans:
+        entry = source[start:end]
+        key_offset = len(entry) - len(entry.lstrip())
+        candidate = entry.lstrip()
+        entry_line = line + source.count("\n", 0, start + key_offset)
+        separator = mapping_separator(candidate, flow=True)
+        if separator is None or candidate.startswith("?"):
+            entries.append((None, None, entry_line))
+            continue
+        entries.append(
+            (
+                yaml_scalar(candidate[:separator]),
+                yaml_scalar(candidate[separator + 1 :]),
+                entry_line,
+            )
+        )
+    return entries, source.count("\n", 0, closing)
+
+
+def nested_mapping_items(
+    frontmatter: list[str], parent_key: str,
+) -> list[tuple[str | None, str | None, int]]:
+    """Read direct simple-key items from one block- or flow-style mapping."""
     source = without_yaml_comments("\n".join(frontmatter))
-    entries: list[tuple[str | None, int]] = []
-    metadata_line: int | None = None
-    metadata_child_indent: int | None = None
-    for index, line in enumerate(source.splitlines()):
+    root_mapping = root_flow_mapping(source)
+    if root_mapping is not None:
+        root_spans, _ = root_mapping
+        for start, end in root_spans:
+            entry = source[start:end]
+            key_offset = len(entry) - len(entry.lstrip())
+            candidate = entry.lstrip()
+            separator = mapping_separator(candidate, flow=True)
+            if separator is None or yaml_scalar(candidate[:separator]) != parent_key:
+                continue
+            line = 2 + source.count("\n", 0, start + key_offset)
+            items, _ = flow_mapping_items(candidate[separator + 1 :], line)
+            return items
+        return []
+    lines = source.splitlines()
+    entries: list[tuple[str | None, str | None, int]] = []
+    parent_line: int | None = None
+    child_indent: int | None = None
+    flow_consumed_through = -1
+    for index, line in enumerate(lines):
+        if index <= flow_consumed_through:
+            continue
         if not line.strip():
             continue
         indent = len(line) - len(line.lstrip())
@@ -356,22 +410,127 @@ def metadata_intelligence_entries(
             else None
         )
         if indent == 0:
-            metadata_line = index if key == "metadata" else None
-            metadata_child_indent = None
+            parent_line = index if key == parent_key else None
+            child_indent = None
+            if parent_line is not None and separator is not None:
+                flow_source = "\n".join(
+                    [candidate[separator + 1 :], *lines[index + 1 :]]
+                )
+                flow_entries, consumed_lines = flow_mapping_items(flow_source, index + 2)
+                entries.extend(flow_entries)
+                if consumed_lines is not None:
+                    flow_consumed_through = index + consumed_lines
             continue
-        if metadata_line is None or index <= metadata_line:
+        if parent_line is None or index <= parent_line:
             continue
-        if metadata_child_indent is None:
-            metadata_child_indent = indent
-        if (
-            indent == metadata_child_indent
-            and key == "intelligence"
-            and separator is not None
-        ):
+        if child_indent is None:
+            child_indent = indent
+        if indent == child_indent:
+            flow_source = "\n".join([candidate, *lines[index + 1 :]])
+            flow_entries, consumed_lines = flow_mapping_items(flow_source, index + 2)
+            if consumed_lines is not None:
+                entries.extend(flow_entries)
+                flow_consumed_through = index + consumed_lines
+                continue
+        if indent == child_indent:
+            if separator is None or candidate.startswith(("?", ":")):
+                entries.append((None, None, index + 2))
+                continue
             entries.append(
-                (yaml_scalar(candidate[separator + 1 :]), index + 2)
+                (key, yaml_scalar(candidate[separator + 1 :]), index + 2)
             )
     return entries
+
+
+def nested_mapping_entries(
+    frontmatter: list[str], parent_key: str, child_key: str,
+) -> list[tuple[str | None, int]]:
+    """Read matching scalar entries through the shared nested-key parser."""
+    return [
+        (value, line)
+        for key, value, line in nested_mapping_items(frontmatter, parent_key)
+        if key == child_key
+    ]
+
+
+def unsupported_mapping_value_references(
+    frontmatter: list[str], parent_keys: set[str],
+) -> list[tuple[str, int]]:
+    """Locate mapping values wrapped in unsupported YAML properties or aliases."""
+    source = without_yaml_comments("\n".join(frontmatter))
+    references = []
+    root_mapping = root_flow_mapping(source)
+    if root_mapping is not None:
+        root_spans, _ = root_mapping
+        for start, end in root_spans:
+            candidate = source[start:end].strip()
+            separator = mapping_separator(candidate, flow=True)
+            if separator is None:
+                continue
+            key = yaml_scalar(candidate[:separator])
+            value = candidate[separator + 1 :].strip()
+            if key in parent_keys and value.startswith(("&", "!", "*")):
+                references.append((key, 2 + source.count("\n", 0, start)))
+        return references
+
+    lines = source.splitlines()
+    for index, line in enumerate(lines):
+        if not line or line[0].isspace():
+            continue
+        candidate = line.rstrip()
+        separator = mapping_separator(candidate)
+        if separator is None:
+            continue
+        key = yaml_scalar(candidate[:separator])
+        if key not in parent_keys:
+            continue
+        value = candidate[separator + 1 :].strip()
+        value_line = index + 2
+        if not value:
+            for nested_index in range(index + 1, len(lines)):
+                nested = lines[nested_index]
+                if not nested.strip():
+                    continue
+                if not nested[0].isspace():
+                    break
+                value = nested.lstrip()
+                value_line = nested_index + 2
+                break
+        if value.startswith(("&", "!", "*")):
+            references.append((key, value_line))
+    return references
+
+
+def requirements_intelligence_entries(
+    frontmatter: list[str],
+) -> list[tuple[str | None, int]]:
+    """Read block-style requirements.intelligence entries."""
+    return nested_mapping_entries(frontmatter, "requirements", "intelligence")
+
+
+def metadata_intelligence_entries(
+    frontmatter: list[str],
+) -> list[tuple[str | None, int]]:
+    """Read deprecated block-style metadata.intelligence entries."""
+    return nested_mapping_entries(frontmatter, "metadata", "intelligence")
+
+
+def mapping_merge_entries(
+    frontmatter: list[str], parent_key: str,
+) -> list[tuple[str | None, int]]:
+    """Read YAML merge entries through the shared nested-mapping parser."""
+    return nested_mapping_entries(frontmatter, parent_key, "<<")
+
+
+def unsupported_nested_key_lines(
+    frontmatter: list[str], parent_key: str,
+) -> list[int]:
+    """Return lines whose raw nested keys are not direct scalar keys."""
+    return [
+        line
+        for key, _, line in nested_mapping_items(frontmatter, parent_key)
+        if key is None
+    ]
 
 
 def intelligence_levels() -> set[str]:
@@ -471,21 +630,72 @@ def validate_policy(skill: Path, *, portable: bool = False) -> PolicyReport:
                 errors.append(
                     issue(
                         "Shared skills must not declare model or effort fields; "
-                        "use metadata.intelligence.",
+                        "use requirements.intelligence.",
                         line=number,
                     )
                 )
 
     if not errors:
-        intelligence_entries = metadata_intelligence_entries(frontmatter)
+        for mapping in ("metadata", "requirements"):
+            unsupported_key_lines = unsupported_nested_key_lines(frontmatter, mapping)
+            if unsupported_key_lines:
+                errors.append(
+                    issue(
+                        f"Shared skill {mapping} must use direct scalar keys; "
+                        "aliases and complex keys are unsupported.",
+                        line=unsupported_key_lines[0],
+                    )
+                )
+                break
+
+    if not errors:
+        for mapping in ("metadata", "requirements"):
+            merge_entries = mapping_merge_entries(frontmatter, mapping)
+            if merge_entries:
+                errors.append(
+                    issue(
+                        f"Shared skill {mapping} must not use YAML merge keys; "
+                        "use a plain mapping.",
+                        line=merge_entries[0][1],
+                    )
+                )
+                break
+
+    if not errors and (
+        unsupported_references := unsupported_mapping_value_references(
+            frontmatter, {"metadata", "requirements"}
+        )
+    ):
+        mapping, number = unsupported_references[0]
+        errors.append(
+            issue(
+                f"Shared skill {mapping} must not use YAML node properties or "
+                "aliases; use a plain mapping.",
+                line=number,
+            )
+        )
+
+    if not errors and (
+        legacy_entries := metadata_intelligence_entries(frontmatter)
+    ):
+        errors.append(
+            issue(
+                "Shared skills must not declare metadata.intelligence; "
+                "use requirements.intelligence.",
+                line=legacy_entries[0][1],
+            )
+        )
+
+    if not errors:
+        intelligence_entries = requirements_intelligence_entries(frontmatter)
         if not intelligence_entries:
             errors.append(
-                issue("Shared skills must declare exactly one metadata.intelligence.")
+                issue("Shared skills must declare exactly one requirements.intelligence.")
             )
         elif len(intelligence_entries) > 1:
             errors.append(
                 issue(
-                    "Shared skills must declare exactly one metadata.intelligence.",
+                    "Shared skills must declare exactly one requirements.intelligence.",
                     line=intelligence_entries[1][1],
                 )
             )
@@ -494,7 +704,7 @@ def validate_policy(skill: Path, *, portable: bool = False) -> PolicyReport:
             if intelligence == "inherit":
                 errors.append(
                     issue(
-                        "Shared skills must declare a concrete metadata.intelligence; "
+                        "Shared skills must declare a concrete requirements.intelligence; "
                         "inherit is agent-only.",
                         line=number,
                     )
@@ -502,7 +712,7 @@ def validate_policy(skill: Path, *, portable: bool = False) -> PolicyReport:
             elif intelligence not in intelligence_levels():
                 errors.append(
                     issue(
-                        "Shared skill metadata.intelligence must name a concrete level "
+                        "Shared skill requirements.intelligence must name a concrete level "
                         "from Essential's intelligence mapping.",
                         line=number,
                     )

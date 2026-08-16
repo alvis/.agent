@@ -1,7 +1,7 @@
 ---
 name: plan-code
 description: Build an implementation-ready plan from an approved specification inside an active work stream. Use to resolve the decision surface, define atomic implementation slices, and prepare verification without creating independent root planning or change artifacts.
-metadata:
+requirements:
   intelligence: high
 argument-hint: "[--work-id=<id>] [--spec=<path-or-ref>] [--change=<description>]"
 ---

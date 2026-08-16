@@ -1,7 +1,7 @@
 ---
 name: document
 description: Create or update source-backed package usage documentation and durable architecture documentation. Use after meaningful code changes, when docs are missing or stale, or when a package needs an architecture overview under docs/architecture; route specifications and Notion content to specification skills.
-metadata:
+requirements:
   intelligence: medium
 argument-hint: "[--project=<path>] [--architecture|--no-architecture] [--readme-only] [--force-plan] [notes]"
 ---

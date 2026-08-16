@@ -812,18 +812,18 @@ def test_allagent_enforces_intelligence_eligibility_and_complete_handoff() -> No
     )
 
     for required_contract in (
-        "metadata.intelligence",
-        "mapping ranks",
+        "requirements.intelligence",
         "skills/install-agents/references/intelligence-levels.json",
-        "agent rank is at least the skill rank",
-        "transfer the complete task before execution",
-        "skill identity, evidence, constraints, acceptance criteria, and unresolved decisions",
-        "ask the main agent to staff a qualified agent",
-        "recipient repeats this eligibility check",
-        "one unique active harness model-and-effort projection",
-        "Missing or ambiguous resolution is ineligible",
-        "must not own or invoke the higher-level skill",
-        "main session without an intelligence line follows this inherited path",
+        "visible agent rank meets the skill rank",
+        "Missing\n`requirements.intelligence` means eligible",
+        "transfer the complete task with its identity, evidence",
+        "constraints, acceptance criteria, and unresolved decisions",
+        "Ask the main agent\n"
+        "to staff a qualified agent",
+        "recipient repeats this check",
+        "main session without a level",
+        "unresolved cases are ineligible",
+        "does not own or invoke the higher-level skill",
     ):
         assert required_contract in prompt
 

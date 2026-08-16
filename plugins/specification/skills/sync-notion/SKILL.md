@@ -1,7 +1,7 @@
 ---
 name: sync-notion
 description: Synchronize paired local files and Notion pages in a declared direction, validate opaque transport identity metadata, and coordinate guarded conflict resolution. Own transport and pairing; require an explicitly selected body-author capability before semantic body creation or change.
-metadata:
+requirements:
   intelligence: medium
 argument-hint: "<validate-metadata|local-to-notion|notion-to-local|two-way-merge> <file-or-ref> [counterpart...] [--transport-profile=<absolute-file>] [--body-author=<plugin:skill>] [--transport-root=<dir>] [--out=<dir>]"
 ---

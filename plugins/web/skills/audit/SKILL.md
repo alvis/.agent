@@ -1,7 +1,7 @@
 ---
 name: audit
 description: Audit a rendered web interface against the design standard with the bundled deterministic CLI, shared-browser evidence, responsive viewports, accessibility checks, and focused visual adjudication. Use for design QA, WCAG checks, visual review, or launch assessment. Route findings into canonical work reviews; route fixes to the owning implementation skill.
-metadata:
+requirements:
   intelligence: high
 argument-hint: "<URL> [--project=<path>] [--all-pages] [--viewport=mobile|tablet|desktop|wide|all] [--max-pages=N]"
 ---

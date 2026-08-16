@@ -118,7 +118,7 @@ The human is the panel; the protocol batches their time. Per round, present up t
 candidates, each as: candidate id + artifact path + a 1-line summary (written by the orchestrator from the artifact,
 not by the generator). Collect one score per candidate on the brief's anchored scale.
 
-- **Mechanism B (preferred for this backend)**: ask through the graphical or structured user-input capability in the live session — one
+- **Mechanism B (preferred for this backend)**: ask through the graphical or structured user-input tool in the live session — one
   question per candidate, the scale's anchors as options, batched per the tool's limits until the round's batch is
   covered. The Mechanism gate in SKILL.md prefers B whenever `eval.backend: human`, because parallel execution cannot take
   mid-run input and every round needs it.

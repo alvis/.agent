@@ -153,7 +153,7 @@ Type diagnostics and focused tests are separate gates that `coding:lint` does no
   those owners.
 - **If the user did not explicitly request a commit, ask whether to commit the work** (via `coding:commit`).
 - **If HEAD is not the local main branch, or the work is in a `jj` workspace or
-  linked Git worktree, use the graphical or structured user-input capability
+  linked Git worktree, use the graphical or structured user-input tool
   to ask whether to open a PR or move the work onto local main.** The shared
   guide owns the distinction between those
   workspace types.

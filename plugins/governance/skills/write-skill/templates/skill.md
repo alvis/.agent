@@ -1,7 +1,7 @@
 ---
 name: skill-name
 description: "[Description] — third person, what the skill does plus a 'Use when...' clause with concrete natural-language requests that express the activating intent; 25-60 words; lead with the key use case."
-metadata:
+requirements:
   intelligence: medium
 ---
 
@@ -14,7 +14,7 @@ Frontmatter
 - description: third person, what + when, key use case first. Repository
   budget is 25-60 words; Agent Skills allows up to 1024 characters. Name a
   neighboring exclusion only when it prevents a real trigger collision.
-- metadata.intelligence: choose one concrete level from Essential's
+- requirements.intelligence: choose one concrete level from Essential's
   intelligence mapping. Skills never use `inherit`, model, or effort fields.
 - For a shared Claude Code and Codex skill, follow the authoring contract's
   portable fields and never depend on experimental or harness-only metadata.

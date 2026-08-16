@@ -18,7 +18,7 @@ A facelift is a **v2 of an existing site** — a makeover, not a from-scratch de
 
 > **Hard gate** — do not capture, design, or build until this battery is answered.
 
-One four-question battery through the graphical or structured user-input capability:
+One four-question battery through the graphical or structured user-input tool:
 
 | # | Question | Options / notes |
 |---|----------|-----------------|
@@ -72,7 +72,7 @@ Turn the capture into an explicit judgment table before proposing anything:
 - Anything matching the SKILL.md Gotchas table defaults **kill**.
 - Everything else is judgment — one-line reason each, grounded in the harvest data.
 
-Present the table through the graphical or structured user-input capability (confirm / adjust). This confirmation doubles as taste calibration before candidates are built — a user who rescues a "kill" row is telling you something the direction questions didn't.
+Present the table through the graphical or structured user-input tool (confirm / adjust). This confirmation doubles as taste calibration before candidates are built — a user who rescues a "kill" row is telling you something the direction questions didn't.
 
 ## 5. V2 Direction Candidates
 

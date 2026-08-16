@@ -1,5 +1,5 @@
 <!-- INSTRUCTION: This is the companion template for forming a persistent agent team that
-     coordinates conversationally around a warm core, unlike ephemeral parallel execution. The main-session
+     coordinates conversationally around a warm core, unlike deterministic scripted execution. The main-session
      Project Manager alone forms and names the team and spawns persistent teammates. Domain leads orchestrate
      their teammates but ask the Project Manager to add them. A spawned subagent or existing teammate
      messages a best-known peer directly by `agent_id`, asking the Project Manager to suggest an owner only when
@@ -13,7 +13,7 @@ An Agent Team earns its overhead when several roles need persistent, high-signal
 a design review, incident bridge, or multi-role build where `generalist-engineer`,
 `testing-evangelist`, and `code-quality-critic` will exchange decisions over time. Reasoning and evidence belong
 in durable artifacts, not repeated messages. Independent dispatch-and-score slices use parallel subagent
-dispatches; high-volume scored iteration uses ephemeral parallel execution.
+dispatches; high-volume scored iteration uses deterministic scripted execution.
 
 ## Identity at runtime
 

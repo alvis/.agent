@@ -1,6 +1,6 @@
-# Per-Commit Loop with ephemeral parallel execution
+# Per-Commit Loop with deterministic scripted execution
 
-Referenced from SKILL.md Step 2. Defines how the atomic per-commit walk runs through ephemeral parallel execution when that capability is available, and the inline fallback when it is not. Per-commit procedure: `qa-loop.md`. All history mutations — folds, rewords, order surgery, and the final head move — are applied by `coding:commit`; publication is applied by `coding:pr create`. This file only orchestrates.
+Referenced from SKILL.md Step 2. Defines how the atomic per-commit walk runs through deterministic scripted execution when that capability is available, and the inline fallback when it is not. Per-commit procedure: `qa-loop.md`. All history mutations — folds, rewords, order surgery, and the final head move — are applied by `coding:commit`; publication is applied by `coding:pr create`. This file only orchestrates.
 
 ## Shape
 
@@ -24,15 +24,15 @@ When the run includes order changes or hunk folds — Step 2's recommendation, a
 - **Gate A — tip invariance, before any QA spend**: every order fix is an internal move, so the tip tree must be invariant. Verify `git diff <originalTip> <rebuiltTip> -- . ':(exclude)<lockfile>'` is EMPTY (jj: `jj diff --from <original> --to <rebuilt> --git -- '~<lockfile>'`). Non-empty means the surgery changed content — `coding:commit` rolls back; the walk does not start.
 - **Gate B — after the walk, before the branch head moves**: the same tip-equivalence check against the fully rebuilt tip (only QA folds and rewords may differ), PLUS the lock fixed-point: run the project install at the rebuilt tip and verify `git status --porcelain -- <lockfile>` is empty — the tip's lockfile is already self-consistent. Only after Gate B passes does `coding:commit` advance the branch head (and `HEAD`/`@`) to the rebuilt stack.
 
-## Mechanism A — ephemeral parallel execution
+## Mechanism A — deterministic scripted execution
 
 1. Build one step per target commit, each dispatching one mechanical-intelligence agent that runs the full `qa-loop.md` operation for that `<rev/sha>`, receiving `cur` and returning `newSha`.
 2. A step returning `status: green` chains `cur = newSha` and advances the walk.
 3. A step returning `status: pending_decision` **stops** the execution and surfaces the `pending_decision` block to the coordinator.
 4. The coordinator resolves it:
-   - `test_fail` / `coverage_fail` → use the graphical or structured user-input capability (fix now via `coding:fix` / accept / abort); on fix, re-run that commit's full atomic operation.
-   - `semantic_conflict` → use the graphical or structured user-input capability to decide the resolution (nothing was auto-merged).
-   - `meaning_reword` → use the graphical or structured user-input capability to confirm the type/scope change; on confirm, request the reword from `coding:commit`.
+   - `test_fail` / `coverage_fail` → use the graphical or structured user-input tool (fix now via `coding:fix` / accept / abort); on fix, re-run that commit's full atomic operation.
+   - `semantic_conflict` → use the graphical or structured user-input tool to decide the resolution (nothing was auto-merged).
+   - `meaning_reword` → use the graphical or structured user-input tool to confirm the type/scope change; on confirm, request the reword from `coding:commit`.
 5. The coordinator resumes from the stopped step through the capability's run-resumption identifier; the checkpoint ref for the last green position supplies `cur`.
 6. The run completes when every commit reports `green`; Gate B then clears the head to move.
 

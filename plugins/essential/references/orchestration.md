@@ -9,7 +9,7 @@ Classify the task and pick the substrate once, up front, then name the success c
 - **Inline** — don't dispatch when dispatching would save no context, add no independence, and only cost latency or a lossy hand-off. Work you can finish in a handful of tool calls is inline; prefer one subagent over several.
 - **Parallel tasks** — independent, dispatch-and-score work whose siblings needn't talk → parallel uses of the subagent-dispatch capability in one request, one stable reference from [naming.md](naming.md) each.
 - **Agent Team** — ongoing, high-signal multi-role coordination where warm context avoids repeated setup → persistent teammates around a warm core. A need to relay reasoning or evidence is not sufficient; put durable detail in artifacts.
-- **Ephemeral parallel execution** — high-volume structured iteration toward a measurable target: fan-out plus adversarial verification plus a bounded, resumable correction loop. A subagent composes the complete launch input and asks the main agent to run it.
+- **Deterministic scripted execution** — high-volume structured iteration toward a measurable target: fan-out plus adversarial verification plus a bounded, resumable correction loop. A subagent composes the complete launch input and asks the main agent to run it.
 
 ## Delegating well
 
@@ -62,7 +62,9 @@ Only the main agent assigns a configurable teammate `name` or label. Use `<short
 
 Resolve task intelligence through the authoritative mapping at
 `skills/install-agents/references/intelligence-levels.json`; harness adapters
-derive their native model and effort fields from that level. Lifecycle rules
+derive their native model and effort fields from that level. Skills without an
+intelligence requirement remain eligible. Inherited and main-session projections
+use the total resolution contract in `hooks/ALLAGENT.md`. Lifecycle rules
 live in [team-lifecycle.md](team-lifecycle.md); read it at spawn and wind-down
 moments.
 

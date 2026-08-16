@@ -1,7 +1,7 @@
 ---
 name: pr
 description: 'Use for GitHub pull-request workflows when the user asks to draft PR text, verify exact local CI parity, publish a branch, create, update, discover, check out, review, or merge a PR or linear stack. Trigger before running gh pr, inspecting GitHub stacks, or publishing PR-related changes.'
-metadata:
+requirements:
   intelligence: high
 argument-hint: "<author|verify|create|update|review|stack|merge> [arguments]"
 ---

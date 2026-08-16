@@ -1,7 +1,7 @@
 ---
 name: lint
 description: Enforce coding standards mechanically across a selected scope with batched linters and independent reviewers. Use when source files need lint-error correction, standards enforcement, or consistent formatting, including calls extended by another plugin's portable lint profile; behavior-changing repairs belong to fix.
-metadata:
+requirements:
   intelligence: medium
 argument-hint: "[specifier] [--scope=SCOPE] [--skip-unused] [--profile=ABSOLUTE_PATH]"
 ---
@@ -50,7 +50,7 @@ Fail before editing if the profile is invalid, references a missing standard/sca
 
 You are the lead orchestrator: coordinate, delegate, and aggregate only — never scan, lint, review, or read standard files yourself. Load [references/team-lint-cycle.md](references/team-lint-cycle.md) for the lead rules, agent pool lifecycle, per-batch task contents, the lint–review cycle, and `/goal` convergence semantics.
 
-0. Unless `--skip-unused` is set, run the pre-flight unused-code scan: invoke `coding:find-unused` with the specifier (or repo root). Zero findings → proceed silently. Otherwise present each finding through a graphical or structured user-input capability (file:line + symbol, Remove/Keep, ≤4 questions per call, paginated), then dispatch one low-intelligence cleanup agent with the confirmed-unused list to delete precisely and report. Record scan/removed/kept counts for the final report; they never count toward `violations_found_total`. `--scope` does not apply here — dead-code detection is project-wide by nature.
+0. Unless `--skip-unused` is set, run the pre-flight unused-code scan: invoke `coding:find-unused` with the specifier (or repo root). Zero findings → proceed silently. Otherwise present each finding through a graphical or structured user-input tool (file:line + symbol, Remove/Keep, ≤4 questions per call, paginated), then dispatch one low-intelligence cleanup agent with the confirmed-unused list to delete precisely and report. Record scan/removed/kept counts for the final report; they never count toward `violations_found_total`. `--scope` does not apply here — dead-code detection is project-wide by nature.
 1. Parse `specifier`, `--scope`, and the optional profile independently of argument order.
 2. Resolve candidate files:
    - `uncommitted`: union unstaged, staged, and untracked files, then apply the specifier.

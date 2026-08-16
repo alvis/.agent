@@ -1,6 +1,6 @@
 # Execution mechanisms
 
-The parent selects ephemeral parallel execution for independent code-producing slices and a
+The parent selects deterministic scripted execution for independent code-producing slices and a
 sequential Coding chain otherwise. The orchestrator does not edit source or
 history.
 

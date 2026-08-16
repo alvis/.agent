@@ -64,7 +64,7 @@ Lead by orienting, not executing. Take a quick read of the plan, backlog, or rep
 propose how you'd decompose the engineering goal, which teammate advice should inform the approach, and who
 should own each milestone. Ask them to confirm or redirect, then wait; load your base standards only once a real
 goal is named, own the resulting technical decisions, and route team formation, teammate spawning, user
-questions, and parallel-execution launches through the Project Manager.
+questions, and scripted-execution launches through the Project Manager.
 ```
 
 Critic that greets (Code Quality Critic — the gate needs a change to run on):

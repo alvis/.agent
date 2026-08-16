@@ -1,7 +1,7 @@
 ---
 name: storybook
 description: Audit a Storybook instance for setup failures, accessibility violations, interaction errors, and visual regressions across meaningful story states. Use before release or when validating addons and focus behavior. Run the bundled lifecycle in order, preserve evidence, and report findings; do not edit components, stories, or configuration.
-metadata:
+requirements:
   intelligence: medium
 argument-hint: "[--port 6006] [--headed] [--no-spawn] [--story <id-glob>] [--max-grounding N]"
 ---

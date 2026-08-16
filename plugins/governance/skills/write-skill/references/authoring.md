@@ -72,7 +72,7 @@ Use the strict Agent Skills frontmatter:
 ---
 name: skill-name
 description: Describe the owned outcome and the natural-language conditions that should activate it.
-metadata:
+requirements:
   intelligence: medium
 ---
 ```
@@ -83,13 +83,17 @@ trailing, or consecutive hyphens; it must match the directory name.
 skill does and when an agent should use it. Aim for 25-60 words and put the
 primary intent first.
 
-Every shared skill declares exactly one concrete `metadata.intelligence` from
+Every shared skill declares exactly one concrete `requirements.intelligence` from
 `plugin:essential/install-agents/references/intelligence-levels.json`. The mapping's
 `rank` and `best_for` fields own the ordering and task examples. `inherit` is
 agent-only. Never add model or effort fields to a skill; harness adapters derive
-agent configuration from agent metadata.
+agent configuration from agent metadata. `requirements` is this marketplace's
+harness-neutral extension; external skills may omit it and remain eligible.
 
-Other portable optional fields are `license`, non-empty `compatibility` of at
+Agent Skills reference validators may report the marketplace-owned `requirements`
+extension as unknown; use this skill's validator and both marketplace harness
+validators as the structural authority for shared skills. Other portable optional
+fields are `license`, non-empty `compatibility` of at
 most 500 characters, and additional `metadata` string entries. Agent
 Skills marks `allowed-tools` as experimental and its support varies; never
 depend on it for shared behavior. Omit harness extensions from a shared skill.
@@ -127,8 +131,11 @@ machine-readable output contracts. Close every tag.
    uvx --python 3.13 --from skills-ref agentskills validate "<skill-root>"
    ```
 
-   If it is unavailable, check the strict frontmatter and directory rules above
-   and report that no standard validator ran.
+   Its published schema does not include this marketplace's `requirements`
+   extension. Record an unknown-field result limited to `requirements`, then
+   continue to the marketplace and harness validators below; any other finding
+   fails this step. If it is unavailable, check the strict frontmatter and
+   directory rules above and report that no standard validator ran.
 2. Run the bundled `scripts/quick_validate.py --portable` as described in the
    root `SKILL.md`. It checks the self-contained path contract and validates a
    containing Claude plugin only when one is resolvable.

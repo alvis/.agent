@@ -1,6 +1,8 @@
-# Ephemeral parallel execution — input reference
+# Deterministic scripted execution — input reference
 
-What an ephemeral parallel-execution launch request must contain. Read this
+Scripted execution is deterministic. A script may run sequentially or include
+parallel execution through `pipeline()` or `parallel()`. This reference defines
+what a scripted-execution launch request must contain. Read it
 before composing the input you send to the main agent (see
 `hooks/SUBAGENT.md`): the main agent launches it verbatim, so invalid input
 wastes the round trip.

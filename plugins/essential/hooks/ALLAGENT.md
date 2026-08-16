@@ -11,18 +11,18 @@ orchestrating, or recording review, read
 
 ## Skill eligibility
 
-Before owning a skill workflow, read its `metadata.intelligence` and compare it
-with the visible agent intelligence using the mapping ranks in
+Before owning a skill, inspect its frontmatter. Missing
+`requirements.intelligence` means eligible; otherwise accept only when the
+visible agent rank meets the skill rank in
 `{{PLUGIN_DIR}}/skills/install-agents/references/intelligence-levels.json`.
-Accept only when the agent rank is at least the skill rank.
+Resolve `inherit` and a main session without a level through
+`{{PLUGIN_DIR}}/references/team-lifecycle.md`; unresolved cases are ineligible.
 
-An `inherit` agent resolves through one unique active harness model-and-effort projection before comparison; a main session without an intelligence line follows this inherited path. Missing or ambiguous resolution is ineligible.
-
-If the skill rank is higher, transfer the complete task before execution. Send the skill identity, evidence, constraints, acceptance criteria, and unresolved decisions
-to an eligible agent; ask the main agent to staff a qualified agent
-when none is known. The recipient repeats this eligibility check. A qualified
-owner may delegate self-contained mechanical subtasks downward only when the
-recipient must not own or invoke the higher-level skill.
+If ineligible, transfer the complete task with its identity, evidence,
+constraints, acceptance criteria, and unresolved decisions. Ask the main agent
+to staff a qualified agent when needed; the recipient repeats this check. A
+qualified owner may delegate mechanical subtasks downward only when the
+recipient does not own or invoke the higher-level skill.
 
 ## Work artifacts
 

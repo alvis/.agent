@@ -1,7 +1,7 @@
 ---
 name: deep-research
 description: Conduct comprehensive multi-source research with AI-assisted analysis, adversarial claim verification, and explicit source synthesis. Use when investigating complex topics, comparing evidence, gathering current information, or producing a fact-finding report with citations and uncertainty notes. Do not use for metric-driven candidate optimization.
-metadata:
+requirements:
   intelligence: xhigh
 argument-hint: "<research-topic> [optional-focus-area]"
 ---

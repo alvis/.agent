@@ -106,7 +106,7 @@ authorize `coding:pr update` separately.
 
 User: "while we wait for review on the avatar stack, can you also fix the broken footer link?"
 
-LLM detects: avatar work on `@`, footer is in a different package, no shared files. It uses the graphical or structured user-input capability:
+LLM detects: avatar work on `@`, footer is in a different package, no shared files. It uses the graphical or structured user-input tool:
 
 ```text
 Proposed work (footer fix in packages/web/src/Footer.tsx) is unrelated
@@ -204,7 +204,7 @@ gh pr view feat-auth/01-service --json state -q .state
 # MERGED
 ```
 
-Skill detects merged target per [workflow-correct-merged.md](./workflow-correct-merged.md) and uses the graphical or structured user-input capability:
+Skill detects merged target per [workflow-correct-merged.md](./workflow-correct-merged.md) and uses the graphical or structured user-input tool:
 
 ```text
 Target change is on origin and PR is MERGED.
@@ -344,7 +344,7 @@ final green state in its report.
 ```bash
 /coding:commit --retrospective --allow-rewrite-merged
 # Target ancestor is merged-on-origin.
-# The graphical or structured user-input capability is SKIPPED.
+# The graphical or structured user-input tool is SKIPPED.
 # Skill proceeds to Option 2 (rewrite) per workflow-correct-merged.md.
 # After local integrity passes, coding:commit lease-pushes only the authorized
 # bookmark. It inspects relevant downstream PR checks read-only and reports

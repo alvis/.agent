@@ -65,7 +65,7 @@ def test_generic_authorities_and_dispatching_skills_reference_direction() -> Non
         PLUGIN / "README.md",
         PLUGIN / "references/orchestration.md",
         PLUGIN / "references/team-lifecycle.md",
-        PLUGIN / "references/parallel-execution.md",
+        PLUGIN / "references/scripted-execution.md",
         PLUGIN / "hooks/MAINAGENT.md",
         PLUGIN / "hooks/SUBAGENT.md",
     )
@@ -102,7 +102,7 @@ def test_autoresearch_first_prompt_blocks_use_the_canonical_fields() -> None:
 
 
 def test_shipped_first_prompts_enforce_item_and_shared_path_rules() -> None:
-    workflow = (PLUGIN / "references/parallel-execution.md").read_text(encoding="utf-8")
+    workflow = (PLUGIN / "references/scripted-execution.md").read_text(encoding="utf-8")
     loop = (PLUGIN / "skills/autoresearch/references/loop-workflow.md").read_text(
         encoding="utf-8"
     )
@@ -131,7 +131,7 @@ def test_shipped_first_prompts_enforce_item_and_shared_path_rules() -> None:
 
 
 def test_parallel_adapter_uses_one_intelligence_option_contract() -> None:
-    adapter = (PLUGIN / "references/parallel-execution.md").read_text(
+    adapter = (PLUGIN / "references/scripted-execution.md").read_text(
         encoding="utf-8"
     )
     loop = (PLUGIN / "skills/autoresearch/references/loop-workflow.md").read_text(
