@@ -400,20 +400,6 @@ def test_intelligence_matrix_has_contiguous_ranks_unique_examples_and_native_pro
     assert len(examples) == len(set(examples))
     assert INTELLIGENCE_LEVELS["inherit"]["rank"] is None
 
-    expected_projections = {
-        "mechanical": ({"model": "haiku"}, {"model": "gpt-5.6-luna", "model_reasoning_effort": "low"}),
-        "low": ({"model": "opus", "effort": "low"}, {"model": "gpt-5.6-luna", "model_reasoning_effort": "max"}),
-        "medium": ({"model": "opus", "effort": "medium"}, {"model": "gpt-5.6-sol", "model_reasoning_effort": "medium"}),
-        "high": ({"model": "opus", "effort": "high"}, {"model": "gpt-5.6-sol", "model_reasoning_effort": "high"}),
-        "xhigh": ({"model": "opus", "effort": "xhigh"}, {"model": "gpt-5.6-sol", "model_reasoning_effort": "xhigh"}),
-        "max": ({"model": "opus", "effort": "max"}, {"model": "gpt-5.6-sol", "model_reasoning_effort": "max"}),
-        "inherit": ({"model": "inherit"}, {}),
-    }
-    assert {
-        level: (projection["claude"], projection["codex"])
-        for level, projection in INTELLIGENCE_LEVELS.items()
-    } == expected_projections
-
 
 @pytest.mark.parametrize(
     ("mutation", "message"),
@@ -1626,9 +1612,10 @@ def test_shell_entrypoint_resolves_essential_plugin_root(tmp_path: Path) -> None
 def test_source_checkout_installs_every_discovered_agent(tmp_path: Path) -> None:
     with redirect_stdout(StringIO()):
         destination = tmp_path / "agents"
+        templates = discover_agent_templates(ROOT / "plugins/essential")
         expected_names = {
             f"{template.name}.md"
-            for template in discover_agent_templates(ROOT / "plugins/essential")
+            for template in templates
         }
 
         count = install_agents(ROOT / "plugins/essential", destination)
@@ -1636,8 +1623,18 @@ def test_source_checkout_installs_every_discovered_agent(tmp_path: Path) -> None
     assert count == len(expected_names)
     assert {path.name for path in destination.glob("*.md")} == expected_names
     assert (destination / "frontend-implementer.md").is_file()
+    templates_by_file = {f"{template.name}.md": template for template in templates}
     for path in destination.glob("*.md"):
         agent = json.loads(path.read_text(encoding="utf-8").split("---\n", 2)[1])
+        source_template = templates_by_file[path.name]
+        metadata = json.loads(
+            (source_template.path / "frontmatter/meta.json").read_text(encoding="utf-8")
+        )
+        expected_projection = INTELLIGENCE_LEVELS[metadata["intelligence"]]["claude"]
+        installed_projection = {
+            field: agent[field] for field in ("model", "effort") if field in agent
+        }
+        assert installed_projection == expected_projection
         assert "intelligence" not in agent
         assert "intelligenceLevel" not in agent
     expected_direction = (
