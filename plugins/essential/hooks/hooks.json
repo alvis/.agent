@@ -1,5 +1,34 @@
 {
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "AskUserQuestion|request_user_input",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf '%s' 'Remind you to follow instructions in essential:references/directions/questions.md' | jq -Rs '{hookSpecificOutput:{hookEventName:\"PreToolUse\",additionalContext:.}}'"
+          }
+        ]
+      },
+      {
+        "matcher": "ExitPlanMode|update_plan",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf '%s' 'Remind you to follow instructions in essential:references/directions/plan.md' | jq -Rs '{hookSpecificOutput:{hookEventName:\"PreToolUse\",additionalContext:.}}'"
+          }
+        ]
+      },
+      {
+        "matcher": "Agent|spawn_agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf '%s' 'Remind you to follow instructions in essential:references/orchestration.md' | jq -Rs '{hookSpecificOutput:{hookEventName:\"PreToolUse\",additionalContext:.}}'"
+          }
+        ]
+      }
+    ],
     "SessionStart": [
       {
         "hooks": [

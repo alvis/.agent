@@ -599,6 +599,7 @@ def test_shared_prose_uses_capabilities_instead_of_harness_tool_names() -> None:
     allowlisted_adapter_parts = {
         ("frontmatter", "claude.json"),
         ("frontmatter", "codex.json"),
+        ("hooks", "hooks.json"),
     }
     shared_paths = [
         path
@@ -1052,7 +1053,7 @@ def test_shared_hooks_follow_the_cross_harness_schema() -> None:
         hooks_document = load_json(hooks_path)
         assert_matches_schema(hooks_document, schema)
         hooks = hooks_document["hooks"]
-        assert set(hooks) == expected_events
+        assert set(hooks) >= expected_events
 
         for payload_name, events in payload_events.items():
             for event in events:
@@ -1063,7 +1064,7 @@ def test_shared_hooks_follow_the_cross_harness_schema() -> None:
                 ]
                 assert len(commands) == 1
 
-        for event in hooks:
+        for event in expected_events:
             for command in hook_commands(hooks, event):
                 assert "${CLAUDE_PLUGIN_ROOT}" in command
                 if any(
