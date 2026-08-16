@@ -1068,9 +1068,9 @@ def test_shared_hooks_follow_the_cross_harness_schema() -> None:
 
         for event in hooks:
             for command in hook_commands(hooks, event):
-                assert "${CLAUDE_PLUGIN_ROOT}" in command
                 if event in PLUGIN_PRE_TOOL_EVENTS.get(plugin_root.name, set()):
                     continue
+                assert "${CLAUDE_PLUGIN_ROOT}" in command
                 if any(
                     command_references_payload(command, payload_name)
                     for payload_name in payload_events

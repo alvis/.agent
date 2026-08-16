@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "printf '%s' 'Remind you to follow instructions in {{PLUGIN_DIR}}/references/directions/questions.md' | sed \"s|{{PLUGIN_DIR}}|${CLAUDE_PLUGIN_ROOT}|g\" | jq -Rs '{hookSpecificOutput:{hookEventName:\"PreToolUse\",additionalContext:.}}'"
+            "command": "printf '%s' 'Remind you to follow instructions in essential:references/directions/questions.md' | jq -Rs '{hookSpecificOutput:{hookEventName:\"PreToolUse\",additionalContext:.}}'"
           }
         ]
       },
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "printf '%s' 'Remind you to follow instructions in {{PLUGIN_DIR}}/references/directions/plan.md' | sed \"s|{{PLUGIN_DIR}}|${CLAUDE_PLUGIN_ROOT}|g\" | jq -Rs '{hookSpecificOutput:{hookEventName:\"PreToolUse\",additionalContext:.}}'"
+            "command": "printf '%s' 'Remind you to follow instructions in essential:references/directions/plan.md' | jq -Rs '{hookSpecificOutput:{hookEventName:\"PreToolUse\",additionalContext:.}}'"
           }
         ]
       },
@@ -24,7 +24,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "printf '%s' 'Remind you to follow instructions in {{PLUGIN_DIR}}/references/orchestration.md' | sed \"s|{{PLUGIN_DIR}}|${CLAUDE_PLUGIN_ROOT}|g\" | jq -Rs '{hookSpecificOutput:{hookEventName:\"PreToolUse\",additionalContext:.}}'"
+            "command": "printf '%s' 'Remind you to follow instructions in essential:references/orchestration.md' | jq -Rs '{hookSpecificOutput:{hookEventName:\"PreToolUse\",additionalContext:.}}'"
           }
         ]
       }
