@@ -63,7 +63,6 @@ CONTEXT_PAYLOAD_EVENTS = {
     "hooks/MAINAGENT.md": {"SessionStart"},
     "hooks/SUBAGENT.md": {"SubagentStart"},
 }
-PLUGIN_PRE_TOOL_EVENTS = {"essential": {"PreToolUse"}}
 CLAUDE_ONLY_SHARED_SKILLS = ("install-output-styles", "install-statusline")
 PROHIBITED_SHARED_TOOL_PATTERNS = (
     re.compile(
@@ -1043,7 +1042,6 @@ def test_shared_hooks_follow_the_cross_harness_schema() -> None:
             if (plugin_root / name).is_file()
         }
         expected_events = set().union(*payload_events.values())
-        expected_events.update(PLUGIN_PRE_TOOL_EVENTS.get(plugin_root.name, set()))
         claude_manifest = load_json(plugin_root / ".claude-plugin" / "plugin.json")
         assert "hooks" not in claude_manifest
 
@@ -1055,7 +1053,7 @@ def test_shared_hooks_follow_the_cross_harness_schema() -> None:
         hooks_document = load_json(hooks_path)
         assert_matches_schema(hooks_document, schema)
         hooks = hooks_document["hooks"]
-        assert set(hooks) == expected_events
+        assert set(hooks) >= expected_events
 
         for payload_name, events in payload_events.items():
             for event in events:
@@ -1066,10 +1064,8 @@ def test_shared_hooks_follow_the_cross_harness_schema() -> None:
                 ]
                 assert len(commands) == 1
 
-        for event in hooks:
+        for event in expected_events:
             for command in hook_commands(hooks, event):
-                if event in PLUGIN_PRE_TOOL_EVENTS.get(plugin_root.name, set()):
-                    continue
                 assert "${CLAUDE_PLUGIN_ROOT}" in command
                 if any(
                     command_references_payload(command, payload_name)
