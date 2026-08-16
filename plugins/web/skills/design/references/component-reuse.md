@@ -16,7 +16,7 @@ question battery below is answered.
 
 ## The question battery
 
-One `AskUserQuestion` call, ≤4 questions, each with a stated safe default:
+One use of the graphical or structured user-input capability, ≤4 questions, each with a stated safe default:
 
 1. **Which component library?** Options: each detected candidate (the dominant
    one marked as default), "None — hand-rolled", "Other (specify)". If nothing

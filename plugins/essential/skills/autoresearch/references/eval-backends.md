@@ -26,8 +26,8 @@ All three backends share one contract:
 
 ## Programmatic backend
 
-One haiku agent per candidate runs `eval.programmatic.command` and parses the result. In code mode the command runs
-inside the candidate's own worktree (after the brief's `setup_command` has run once per worktree, before any eval);
+One mechanical-intelligence agent per candidate runs `eval.programmatic.command` and parses the result. In code
+mode the command runs inside the candidate's own worktree (after the brief's `setup_command` has run once per worktree, before any eval);
 in artifact mode it runs in the run dir with the candidate's artifact path substituted in.
 
 Its first task handover follows
@@ -80,7 +80,7 @@ stands. A high score that Verify refutes as gamed is `disqualified: metric_gamin
 
 ## Judge panel backend
 
-Per candidate, spawn `eval.judges.count` independent judge agents (minimum 3, must be odd), model opus.
+Per candidate, spawn `eval.judges.count` independent high-intelligence judge agents (minimum 3, must be odd).
 
 **INDEPENDENCE IS ABSOLUTE.** Each judge's payload contains ONLY: the brief's rubric, the scale with its anchors,
 the brief's constraints, and the candidate artifact. It NEVER contains generator reasoning, sibling candidates,
@@ -118,9 +118,9 @@ The human is the panel; the protocol batches their time. Per round, present up t
 candidates, each as: candidate id + artifact path + a 1-line summary (written by the orchestrator from the artifact,
 not by the generator). Collect one score per candidate on the brief's anchored scale.
 
-- **Mechanism B (preferred for this backend)**: ask natively via `AskUserQuestion` in the live session — one
+- **Mechanism B (preferred for this backend)**: ask through the graphical or structured user-input capability in the live session — one
   question per candidate, the scale's anchors as options, batched per the tool's limits until the round's batch is
-  covered. The Mechanism gate in SKILL.md prefers B whenever `eval.backend: human`, because a workflow cannot take
+  covered. The Mechanism gate in SKILL.md prefers B whenever `eval.backend: human`, because parallel execution cannot take
   mid-run input and every round needs it.
 - **Mechanism A (if a workflow is running anyway)**: the workflow stops and returns the stop contract
   `pending_decision {type: human_scoring, round, candidates: [{id, artifact_path, summary}], scale}`; the skill asks

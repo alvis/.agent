@@ -1,7 +1,8 @@
 ---
 name: update-agent
 description: Update explicitly selected agent definitions to the current split-source template or a stated behavior change while preserving useful role expertise, trigger boundaries, context, collaboration links, and working voice. Use when migrating agents to a template revision, correcting agent configuration, or batch-updating selected agents; require an exact selector and route genuinely new roles to create-agent.
-model: opus
+metadata:
+  intelligence: high
 context: fork
 argument-hint: "<agent path, name, or glob> [--changes=...] [--all]"
 ---
@@ -73,7 +74,9 @@ stated behavior change. `create-agent` owns genuinely new roles.
    names for main-agent teammate naming. Correct context aliases against the
    catalog. Keep Collaboration to concise outbound collaborator/delegation bullets,
    referencing each known agent's role-only name and main task. Do not duplicate Essential's shared runtime discovery,
-   handoff, workflow proxy, spawn-budget, or independent-review policy.
+   handoff, parallel-execution proxy, spawn-budget, or independent-review policy.
+   Keep one H1 title and no source intelligence line; the stitcher derives
+   exactly one matching line in each rendered definition from `meta.json`.
 6. Rewrite `initialPrompt` from `role-prompt.md` whenever the role's first
    move, the artifact/brief it needs, or its guardrail changed. It must remain
    a 2-4 sentence no-task first-turn directive (first move → wait → deferred

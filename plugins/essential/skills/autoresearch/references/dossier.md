@@ -33,7 +33,7 @@ round: 2
 parent_ids: ['r01-c01']          # [] for round-1 / wildcard candidates
 framing_direction: '<the direction this lineage descends from>'
 mutation: ''                     # the mutation/recombination directive; '' for round 1
-generator_model: opus|sonnet
+generator_intelligence: high|low
 artifact_path: 'rounds/round-02/candidates/r02-c03/artifact.md'
 summary: '<one line: what this candidate tries>'
 ```
@@ -81,7 +81,7 @@ final leaderboard state — never hand-patched mid-run.
 
 ## dossier.md format
 
-The Step 7 synthesis, written by a `fable/opus` agent from the round logs (it reads `rounds/`, not the orchestrator's
+The Step 7 synthesis, written by an xhigh-intelligence agent from the round logs (it reads `rounds/`, not the orchestrator's
 memory). Sections, in order:
 
 1. **Executive Summary** — goal, outcome, best score vs baseline vs target, stop reason.

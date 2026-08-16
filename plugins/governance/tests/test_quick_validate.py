@@ -28,11 +28,19 @@ class RecordingRun:
         return outcome
 
 
-def write_skill(root: Path, name: str, description: str, body: str) -> Path:
+def write_skill(
+    root: Path,
+    name: str,
+    description: str,
+    body: str,
+    *,
+    intelligence: str = "medium",
+) -> Path:
     path = root / "skills" / name / "SKILL.md"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
-        f'---\nname: {name}\ndescription: "{description}"\n---\n\n{body}\n',
+        f'---\nname: {name}\ndescription: "{description}"\n'
+        f"metadata:\n  intelligence: {intelligence}\n---\n\n{body}\n",
         encoding="utf-8",
     )
     return path
@@ -87,6 +95,136 @@ def test_accepts_minimal_skill_without_ceremony(tmp_path: Path) -> None:
     assert "diagram" not in messages.lower()
     assert "subagent" not in messages.lower()
     assert "coherence mandate" not in messages.lower()
+
+
+def test_rejects_inherited_skill_intelligence(tmp_path: Path) -> None:
+    skill = write_skill(
+        tmp_path,
+        "inherited",
+        "Use when a shared workflow needs a concrete portable intelligence requirement.",
+        "# Inherited\n\n## Workflow\n\nDo the work.",
+        intelligence="inherit",
+    )
+
+    report = quick_validate.validate_policy(skill)
+
+    assert report["errors"] == [
+        {
+            "message": (
+                "Shared skills must declare a concrete metadata.intelligence; "
+                "inherit is agent-only."
+            ),
+            "line": 5,
+        }
+    ]
+
+
+def test_rejects_missing_skill_intelligence(tmp_path: Path) -> None:
+    skill = tmp_path / "skills/shared/SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text(
+        "---\n"
+        "name: shared\n"
+        'description: "Use when validating a missing portable intelligence requirement."\n'
+        "---\n\n# Shared\n\n## Workflow\n\nDo the work.\n",
+        encoding="utf-8",
+    )
+
+    report = quick_validate.validate_policy(skill)
+
+    assert report["errors"] == [
+        {"message": "Shared skills must declare exactly one metadata.intelligence."}
+    ]
+
+
+def test_rejects_unknown_skill_intelligence(tmp_path: Path) -> None:
+    skill = write_skill(
+        tmp_path,
+        "unknown",
+        "Use when validating an unknown portable intelligence requirement.",
+        "# Unknown\n\n## Workflow\n\nDo the work.",
+        intelligence="extreme",
+    )
+
+    report = quick_validate.validate_policy(skill)
+
+    assert report["errors"] == [
+        {
+            "message": (
+                "Shared skill metadata.intelligence must name a concrete level "
+                "from Essential's intelligence mapping."
+            ),
+            "line": 5,
+        }
+    ]
+
+
+def test_rejects_nested_skill_intelligence(tmp_path: Path) -> None:
+    skill = tmp_path / "skills/shared/SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text(
+        "---\n"
+        "name: shared\n"
+        'description: "Use when validating a nested portable intelligence requirement."\n'
+        "metadata:\n"
+        "  nested:\n"
+        "    intelligence: high\n"
+        "---\n\n# Shared\n\n## Workflow\n\nDo the work.\n",
+        encoding="utf-8",
+    )
+
+    report = quick_validate.validate_policy(skill)
+
+    assert report["errors"] == [
+        {"message": "Shared skills must declare exactly one metadata.intelligence."}
+    ]
+
+
+@pytest.mark.parametrize(
+    ("model_key", "expected_line"),
+    (
+        ("model", 4),
+        ("model ", 4),
+        ("'model'", 4),
+        ('"model"', 4),
+        (r'"mod\u0065l"', 4),
+        ("effort", 4),
+        ("model_reasoning_effort", 4),
+        ("model-reasoning-effort", 4),
+        ("modelReasoningEffort", 4),
+        ("reasoning_effort", 4),
+        ("reasoning-effort", 4),
+    ),
+)
+def test_rejects_model_selection_fields_across_supported_yaml_spellings(
+    tmp_path: Path,
+    model_key: str,
+    expected_line: int,
+) -> None:
+    skill = tmp_path / "skills/shared/SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text(
+        "---\n"
+        "name: shared\n"
+        'description: "Use when validating harness-neutral shared skill metadata across runtimes."\n'
+        f"{model_key}: provider-specific\n"
+        "metadata:\n"
+        "  intelligence: medium\n"
+        "---\n\n# Shared\n\n## Workflow\n\nDo the work.\n",
+        encoding="utf-8",
+    )
+
+    report = quick_validate.validate_policy(skill)
+
+    assert report["errors"] == [
+        {
+            "message": (
+                "Shared skills must not declare model or effort fields; use "
+                "metadata.intelligence."
+            ),
+            "line": expected_line,
+        }
+    ]
 
 
 def test_reports_allowed_tools_failure_by_shared_skill_path(tmp_path: Path) -> None:
@@ -367,7 +505,9 @@ def test_ignores_allowed_tools_outside_root_mapping_keys(
 
     report = quick_validate.validate_policy(skill)
 
-    assert report["errors"] == []
+    assert report["errors"] == [
+        {"message": "Shared skills must declare exactly one metadata.intelligence."}
+    ]
 
 
 def test_reports_placeholders_long_body_and_missing_local_reference(

@@ -1,7 +1,8 @@
 ---
 name: decide
 description: 'Decides between researched approaches before implementation. Use when asked to choose an approach, challenge a recommendation, make an architecture decision, compare options, define rollback and falsification signals, or obtain approval; routes blindspot passes, brainstorms, interviews, references, and prototypes to essential:discover.'
-model: opus
+metadata:
+  intelligence: high
 argument-hint: "[problem-or-question]"
 ---
 

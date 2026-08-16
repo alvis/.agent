@@ -1,7 +1,8 @@
 ---
 name: refactor
 description: Improve green code through behavior-preserving structural changes to organization, naming, readability, documentation, or redundant defensive logic. Use to remove meaningless helpers or internal runtime checks when existing tests pass and the requested outcome is maintainability rather than changed behavior.
-model: opus
+metadata:
+  intelligence: medium
 context: fork
 argument-hint: "<area> [--focus=naming|structure|redundancy|docs|all]"
 ---

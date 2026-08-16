@@ -1,6 +1,8 @@
 ---
 name: next
 description: "Diagnose Next.js runtime behavior with next-browser and Chrome DevTools MCP: React components, routes, SSR errors, DOM/styles, performance, Lighthouse, network, device emulation, JavaScript debugging, storage, screenshots, and interactions. Use for evidence-backed browser diagnosis; route visual creation to design and story-state assessment to storybook."
+metadata:
+  intelligence: high
 argument-hint: "[debug instruction or URL]"
 ---
 

@@ -1,7 +1,8 @@
 ---
 name: deep-research
 description: Conduct comprehensive multi-source research with AI-assisted analysis, adversarial claim verification, and explicit source synthesis. Use when investigating complex topics, comparing evidence, gathering current information, or producing a fact-finding report with citations and uncertainty notes. Do not use for metric-driven candidate optimization.
-model: opus
+metadata:
+  intelligence: xhigh
 argument-hint: "<research-topic> [optional-focus-area]"
 ---
 
@@ -26,7 +27,7 @@ optimization belongs to `essential:autoresearch`.
 
 - **Required**: a research topic (`$ARGUMENTS`).
 - **Optional**: a focus area narrowing the topic's scope.
-- **Prerequisites**: `WebSearch`/`WebFetch` available for external topics;
+- **Prerequisites**: `internet search capability`/`page-retrieval capability` available for external topics;
   restricted or non-public topics are declined with a suggested public
   reframing.
 

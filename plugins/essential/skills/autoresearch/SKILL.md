@@ -1,7 +1,8 @@
 ---
 name: autoresearch
 description: 'Run a metric-driven research loop: define a metric, evaluator, baseline, and target; evolve candidate solutions; score and adversarially verify them; then mutate survivors until the target, budget, or plateau ends the run. Use for measurable optimization of prompts, code, experiments, or creative variants; use deep-research for fact-finding.'
-model: opus
+metadata:
+  intelligence: high
 context: fork
 argument-hint: "<research-goal-or-brief-path> [--brief=<path>] [--resume=<run-dir>] [--max-rounds=<n>] [--backend=programmatic|judges|human]"
 ---
@@ -37,8 +38,8 @@ research belong to `essential:deep-research`.
   exactly one number on stdout; `backend: judges` needs a rubric the interview
   can anchor; `backend: human` needs the user present each round. Code mode
   (`artifact_type: code`) needs a git repository and an explicit user execution
-  grant — never assumed. The dynamic `Workflow` tool and `coding:commit` are
-  both optional; the workflow states the fallback for each.
+  grant — never assumed. An ephemeral parallel-execution capability and
+  `coding:commit` are both optional; the workflow states the fallback for each.
 
 Before creating or materially rewriting a project artifact, read the absolute
 `state.md` path injected by Essential. If unavailable, stop artifact
@@ -88,7 +89,7 @@ isolation contract.
      the missing fields' domains.
    - Goal: step 2, full adaptive interview seeded with the goal text.
 2. **Interview until unambiguous** per
-   [references/interview.md](references/interview.md): `AskUserQuestion`
+   [references/interview.md](references/interview.md): use the graphical or structured user-input capability in
    batteries of at most 4 questions grouped by domain, every question offering
    a proposed default; answers land only in brief fields and body prose; never
    re-ask. Before exit-criterion (a) passes for `backend: programmatic`, dry-run
@@ -105,7 +106,8 @@ isolation contract.
    command/script and everything it reads to `search_space.immutable_paths`
    regardless of what the user listed.
    <IMPORTANT>
-   Hard gate: no Task or Workflow dispatch happens anywhere in this skill
+   Hard gate: no subagent dispatch or parallel-execution launch happens
+   anywhere in this skill
    before the user explicitly approves the brief. Present its decision surface
    (metric, backend, baseline, target, budget/plateau, constraints, directions,
    code-execution grant) and ask: approve / edit a field (re-render and
@@ -118,8 +120,8 @@ isolation contract.
    smoke-test the harness with one calibration eval of the baseline through
    the chosen backend exactly as a round would score
    ([references/eval-backends.md](references/eval-backends.md)): the full judge
-   panel, a single `AskUserQuestion` for the human backend, or one haiku eval
-   runner for programmatic.
+   panel, one use of the graphical or structured user-input capability for the
+   human backend, or one mechanical-intelligence evaluator for programmatic.
    - `baseline.artifact: 'none'` (cold start): skip calibration and set the
      baseline score to null — round 1's best initializes the trajectory.
    - A user-asserted `baseline.score` still gets the calibration: it is the
@@ -136,10 +138,10 @@ isolation contract.
    detail in [references/eval-backends.md](references/eval-backends.md) and
    genome breeding, fanout adaptation, and stop checks in
    [references/evolution.md](references/evolution.md). Choose exactly one
-   mechanism: A (dynamic `Workflow`) when the tool is available and
+   mechanism: A (ephemeral parallel execution) when that capability is available and
    `eval.backend` is programmatic or judges; B (sequential inline) otherwise —
-   preferred for the human backend even when `Workflow` exists, since every
-   round needs user input. Bounds: fanout generators per the brief (adaptive
+   preferred for the human backend even when parallel execution is available,
+   since every round needs user input. Bounds: fanout generators per the brief (adaptive
    4-8, sibling-blind, dispatched in one parallel message under Mechanism B),
    at least 3 (odd) independent judges per candidate, at most 3 refute passes
    per round.
@@ -147,7 +149,8 @@ isolation contract.
      listed candidate on the brief's anchored scale and write the answers into
      `rounds/round-NN/scores.yaml`; `constraint_ambiguity` → ask the contract's
      question and append the ruling to the brief's `## Amendments`; then resume
-     via `Workflow resumeFromRunId`. Repeat until a terminal status.
+     through the capability's run-resumption identifier. Repeat until a
+     terminal status.
    - Mid-round failures (Mechanism B): retry a failed generator slot once, then
      log the slot as forfeited — the round runs thinner, never silently
      backfilled. A non-scoreable candidate is recorded as

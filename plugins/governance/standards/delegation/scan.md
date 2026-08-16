@@ -9,7 +9,7 @@ If a violation is detected, load the matching rule guide at `./rules/<lowercase-
 
 - DO NOT delegate work whose assignment and report would consume at least as much context as direct execution [`DEL-BATC-01`]
 - DO NOT give one subagent more than about 10 resources by default, serialize independent batches, or continue dispatching while reported issues remain unresolved [`DEL-BATC-02`]
-- DO NOT send an `Agent`, `Task`, or `SendMessage` body over 4,096 characters or omit exact scope, constraints, and recursively applicable standards [`DEL-MSG-01`]
+- DO NOT send a subagent-dispatch or direct teammate-message body over 4,096 characters or omit exact scope, constraints, and recursively applicable standards [`DEL-MSG-01`]
 - DO NOT relay raw command output, request fields the orchestrator will not act on, exceed 1,000 tokens in a structured report, or return a review outside `ok`/`blocked` plus at most two lines [`DEL-REPT-01`]
 - DO NOT let a review subagent modify resources or make a batch decision without reconciling the combined reports [`DEL-REVI-01`]
 - DO NOT retry a failed batch indefinitely; normally stop after about two targeted retries and report what remains [`DEL-RETR-01`]

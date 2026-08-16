@@ -12,7 +12,7 @@ docs; it implies no remote destination.
 
 ## Step A — Analyze Existing Codebase (Step 1.3 in parent workflow)
 
-- Scan project structure using the Glob tool.
+- Scan project structure using filesystem listing and pattern-search capabilities.
 - Read `package.json` to identify dependencies and extract the package name.
 - Analyze file organization and architecture.
 - Identify key components from imports and exports.

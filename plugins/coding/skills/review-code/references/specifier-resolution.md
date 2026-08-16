@@ -31,7 +31,7 @@ Apply this decision ladder after file discovery:
 1. If `--area` parameter provided → Use specified scope(s)
 2. If specifier includes test files (`**/*.spec.ts`, `**/*.test.ts`) → Default to `testing` scope
 3. If specifier includes documentation files (`**/*.md`, `**/README*`) → Default to `docs` scope
-4. If working in interactive mode and no clear context → Ask user via AskUserQuestion (multiSelect):
+4. If working in interactive mode and no clear context → ask through the graphical or structured user-input capability with multiple selection:
    - Options: alignment, correctness, security, quality, testing, docs, style, all
    - Default: all
 5. If in CI mode and no scope specified → Default to `all`

@@ -31,7 +31,18 @@ ILLUSTRATIVE_DESTINATION = re.compile(
 )
 LOCAL_DIRECTORIES = {"agents", "assets", "evals", "hooks", "references", "scripts", "templates"}
 YAML_MERGE_TAGS = {"!!merge", "!<tag:yaml.org,2002:merge>"}
+MODEL_SELECTION_FIELDS = {
+    "effort",
+    "intelligence",
+    "intelligencelevel",
+    "model",
+    "modelreasoningeffort",
+    "reasoningeffort",
+}
 CLAUDE_TIMEOUT_SECONDS = 30
+INTELLIGENCE_MAPPING = Path(
+    "essential/skills/install-agents/references/intelligence-levels.json"
+)
 
 
 class PolicyReport(TypedDict):
@@ -320,6 +331,85 @@ def unsupported_root_mapping_line(frontmatter: list[str]) -> int | None:
     return None
 
 
+def normalized_selection_field(key: str) -> str:
+    """Normalize supported field spellings for portable policy checks."""
+    return key.replace("-", "").replace("_", "").lower()
+
+
+def metadata_intelligence_entries(
+    frontmatter: list[str],
+) -> list[tuple[str | None, int]]:
+    """Read block-style metadata.intelligence entries."""
+    source = without_yaml_comments("\n".join(frontmatter))
+    entries: list[tuple[str | None, int]] = []
+    metadata_line: int | None = None
+    metadata_child_indent: int | None = None
+    for index, line in enumerate(source.splitlines()):
+        if not line.strip():
+            continue
+        indent = len(line) - len(line.lstrip())
+        candidate = line.lstrip()
+        separator = mapping_separator(candidate)
+        key = (
+            yaml_scalar(candidate[:separator])
+            if separator is not None
+            else None
+        )
+        if indent == 0:
+            metadata_line = index if key == "metadata" else None
+            metadata_child_indent = None
+            continue
+        if metadata_line is None or index <= metadata_line:
+            continue
+        if metadata_child_indent is None:
+            metadata_child_indent = indent
+        if (
+            indent == metadata_child_indent
+            and key == "intelligence"
+            and separator is not None
+        ):
+            entries.append(
+                (yaml_scalar(candidate[separator + 1 :]), index + 2)
+            )
+    return entries
+
+
+def intelligence_levels() -> set[str]:
+    """Load concrete skill levels from Essential's authoritative mapping."""
+    script = Path(__file__).resolve()
+    versions = {
+        parent.name
+        for parent in script.parents
+        if re.fullmatch(r"\d+\.\d+\.\d+", parent.name)
+    }
+    candidates: list[Path] = []
+    for ancestor in script.parents:
+        direct = ancestor / INTELLIGENCE_MAPPING
+        if direct.is_file():
+            candidates.append(direct)
+        for version in versions:
+            versioned = (
+                ancestor
+                / "essential"
+                / version
+                / INTELLIGENCE_MAPPING.relative_to("essential")
+            )
+            if versioned.is_file():
+                candidates.append(versioned)
+    unique = list(dict.fromkeys(candidates))
+    if len(unique) != 1:
+        raise RuntimeError(
+            "Expected exactly one Essential intelligence mapping beside the "
+            f"installed marketplace; found {len(unique)}."
+        )
+    mapping = json.loads(unique[0].read_text(encoding="utf-8"))
+    return {
+        name
+        for name, entry in mapping.items()
+        if entry.get("rank") is not None
+    }
+
+
 def is_local_file_destination(destination: str) -> bool:
     """Return whether a normalized destination clearly denotes a local file."""
     if not destination or destination in {"url", "...", "…"}:
@@ -374,6 +464,46 @@ def validate_policy(skill: Path, *, portable: bool = False) -> PolicyReport:
                     issue(
                         "Shared skills must not declare allowed-tools: Codex does not "
                         "support this field; shared skills inherit runtime capabilities.",
+                        line=number,
+                    )
+                )
+            elif normalized_selection_field(key) in MODEL_SELECTION_FIELDS:
+                errors.append(
+                    issue(
+                        "Shared skills must not declare model or effort fields; "
+                        "use metadata.intelligence.",
+                        line=number,
+                    )
+                )
+
+    if not errors:
+        intelligence_entries = metadata_intelligence_entries(frontmatter)
+        if not intelligence_entries:
+            errors.append(
+                issue("Shared skills must declare exactly one metadata.intelligence.")
+            )
+        elif len(intelligence_entries) > 1:
+            errors.append(
+                issue(
+                    "Shared skills must declare exactly one metadata.intelligence.",
+                    line=intelligence_entries[1][1],
+                )
+            )
+        else:
+            intelligence, number = intelligence_entries[0]
+            if intelligence == "inherit":
+                errors.append(
+                    issue(
+                        "Shared skills must declare a concrete metadata.intelligence; "
+                        "inherit is agent-only.",
+                        line=number,
+                    )
+                )
+            elif intelligence not in intelligence_levels():
+                errors.append(
+                    issue(
+                        "Shared skill metadata.intelligence must name a concrete level "
+                        "from Essential's intelligence mapping.",
                         line=number,
                     )
                 )

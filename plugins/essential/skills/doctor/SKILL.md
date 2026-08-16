@@ -1,7 +1,8 @@
 ---
 name: doctor
 description: Check the integrity of local state and durable ADRs with the structural doctor, diagnose folder-structure and format drift against current contracts, and offer user-approved migration or repair. Use for health checks of .state/ or docs/architecture/decisions/, before resuming old work, or after suspected corruption or drift; this skill repairs records, never the work itself.
-model: opus
+metadata:
+  intelligence: medium
 argument-hint: "[work-id] [--strict]"
 ---
 
@@ -109,7 +110,7 @@ locate the active workspace and `.state/`; on `requires_ignore` or
    Where the doctor reports structure drift, offer the migration in
    **Structure migration** below rather than inventing one.
    Always include an ADR repair offer in the proposal, even when no stream
-   migration is needed. Ask the user with `AskUserQuestion` which streams to
+   migration is needed. Use the graphical or structured user-input capability to ask which streams to
    repair, migrate, park, or recover and which ADR fixes to approve;
    informational items need no action and defects in prose meaning are
    surfaced as questions, not silently "fixed".

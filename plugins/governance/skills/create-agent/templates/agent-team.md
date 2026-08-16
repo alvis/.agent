@@ -1,5 +1,5 @@
-<!-- INSTRUCTION: This is the companion template for forming an Agent Team — persistent teammates that
-     coordinate conversationally around a warm core, as distinct from a Dynamic Workflow. The main-session
+<!-- INSTRUCTION: This is the companion template for forming a persistent agent team that
+     coordinates conversationally around a warm core, unlike ephemeral parallel execution. The main-session
      Project Manager alone forms and names the team and spawns persistent teammates. Domain leads orchestrate
      their teammates but ask the Project Manager to add them. A spawned subagent or existing teammate
      messages a best-known peer directly by `agent_id`, asking the Project Manager to suggest an owner only when
@@ -12,8 +12,8 @@
 An Agent Team earns its overhead when several roles need persistent, high-signal coordination and warm context —
 a design review, incident bridge, or multi-role build where `generalist-engineer`,
 `testing-evangelist`, and `code-quality-critic` will exchange decisions over time. Reasoning and evidence belong
-in durable artifacts, not repeated messages. Independent dispatch-and-score slices belong to parallel `Agent`
-calls; high-volume scored iteration belongs to a Dynamic Workflow.
+in durable artifacts, not repeated messages. Independent dispatch-and-score slices use parallel subagent
+dispatches; high-volume scored iteration uses ephemeral parallel execution.
 
 ## Identity at runtime
 
@@ -25,7 +25,7 @@ Keep the three identifiers separate:
   preferred short names in the role description and format `<short-name>-<role>-<task>`; choose another
   suggestion when a living teammate already uses that short name.
 - **`agent_id`** — the runtime address returned after spawn. Every direct message targets this ID. Never use the
-  definition name, `subagent_type`, configured name, or label as a `SendMessage` address.
+  definition name, agent type, configured name, or label as a teammate-message address.
 
 ## Warm core
 
@@ -72,14 +72,14 @@ State one topology when forming the team:
 - **Chain** — one known `agent_id` hands directly to another known `agent_id`; use only for stable hand-offs.
 - **Mesh** — known peers message one another directly for a bounded exchange. Use sparingly.
 
-The topology describes decision ownership, but the actual `SendMessage` target is always an `agent_id`. Do not
+The topology describes decision ownership, but every direct teammate message targets an `agent_id`. Do not
 turn the hierarchy into a payload relay.
 
 ## Hand-offs
 
 A hand-off sends one bounded mission capsule — objective, acceptance criteria, constraints, why it matters, and
 absolute paths to standards and durable artifacts. It never pastes the artifacts into the message. After the
-first hand-off, that edge carries deltas only. Every `Agent`, `Task`, and `SendMessage` body stays at or below
+first hand-off, that edge carries deltas only. Every subagent-dispatch and direct teammate-message body stays at or below
 4,096 characters. Document planned edges by role for readability, then bind each role to its returned `agent_id`
 before the first message:
 
@@ -90,8 +90,8 @@ code-quality-critic -> tech-lead: gate pass, or two rounds exhausted
 testing-evangelist -> generalist-engineer: coverage gap found during implementation
 ```
 
-At runtime, the sender uses the recipient's captured ID, for example
-`SendMessage(agent_id="agent-7f2", ...)`; it never addresses `code-quality-critic` as a type.
+At runtime, the sender uses the direct teammate-messaging capability with the
+recipient's captured ID; it never addresses `code-quality-critic` as a type.
 
 Every planned edge should already exist as a `Collaboration` statement in the source role's `base.md`. The team
 activates proven edges; it does not invent ownership.

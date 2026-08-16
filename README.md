@@ -233,40 +233,40 @@ or PR publication only after the local flow is understood.
 
 ## Agent team
 
-A 22-agent team for Claude Code organized into a main-session Project Manager, domain leads, and their teammates. Shared operation lives in `plugins/essential/hooks/ALLAGENT.md` and `plugins/essential/hooks/MAINAGENT.md`, subagent conduct including the Workflow-proxy protocol lives in `plugins/essential/hooks/SUBAGENT.md`, owner-specific routing lives in each contributing plugin's `plugins/<owner>/hooks/ALLAGENT.md`, and per-agent delegation topology lives in each agent definition. A plugin that owns an injected domain binding carries a `plugins/<owner>/hooks/MAINAGENT.md`, injected at `SessionStart` only: `coding` binds to `tech-lead` and `web` binds to `design-lead`. Each lead wraps its `## Collaboration` map in an `<IMPORTANT>` tag, marking it as the map the lead routes from.
+A cross-harness 22-agent team is organized into a main-session Project Manager, domain leads, and their teammates. Shared operation lives in `plugins/essential/hooks/ALLAGENT.md` and `plugins/essential/hooks/MAINAGENT.md`, subagent conduct including the parallel-execution proxy protocol lives in `plugins/essential/hooks/SUBAGENT.md`, owner-specific routing lives in each contributing plugin's `plugins/<owner>/hooks/ALLAGENT.md`, and per-agent delegation topology lives in each agent definition. A plugin that owns an injected domain binding carries a `plugins/<owner>/hooks/MAINAGENT.md`, injected at `SessionStart` only: `coding` binds to `tech-lead` and `web` binds to `design-lead`. Each lead wraps its `## Collaboration` map in an `<IMPORTANT>` tag, marking it as the map the lead routes from.
 
-Install via the `essential:install-agents` skill (ask Claude to "install the agents"). Canonical sources live under `plugins/<owner>/agents/<name>/` as `base.md` plus `frontmatter/meta.json`, `claude.json`, and `codex.json`. The installer discovers source-checkout siblings, enabled same-marketplace plugins, and explicitly trusted marketplaces passed with `--include-marketplace`; it validates the complete discovered roster, stages stitched files, and copies them into the selected harness's personal agent directory. It overwrites current same-named discoveries and leaves unrelated or stale files untouched. Edits require a re-install, and changes take effect in the next session.
+Install via the `essential:install-agents` skill in the active harness. Canonical sources live under `plugins/<owner>/agents/<name>/` as `base.md` plus `frontmatter/meta.json`, `claude.json`, and `codex.json`. The installer discovers source-checkout siblings, enabled same-marketplace plugins, and explicitly trusted marketplaces passed with `--include-marketplace`; it validates the complete discovered roster, stages stitched files, and copies them into the selected harness's personal agent directory. It overwrites current same-named discoveries and leaves unrelated or stale files untouched. Edits require a re-install, and changes take effect in the next session.
 
 ### Roster
 
-| Agent | Role | Model | Effort | Permission | Flags |
-| --- | --- | --- | --- | --- | --- |
-| `tech-lead` | Tech Lead — decomposes projects, decides the approach, and routes milestones | fable | low | auto | memory |
-| `design-lead` | Design Lead — decomposes and directs design initiatives across platforms | opus | high | auto | memory |
-| `ai-research-lead` | AI Research Lead — decomposes and directs ML/RL/AI research initiatives | fable | medium | auto | memory |
-| `principal-engineer` | Principal Engineer — escalation sink for hard debugging/perf/algorithms | fable | high | auto | worktree, memory |
-| `generalist-engineer` | Generalist Engineer — libraries, data pipelines, CLIs, glue code | sonnet | high | acceptEdits | worktree, memory |
-| `data-architect` | Data Architect — schemas, data models, pipelines | opus | high | auto | memory |
-| `frontend-designer` | Frontend Designer — designs all app screens (web/mobile/desktop), never builds | fable | high | auto | worktree, memory |
-| `frontend-implementer` | Frontend Implementer — creates and edits production React/TS UI, with or without a design handoff | sonnet | high | acceptEdits | worktree, memory |
-| `desktop-implementer` | Desktop Implementer — builds approved designs as Electron/desktop apps | sonnet | high | acceptEdits | worktree, memory |
-| `mobile-implementer` | Mobile Implementer — builds approved designs as mobile apps in React Native | sonnet | high | acceptEdits | worktree, memory |
-| `ml-engineer` | ML Engineer — full ML lifecycle: data analysis and ML/AI features | opus | high | auto | worktree, memory |
-| `devops` | DevOps — CI/CD and infra automation, background passes | sonnet | medium | auto | background, memory |
-| `harness-eval-engineer` | Harness & Eval Engineer — eval suites, benchmarks, and prototypes as code | opus | high | auto | worktree, memory |
-| `testing-evangelist` | Testing Evangelist — authors test suites via TDD | sonnet | medium | acceptEdits | leaf, memory |
-| `test-runner` | Test Runner — mechanical lint/type/test sweeps, summarized | haiku | — | acceptEdits | leaf, background, memory |
-| `code-quality-critic` | Code Quality Critic — the independent quality gate, day-to-day quality and security review | opus | medium | default | critic (write-fenced), memory |
-| `security-champion` | Security Champion — deep security review, explicit request only | fable | high | default | critic, memory |
-| `adversarial-red-team` | Adversarial Red-Team — PoC exploits in an isolated worktree | opus | high | default | leaf, worktree, memory |
-| `aesthetic-evaluator` | Aesthetic Evaluator — design and build-vs-design judgment | fable | medium | default | leaf, critic (write-fenced), memory |
-| `specification-expert` | Specification Expert — DESIGN.md, requirements, user docs, Notion | sonnet | medium | acceptEdits | leaf, memory |
-| `project-initializer` | Project Initializer — run-once bootstrap | sonnet | low | acceptEdits | leaf, memory |
-| `workflow-optimizer` | Workflow Optimizer — meta-review of agents/skills, proposes diffs only | opus | high | auto | background, memory |
+| Agent | Role | Intelligence |
+| --- | --- | --- |
+| `tech-lead` | Tech Lead — decomposes projects, decides the approach, and routes milestones | high |
+| `design-lead` | Design Lead — decomposes and directs design initiatives across platforms | medium |
+| `ai-research-lead` | AI Research Lead — decomposes and directs ML/RL/AI research initiatives | high |
+| `principal-engineer` | Principal Engineer — escalation sink for hard debugging/perf/algorithms | high |
+| `generalist-engineer` | Generalist Engineer — libraries, data pipelines, CLIs, glue code | low |
+| `data-architect` | Data Architect — schemas, data models, pipelines | medium |
+| `frontend-designer` | Frontend Designer — designs all app screens (web/mobile/desktop), never builds | high |
+| `frontend-implementer` | Frontend Implementer — creates and edits production React/TS UI, with or without a design handoff | low |
+| `desktop-implementer` | Desktop Implementer — builds approved designs as Electron/desktop apps | low |
+| `mobile-implementer` | Mobile Implementer — builds approved designs as mobile apps in React Native | low |
+| `ml-engineer` | ML Engineer — full ML lifecycle: data analysis and ML/AI features | medium |
+| `devops` | DevOps — CI/CD and infra automation, background passes | low |
+| `harness-eval-engineer` | Harness & Eval Engineer — eval suites, benchmarks, and prototypes as code | medium |
+| `testing-evangelist` | Testing Evangelist — authors test suites via TDD | low |
+| `test-runner` | Test Runner — mechanical lint/type/test sweeps, summarized | mechanical |
+| `code-quality-critic` | Code Quality Critic — the independent quality gate, day-to-day quality and security review | medium |
+| `security-champion` | Security Champion — deep security review, explicit request only | high |
+| `adversarial-red-team` | Adversarial Red-Team — PoC exploits in an isolated worktree | medium |
+| `aesthetic-evaluator` | Aesthetic Evaluator — design and build-vs-design judgment | high |
+| `specification-expert` | Specification Expert — DESIGN.md, requirements, user docs, Notion | low |
+| `project-initializer` | Project Initializer — run-once bootstrap | low |
+| `workflow-optimizer` | Workflow Optimizer — meta-review of agents/skills, proposes diffs only | medium |
 
 Each agent's `## Collaboration` section records proven role-level collaborators and delegation targets using role-only definition names. These are runtime defaults, not an allowlist; naming, `agent_id` messaging, main-agent brokering, and nested-spawn policy live in `plugins/essential/hooks/ALLAGENT.md`.
 
-Every agent owns project-scoped memory at `.claude/agent-memory/<role>/MEMORY.md`. Definitions state the durable role-specific knowledge to retain, while `essential:templates/memory.md` defines the shared evidence, freshness, contradiction, archival, and size-control contract. Memory writers keep Write and Edit available without new hooks; source-read-only roles restrict those tools to memory by charter.
+The Claude adapter gives each agent project-scoped memory at `.claude/agent-memory/<role>/MEMORY.md`; Codex keeps memory harness-owned. Definitions state the durable role-specific knowledge to retain, while `essential:templates/memory.md` defines the shared evidence, freshness, contradiction, archival, and size-control contract. Memory writers keep filesystem write and edit capabilities available without new hooks; source-read-only roles restrict them to memory by charter.
 
 ### Delegation topology
 
@@ -294,7 +294,7 @@ workflow-optimizer ──► runtime specialists for bounded audit slices and se
 
 Leaf-by-charter agents: `testing-evangelist`, `specification-expert`, `project-initializer`, `aesthetic-evaluator`, `adversarial-red-team`, and `test-runner`. Like every agent definition, they omit `tools` and inherit the runtime tool surface; their charter prohibits nested spawning. They message the best-known peer directly by `agent_id`; only when they cannot identify the owner do they ask the main agent to suggest one.
 
-Team hand-off edges are documented by role for readability, but every `SendMessage` call targets the captured runtime `agent_id`:
+Team hand-off edges are documented by role for readability, but every direct teammate-messaging capability call targets the captured runtime `agent_id`:
 
 ```
 design-lead → frontend-designer/frontend-implementer/desktop-implementer/mobile-implementer: initiative slice per platform
@@ -307,7 +307,7 @@ frontend-implementer/desktop-implementer/mobile-implementer → aesthetic-evalua
 data-architect ↔ ml-engineer: schema design and data-profiling consults
 harness-eval-engineer ↔ testing-evangelist: test-strategy and harness alignment
 any producer → principal-engineer: blocked on a hard technical problem
-any agent → main agent: Workflow launch request (see plugins/essential/hooks/SUBAGENT.md)
+any agent → main agent: parallel-execution launch request (see plugins/essential/hooks/SUBAGENT.md)
 ```
 
 Only the main agent names persistent teammates. It chooses one of the three short names in the role description, formats `<short-name>-<role>-<task>`, and avoids collisions. Nested agents may spawn only certainly one-off helpers, specify `subagent_type`, and omit configured names; for continuing work they message the best-known teammate directly by `agent_id` and ask the main agent to suggest an owner only when they cannot identify one.
@@ -329,7 +329,7 @@ Only the main agent names persistent teammates. It chooses one of the three shor
 
 - Works team-first: The Project Manager initiates the team, appoints domain leads, and handles staffing and user/session proxies. Each lead gathers teammate advice, decomposes its assigned work, owns the domain's implementation decisions, assigns and monitors the pieces across its team, and reconciles delivery. `plugins/essential/hooks/ALLAGENT.md` carries shared operation rules; each owner plugin's `plugins/<owner>/hooks/ALLAGENT.md` carries only its task-to-specialist rows.
 - Subagents reply to the assigning teammate's `agent_id`. Roles and configured names are never direct-message addresses. For continuing work they message the best-known teammate directly when they have its ID, ask the main agent to resolve the ID when the teammate is known, and ask the main agent to suggest a warm peer by folder/feature history or spawn a new named teammate only when they cannot identify the owner.
-- Subagents never launch the `Workflow` tool: they compose the complete tool input and SendMessage it to the main agent, which launches it and replies with the result (see `plugins/essential/hooks/SUBAGENT.md`). Plans authored by a specialist in plan mode flow back to the main agent the same way for presentation.
+- Subagents proxy ephemeral parallel execution through the main agent: they compose the complete launch input, send it through the direct teammate-messaging capability, and wait for the result (see `plugins/essential/hooks/SUBAGENT.md`). Plans authored by a specialist in plan mode flow back to the main agent the same way for presentation.
 
 ### Notes
 

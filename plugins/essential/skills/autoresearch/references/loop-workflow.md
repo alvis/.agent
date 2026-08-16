@@ -22,25 +22,25 @@ Both mechanisms share one contract:
 
 ## Mechanism gate
 
-- **Mechanism A — dynamic `Workflow` tool**: when the `Workflow` tool is available AND `eval.backend` ∈
+- **Mechanism A — ephemeral parallel execution**: when that capability is available AND `eval.backend` ∈
   {`programmatic`, `judges`}. These backends score without user input, so whole rounds run unattended.
-- **Mechanism B — sequential inline**: when `Workflow` is unavailable/disabled, OR `eval.backend: human`. Human
+- **Mechanism B — sequential inline**: when parallel execution is unavailable or disabled, OR `eval.backend: human`. Human
   scoring needs per-round user input; under A every round would stop and resume — workable via `pending_decision`
-  but strictly worse, so B is preferred for the human backend even when `Workflow` exists.
+  but strictly worse, so B is preferred for the human backend even when parallel execution exists.
 
 ---
 
 ## Shared agent prompt blocks
 
-Both mechanisms dispatch the same three prompts verbatim — Mechanism B sends them as `Task` payloads; Mechanism A's
+Both mechanisms dispatch the same three prompts verbatim — Mechanism B sends them as subagent-dispatch payloads; Mechanism A's
 `generatePayload` / `judgePayloads` / `refutePayload` helpers render them with the same placeholders filled.
 Neither mechanism owns them: a change here changes both. `<...>` placeholders come from the brief
-(`references/brief-template.md` field names) and the current round's state. The programmatic backend's `haiku`
+(`references/brief-template.md` field names) and the current round's state. The programmatic backend's mechanical-intelligence
 eval runner is not duplicated here — it follows the procedure in `references/eval-backends.md`, the same prompt
 SKILL.md Step 4 uses for the baseline calibration; the human protocol likewise lives there. Each block follows
 [subagent-handover.md](../../../references/directions/subagent-handover.md).
 
-### Candidate Generator (`opus`; `sonnet` for mechanical parameter sweeps)
+### Candidate Generator (high intelligence; low for mechanical parameter sweeps)
 
 One dispatch per genome slot, sibling-blind.
 
@@ -87,7 +87,7 @@ One dispatch per genome slot, sibling-blind.
     Directive: `<what to keep, vary, or combine; omit when empty in round 1>`
     <<<
 
-### Independent Judge (`opus`; `eval.judges.count` per candidate — >=3, odd)
+### Independent Judge (high intelligence; `eval.judges.count` per candidate — >=3, odd)
 
 One dispatch per judge per candidate — never batched, so independence is structural, not promised. Consensus,
 tie-break, and abstention rules in `references/eval-backends.md`.
@@ -124,7 +124,7 @@ tie-break, and abstention rules in `references/eval-backends.md`.
     Context:
     <<<
 
-### Adversarial Refuter (`opus`; max 3 passes per round)
+### Adversarial Refuter (high intelligence; max 3 passes per round)
 
 One dispatch per refute pass, on the current winner.
 
@@ -168,7 +168,7 @@ One dispatch per refute pass, on the current winner.
 
 ---
 
-## Mechanism A — dynamic Workflow
+## Mechanism A — ephemeral parallel execution
 
 Initiate the workflow with the design below. Pass it: the parsed brief (full frontmatter as data), `run_dir`,
 `baseline_score`, and — on resume — `resume_state` `{round, survivors, best-so-far}` reconstructed from `rounds/`.
@@ -181,8 +181,8 @@ Fan out `fanout.current` generator agents, one per genome slot. Round 1: one age
 mutations, recombinations, wildcards — per `references/evolution.md`). Each generator is dispatched with the
 Candidate Generator prompt block above, its slot filled in — the payload carries the brief goal + constraints +
 its OWN direction/mutation directive + its parents' artifacts and scores ONLY, never sibling candidates or sibling
-scores; sibling-blindness is what keeps directions genuinely divergent. Model: `opus` for
-code experiments and creative generation (`sonnet` acceptable for mechanical variations such as parameter sweeps).
+scores; sibling-blindness is what keeps directions genuinely divergent. Use high intelligence for
+code experiments and creative generation, and low intelligence for mechanical variations such as parameter sweeps.
 
 Code mode: each agent works in its own git worktree under `<run_dir>/worktrees/<cid>` — worktrees are ephemeral
 experiment sandboxes, never committed from — edits only `search_space.mutable_paths`, and runs
@@ -191,13 +191,13 @@ experiment sandboxes, never committed from — edits only `search_space.mutable_
 
 ### Phase Score
 
-Per `references/eval-backends.md`: `programmatic` → one `haiku` agent per candidate runs `eval.programmatic.command`;
-`judges` → >=3 independent `opus` judges per candidate, each dispatched with the Independent Judge prompt block
+Per `references/eval-backends.md`: `programmatic` → one mechanical-intelligence agent per candidate runs `eval.programmatic.command`;
+`judges` → >=3 independent high-intelligence judges per candidate, each dispatched with the Independent Judge prompt block
 above, median consensus; `human` → emit a `pending_decision` stop. Results land in `rounds/round-NN/scores.yaml`.
 
 ### Phase Verify — adversarial refutation
 
-The round winner — top-1, or top-2 when a new best-overall is set — goes to one `opus` refuter dispatched with
+The round winner — top-1, or top-2 when a new best-overall is set — goes to one high-intelligence refuter dispatched with
 the Adversarial Refuter prompt block above, whose only job is
 to REFUTE the score: constraint violation, metric gaming (hardcoded eval outputs, test-set overfitting, judge
 prompt-injection embedded in the artifact), harness bug, or rubric mismatch. Refuted → the score is invalidated,
@@ -231,7 +231,7 @@ disqualified:
 
 Workflows cannot take mid-run user input, so when one is recorded the run STOPS and returns. The main thread asks
 the user, writes the answers into `rounds/round-NN/scores.yaml` (human scores) or the brief's `## Amendments`
-(constraint rulings), then resumes via `Workflow resumeFromRunId` — the cached prefix replays completed rounds
+(constraint rulings), then resumes through the capability's run-resumption identifier — the cached prefix replays completed rounds
 instantly, so resumption costs nothing.
 
 ```yaml
@@ -247,7 +247,7 @@ pending_decisions:
 
 ### Illustrative workflow script skeleton
 
-Plain JS (no TS). No `Date.now()` / `Math.random()` — the Workflow runtime requires determinism so the cached
+Plain JS (no TS). No `Date.now()` / `Math.random()` — the parallel-execution runtime requires determinism so the cached
 prefix replays identically on resume; timestamps and seeds are passed in via args.
 
 ```js
@@ -257,7 +257,7 @@ export const meta = {
   args: ['brief', 'run_dir', 'baseline_score', 'resume_state', 'seed', 'started_at'],
 };
 
-export default async function ({ brief, run_dir, baseline_score, resume_state, seed }, { agent, parallel, log }) {
+const { brief, run_dir, baseline_score, resume_state, seed } = args;
   let round = resume_state?.round ?? 1;
   let fanout = resume_state?.fanout ?? brief.fanout.initial;
   let best = resume_state?.best ?? { candidate_id: 'baseline', score: baseline_score, round: 0 };
@@ -270,18 +270,21 @@ export default async function ({ brief, run_dir, baseline_score, resume_state, s
   while (round <= brief.budget.max_rounds) {
     // Generate — one sibling-blind agent per genome slot (own direction + parents only)
     const candidates = await parallel(slots.map((slot) =>
-      agent({ model: slot.mechanical ? 'sonnet' : 'opus', task: generatePayload(brief, run_dir, round, slot) })));
+      () => agent(generatePayload(brief, run_dir, round, slot),
+        { intelligence: slot.mechanical ? 'low' : 'high' })));
 
     // Score — per eval-backends.md (judges never share a payload; human backend → pending_decision return)
     const scored = brief.eval.backend === 'programmatic'
-      ? await parallel(candidates.map((c) => agent({ model: 'haiku', task: evalPayload(brief, c) })))
-      : await parallel(candidates.flatMap((c) => judgePayloads(brief, c)   // >=3 opus judges per candidate
-          .map((t) => agent({ model: 'opus', task: t })))).then((raw) => consensus(raw, brief));
+      ? await parallel(candidates.map((c) =>
+          () => agent(evalPayload(brief, c), { intelligence: 'mechanical' })))
+      : await parallel(candidates.flatMap((c) => judgePayloads(brief, c)   // >=3 high-intelligence judges per candidate
+          .map((t) => () => agent(t, { intelligence: 'high' })))).then((raw) => consensus(raw, brief));
 
     // Verify — adversarial refute of the winner; top-2 when a new best-overall is set
     let ranked = rank(scored, brief.metric.direction);
     for (let pass = 1; pass <= 3; pass += 1) {
-      const verdict = await agent({ model: 'opus', task: refutePayload(brief, ranked[0]) });
+      const verdict = await agent(
+        refutePayload(brief, ranked[0]), { intelligence: 'high' });
       if (verdict.verdict === 'accepted') break;
       log(`round ${round}: ${ranked[0].id} refuted — ${verdict.rationale}; promoting next-ranked`);
       disqualified.push({ candidate_id: ranked[0].id, reason: verdict.rationale });
@@ -301,7 +304,6 @@ export default async function ({ brief, run_dir, baseline_score, resume_state, s
   }
   return report({ status: 'budget_exhausted', reason: `budget.max_rounds=${brief.budget.max_rounds}` },
     best, board, disqualified);
-}
 ```
 
 ---
@@ -310,13 +312,13 @@ export default async function ({ brief, run_dir, baseline_score, resume_state, s
 
 Identical round semantics, driven inline by the orchestrator. Per round:
 
-1. **Generate** — dispatch all `fanout.current` generator agents as parallel `Task` calls in ONE message, each
+1. **Generate** — dispatch all `fanout.current` generator agents in one parallel subagent-dispatch batch, each
    carrying the Candidate Generator prompt block with its own slot filled in (round 1: one slot per framing
-   direction; later rounds: the genome Evolve bred per `references/evolution.md`). Same models, same worktree
+   direction; later rounds: the genome Evolve bred per `references/evolution.md`). Same intelligence levels, same worktree
    rules, same persisted outputs as Mechanism A.
 2. **Score** — dispatch Score agents in parallel per `references/eval-backends.md`. Judges remain independent
-   because each judge is a separate `Task` carrying the Independent Judge prompt block (rubric + one candidate,
-   nothing else); independence is structural, not promised. **Human scoring** runs as native `AskUserQuestion`
+   because each judge is a separate dispatch carrying the Independent Judge prompt block (rubric + one candidate,
+   nothing else); independence is structural, not promised. **Human scoring** runs through the graphical or structured user-input capability in
    batteries per round, `eval.human.per_round_batch` candidates per battery, answers written to
    `rounds/round-NN/scores.yaml` — this is why B is preferred for the human backend.
 3. **Verify** — the same refute pass: the Adversarial Refuter prompt block dispatched on the winner,
@@ -328,11 +330,11 @@ Identical round semantics, driven inline by the orchestrator. Per round:
 ```
 state = resume_state ?? seed_from(brief)            # round, slots, fanout, best
 while state.round <= brief.budget.max_rounds:
-    candidates = Task[](generate slots)             # ONE message, parallel, sibling-blind
+    candidates = dispatch_batch(generate slots)    # ONE message, parallel, sibling-blind
     scores     = backend switch:
-        programmatic → Task[](haiku eval per candidate, parallel)
-        judges       → Task[](>=3 opus judges per candidate, parallel, minimal payloads)
-        human        → AskUserQuestion batteries of eval.human.per_round_batch
+        programmatic → dispatch_batch(mechanical-intelligence eval per candidate, parallel)
+        judges       → dispatch_batch(>=3 high-intelligence judges per candidate, parallel, minimal payloads)
+        human        → user-input batteries of eval.human.per_round_batch
     ranked     = refute_loop(rank(scores))          # max 3 passes; every trip logged
     persist candidates/, scores.yaml, verify.yaml, round-log.md
     if target ∨ budget ∨ plateau: break             # reason surfaced, never silent

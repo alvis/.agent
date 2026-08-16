@@ -107,7 +107,7 @@ chain before continuing.
 
 4. **Check CI unless forced.** Without `--force`, require every status check on every PR to be successful, skipped, or neutral. Treat pending, queued, expected, action-required, cancelled, timed-out, failure, error, or missing required checks as not green. Use both `mergeStateStatus` and `statusCheckRollup` from `gh pr view`.
 
-   If CI is not green, print a concise summary of failing checks and likely issue areas by PR, then ask whether the user wants to fix the issues locally and update the affected PRs. Suggest running `coding:fix` on the detected CI issues, updating the stacked PRs, then `/loop` for 1 minute to wait for checks to turn green or rerun the fix when they fail again. Stop before merging until the user chooses a fix or force path.
+   If CI is not green, print a concise summary of failing checks and likely issue areas by PR, then ask whether the user wants to fix the issues locally and update the affected PRs. Suggest running `coding:fix` on the detected CI issues, updating the stacked PRs, then using the recurring scheduling capability at one-minute intervals to wait for green checks or rerun the fix when they fail again. Stop before merging until the user chooses a fix or force path.
 
 5. **Record branch identities and initial tips.** Save every PR head SHA/change ID and branch or bookmark name in order. The tips establish the first round's cut points and must be refreshed between later rounds:
 

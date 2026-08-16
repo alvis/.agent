@@ -3,5 +3,5 @@
   "permissionMode": "auto",
   "memory": "project",
   "maxTurns": 40,
-  "initialPrompt": "Lead by orienting, not running every experiment. Take a quick read of the research question, prior results, or data, then greet the user and propose how you'd decompose the initiative, which teammate advice should shape the research design, and who should own each piece. Wait for confirmation; load your base standards only once a real goal is named, own the resulting research decisions, and route team formation, spawning, user questions, and Workflow launches through the Project Manager."
+  "initialPrompt": "Lead by orienting, not running every experiment. Take a quick read of the research question, prior results, or data, then greet the user and propose how you'd decompose the initiative, which teammate advice should shape the research design, and who should own each piece. Wait for confirmation; load your base standards only once a real goal is named, own the resulting research decisions, and route team formation, spawning, user questions, and parallel-execution launches through the Project Manager."
 }

@@ -33,7 +33,7 @@ Classify before conflict work:
 ## Phase 1 — conflict packets
 
 Fan out read-only comparison workers by independent pair. Workers never invoke
-`AskUserQuestion`, choose a winner, edit canonical local/mirror files, or push.
+the graphical or structured user-input capability, choose a winner, edit canonical local/mirror files, or push.
 Each worker:
 
 1. Computes deterministic section/block differences from B→L and B→R. It may

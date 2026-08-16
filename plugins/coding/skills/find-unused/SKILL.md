@@ -1,7 +1,8 @@
 ---
 name: find-unused
 description: Perform read-only dead-code discovery for commented-out code, unused symbols, and unused test helpers. Use when identifying removal candidates; report evidence without deleting, refactoring, linting, or otherwise modifying the inspected source.
-model: opus
+metadata:
+  intelligence: medium
 argument-hint: "[path/to/scan] [--exclude=pattern]"
 ---
 
@@ -34,7 +35,7 @@ pre-flight and handles user-confirmed deletion.
 
 1. Validate the target path exists; reject missing paths and binary or
    non-code targets with a clear message and a suggested correction. Discover
-   source files via Glob, apply `--exclude` patterns, and group by file type.
+   source files via filesystem pattern search, apply `--exclude` patterns, and group by file type.
 2. Launch three analysis agents in parallel via Task — Commented Code, Unused
    Symbols (hierarchical LSP: file-level reachability, then symbol-level,
    then test helpers), and Test-Only Production Code — following the

@@ -1,7 +1,7 @@
-# Team lifecycle, model, and effort
+# Team lifecycle and intelligence
 
 Read this when forming a team, spawning or retiring a teammate, or choosing
-a worker's model and effort.
+a worker's intelligence.
 
 ## Team lifecycle
 
@@ -23,30 +23,22 @@ a worker's model and effort.
   `agent_id`; only when it cannot identify the owner does it ask the main
   agent to suggest one.
 - **Bound exceptional fan-out.** Declare a task-wide child-spawn budget
-  before the first one-off nested spawn; default to three. `SendMessage`
+  before the first one-off nested spawn; default to three. Direct teammate-messaging capability
   hand-offs to known `agent_id`s don't spend it, but the same task must not
   cross the same sibling edge twice.
 - **Hand off by reference.** The first message follows
   [directions/subagent-handover.md](directions/subagent-handover.md). Later
   messages carry only deltas. If
-  `SendMessage` is unavailable, return the compact hand-off to the caller.
+  the direct teammate-messaging capability is unavailable, return the compact hand-off to the caller.
 - **Keep agent definitions role-specific.** An agent's `Collaboration`
   section lists only outbound collaborators as concise bullets; it never
   repeats this protocol, narrates who spawns it, or restates its tools.
 
-## Model and effort
+## Intelligence
 
-Pick the model by whether the work reasons at all, then match the task's
-cognitive demand with effort:
-
-| Model | Use for |
-|-------|---------|
-| **haiku** | Simple, routine, deterministic work with a known procedure — tests, lint, command output, mechanical file sweeps. |
-| **opus** | Everything else, from moderate edits to advanced coding, deep reasoning, research, and review. |
-
-Effort is the dial that carries cognitive demand (`low|medium|high|xhigh|max`;
-omit for haiku, which has none). Set it by the task's difficulty: `low` for a
-known procedure, `medium` for a few genuine decision points, `high` for
-sustained judgment or orchestration, `xhigh`–`max` for deep adversarial
-scrutiny and pivotal one-shot gates. To make a worker think harder, raise its
-effort — the model is not the lever.
+Choose the lowest intelligence whose `best_for` examples cover the task, using
+the authoritative ranks and examples in
+`skills/install-agents/references/intelligence-levels.json`. Agent metadata
+declares the role's level; harness adapters alone translate it into native
+model and effort fields. Resolve `inherit` to one active harness projection
+before dispatch, or treat the agent as ineligible.

@@ -72,6 +72,8 @@ Use the strict Agent Skills frontmatter:
 ---
 name: skill-name
 description: Describe the owned outcome and the natural-language conditions that should activate it.
+metadata:
+  intelligence: medium
 ---
 ```
 
@@ -81,8 +83,14 @@ trailing, or consecutive hyphens; it must match the directory name.
 skill does and when an agent should use it. Aim for 25-60 words and put the
 primary intent first.
 
-Portable optional fields are `license`, non-empty `compatibility` of at most 500
-characters, and `metadata` as a map of string keys to string values. Agent
+Every shared skill declares exactly one concrete `metadata.intelligence` from
+`plugin:essential/install-agents/references/intelligence-levels.json`. The mapping's
+`rank` and `best_for` fields own the ordering and task examples. `inherit` is
+agent-only. Never add model or effort fields to a skill; harness adapters derive
+agent configuration from agent metadata.
+
+Other portable optional fields are `license`, non-empty `compatibility` of at
+most 500 characters, and additional `metadata` string entries. Agent
 Skills marks `allowed-tools` as experimental and its support varies; never
 depend on it for shared behavior. Omit harness extensions from a shared skill.
 Express activation conditions as natural-language intent, not user-interface

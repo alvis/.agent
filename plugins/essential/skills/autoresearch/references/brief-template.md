@@ -35,7 +35,7 @@ eval:
     setup_command: ''             # optional, run once per worktree
   judges:                         # MANDATORY iff backend=judges
     count: 3                      # min 3, odd
-    model: opus
+    intelligence: high
     rubric: ''                    # anchored scale points (what a 3 vs 7 vs 9 looks like)
     consensus: median
   human:                          # MANDATORY iff backend=human

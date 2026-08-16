@@ -1,41 +1,38 @@
 # Working as a team
 
-Delegate on signal: keep bounded work inline; delegate when a specialist owns
-the outcome, work can run independently in parallel, noisy output would consume
-context, or independent review is required — then review and synthesize returns.
-Only the main agent names teammates; address direct messages by returned
-`agent_id`. Keep dispatches and messages below 4,096 characters; externalize
-longer detail to a task-owned artifact and send its path.
+Keep bounded work inline. Delegate for specialist ownership, context-saving
+parallel or noisy work, or independent review; review returns. Only the main
+agent names teammates. Keep messages below 4,096 characters; externalize more.
 
-Apply `{{PLUGIN_DIR}}/references/working-attitude.md`.
+Apply `{{PLUGIN_DIR}}/references/working-attitude.md`. Before planning, read
+`{{PLUGIN_DIR}}/references/directions/plan.md`. Before delegating,
+orchestrating, or recording review, read
+`{{PLUGIN_DIR}}/references/orchestration.md`.
 
-Before creating, revising, or presenting any plan, read
-`{{PLUGIN_DIR}}/references/directions/plan.md`.
+## Skill eligibility
 
-Before delegating, orchestrating, or recording review, read
-`{{PLUGIN_DIR}}/references/orchestration.md` — routing, message discipline,
-naming, nesting, and review responsibility live there, with team-lifecycle
-and model/effort selection in its per-moment references.
+Before owning a skill workflow, read its `metadata.intelligence` and compare it
+with the visible agent intelligence using the mapping ranks in
+`{{PLUGIN_DIR}}/skills/install-agents/references/intelligence-levels.json`.
+Accept only when the agent rank is at least the skill rank.
 
-## Work Artifacts
+An `inherit` agent resolves through one unique active harness model-and-effort projection before comparison; a main session without an intelligence line follows this inherited path. Missing or ambiguous resolution is ineligible.
 
-Before creating or materially rewriting a lifecycle-managed project
-artifact, read `{{PLUGIN_DIR}}/references/state.md`; if
-unavailable, do not write it. Run its resolver without inventing a work ID.
-On `work_id_required`, the PM asks the user and workers report the
-ambiguity. On `requires_ignore`, workers stop; the PM alone adds
-`.state/` to the default tree's `.gitignore`, records it in
-`generated_files`, and reruns.
+If the skill rank is higher, transfer the complete task before execution. Send the skill identity, evidence, constraints, acceptance criteria, and unresolved decisions
+to an eligible agent; ask the main agent to staff a qualified agent
+when none is known. The recipient repeats this eligibility check. A qualified
+owner may delegate self-contained mechanical subtasks downward only when the
+recipient must not own or invoke the higher-level skill.
 
-Work state lives only under the default tree's `.state/`; the active tree's
-`docs/` is for promotion and retirement. Never spill large output into a new
-file; shorten it or point into `.state/`.
+## Work artifacts
 
-For ADRs, read `{{PLUGIN_DIR}}/references/adr.md` (paths/history).
+Before changing a lifecycle-managed artifact, read
+`{{PLUGIN_DIR}}/references/state.md` and run its resolver without inventing a
+work ID. On `work_id_required`, the PM asks; on `requires_ignore`, workers stop
+and the PM alone repairs `.gitignore` and reruns. Work state lives only under
+the default tree's `.state/`; promote durable results to `docs/`. For ADRs,
+read `{{PLUGIN_DIR}}/references/adr.md`.
 
-## Work Approach
+## Work approach
 
-Before adding content, check it changes what someone does, and that what
-is missing isn't something else. Drop anything whose removal changes
-nothing — naming an example set of negations is unbounded and says
-nothing.
+Add only content that changes what someone does; drop removable words.

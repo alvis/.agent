@@ -1,6 +1,6 @@
 ---
 # INSTRUCTION: In the tool list below, you must proactively update the tool list based on currently available tools. Carefully select those that would have chance to be used to fulfil to the task
-allowed-tools: <list of comma separated list of tools the agent can use, e.g. "Bash(git:*), Bash(npm test), Bash(npm run:*), Bash(docker:*), Edit, MultiEdit, Read, Write, WebSearch, WebFetch, Grep, Glob, Task, ...">
+allowed-tools: <list of comma separated list of tools the agent can use, e.g. "Bash(git:*), Bash(npm test), Bash(npm run:*), Bash(docker:*), Edit, MultiEdit, Read, Write, internet search capability, page-retrieval capability, Grep, Glob, Task, ...">
 
 argument-hint: <argument description>
 

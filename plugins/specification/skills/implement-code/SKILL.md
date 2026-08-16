@@ -1,7 +1,8 @@
 ---
 name: implement-code
 description: Execute an approved specification work item from an authoritative local, inline, or Notion-backed contract through delegated coding, review, applicable completion sync, and durable derivation. Use after plan-code approval, when resuming partial work, or when auditing delivered ticket work.
-model: opus
+metadata:
+  intelligence: high
 argument-hint: "<spec-path-or-ref> [--work-id=<id>] [--source-direction=<direction>] [--transport-root=<dir>] [--transport-profile=<absolute-file>] [--body-author=<plugin:skill>] [--repo=<path>] [--dry-run] [--skip-approval] [--defer-publication]"
 ---
 
@@ -138,7 +139,7 @@ completion sync.
 7. Capture immutable `base_rev` before dispatch. Prepare PM reconciliation
    entries keyed by full `task_id`; only the coordinator may apply task-status
    transitions to state. Do not edit PM-owned files from children.
-8. Execute by capability: when Workflow is available for a code-producing
+8. Execute by capability: when ephemeral parallel execution is available for a code-producing
    mode, load [references/execute-workflow.md](references/execute-workflow.md);
    otherwise use the sequential chain in `references/modes.md`. Schedule only
    leaf IDs returned runnable by Essential: all parent predecessors and all

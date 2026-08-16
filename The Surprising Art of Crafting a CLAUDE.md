@@ -15,7 +15,7 @@ This is a meandering story of the hacks I’ve learned while playing with `CLAUD
 - **Iterate and update:** Start with `/init` to generate a skeleton, then use the `#` key to add new instructions as you discover what Claude struggles with. Commit changes to version control.
 - **Hierarchy and overrides:** Claude reads `CLAUDE.md` files from your home directory, project root, and subdirectories; personal overrides live in `CLAUDE.local.md`.
 - **Manage context proactively:** Use `/compact` to summarise chat history and free tokens, `/clear` to reset when switching tasks, and `/cost` to check token usage.
-- **Hidden superpowers:** Use “think,” “think hard,” “think harder,” and “ultrathink” in prompts to allocate more reasoning time. Slash commands and hooks allow you to script repeatable workflows and enforce code quality. Safe YOLO mode (`dangerously-skip-permissions`) lets Claude run unattended for mundane tasks—with caution. Plan with Opus, implement with Sonnet for efficiency.
+- **Hidden superpowers:** Use “think,” “think hard,” “think harder,” and “ultrathink” in prompts to allocate more reasoning time. Slash commands and hooks allow you to script repeatable workflows and enforce code quality. Safe YOLO mode (`dangerously-skip-permissions`) lets Claude run unattended for mundane tasks—with caution. Select the lowest intelligence level that safely covers each task, using the marketplace mapping.
 - **Custom workflows:** Use slash commands (stored in `.claude/commands`) for repeatable tasks, and hooks (in `.claude/settings.json`) to enforce code quality.
 - **Refactor the file using Claude itself:** Use a scratch pad to plan your changes, then ask Claude Code to rewrite `claude.md` accordingly. Commit the update and revert if needed.
 - **Reload instructions during long sessions:** Explicitly ask Claude to reread the `claude.md` or create a `/reload` command; hooks can automatically run this on every prompt.
@@ -61,7 +61,7 @@ When bringing Claude into an existing project, run `/init` in the Claude Code RE
 
 ### When Memory Becomes a Liability
 
-Large models like Opus can consume hundreds of thousands of tokens, but that doesn’t mean you should feed them everything. **Context is a scarce resource.** Overstuffing `CLAUDE.md` leads to:
+High-intelligence models can consume hundreds of thousands of tokens, but that doesn’t mean you should feed them everything. **Context is a scarce resource.** Overstuffing `CLAUDE.md` leads to:
 
 - **Cost:** More tokens increase the cost of every message.
 - **Dilution:** Important instructions get buried among irrelevant details, leading to poorer adherence.
@@ -251,8 +251,7 @@ The same subagent mechanism powers **parallel tasks**. Ask Claude, “Give me th
 - `/clear` — Resets the conversation for a fresh start.
 - `/cost` — Shows current token usage and cost.
 - `/permissions` — Adjusts tool allowlists.
-- `/model opus-4` — Switches to the Opus model for planning.
-- `/model sonnet` — Switches to the Sonnet model for implementation.
+- Use the active harness's model selector only through the intelligence-to-model mapping.
 - `/review` — Runs a comprehensive code review (if configured).
 - `/generate-tests <files>` — Runs a custom test generation command (if configured).
 

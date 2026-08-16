@@ -107,7 +107,7 @@ Enforced mechanically — each with the file that enforces it.
 | Every injected payload ≤ 2,000 bytes, per plugin | `scripts/contract_footprint.py`, declared in `plugins/<p>/tests/test_contract_footprint.py` |
 | Every plugin's unconditional hook read chain ≤ 40,960 bytes | same |
 | `.state/` work Markdown flagged over 16,384 bytes | `plugins/essential/scripts/check-markdown-size` |
-| `Agent`/`Task`/`SendMessage` body ≤ 4,096 characters | `plugins/essential/references/orchestration.md` |
+| Subagent-dispatch/direct-message body ≤ 4,096 characters | `plugins/essential/references/orchestration.md` |
 | Batch ≤ ~10 resources per subagent; structured reports < 1000 tokens; ~2 retries per batch | `plugins/governance/standards/delegation/` |
 
 A plugin declares its own payloads and unconditional hook read chain in its own test;

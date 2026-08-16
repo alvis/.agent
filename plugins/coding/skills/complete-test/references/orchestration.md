@@ -1,10 +1,10 @@
 # Complete-Test Orchestration — batches, dispatch prompts, and reports
 
-Referenced from SKILL.md. You are the orchestrator: drive the workflow end-to-end via fire-and-forget `Task` subagents with TodoWrite-based status tracking, dispatching a maximum of **8 parallel subagents** at any time. After each sub-step, aggregate the returned reports before moving on. Every dispatch is a mission capsule naming the exact scope, expected result, standards to read (`testing/meta.md` + `testing/write.md`, `typescript/write.md`, `documentation/write.md`), active work root, and only the relevant contract/evidence paths. Children do not reread broad work journals unless the assignment is a resume or cross-slice alignment task; they never write PM-owned pointers/overviews or delegate further. Every writer returns explicit `generated_files` to the PM.
+Referenced from SKILL.md. You are the orchestrator: drive the workflow end-to-end through fire-and-forget subagent dispatch with structured task-tracking status, dispatching a maximum of **8 parallel subagents** at any time. After each sub-step, aggregate the returned reports before moving on. Every dispatch is a mission capsule naming the exact scope, expected result, standards to read (`testing/meta.md` + `testing/write.md`, `typescript/write.md`, `documentation/write.md`), active work root, and only the relevant contract/evidence paths. Children do not reread broad work journals unless the assignment is a resume or cross-slice alignment task; they never write PM-owned pointers/overviews or delegate further. Every writer returns explicit `generated_files` to the PM.
 
 ## Sub-step 1 — Initial coverage analysis (single subagent)
 
-Discover existing test files with Glob (`**/*.spec.{ts,tsx}`, `**/*.test.{ts,tsx}` — never `find` in bash). Dispatch one Coverage Analysis subagent to:
+Discover existing test files with filesystem pattern search (`**/*.spec.{ts,tsx}`, `**/*.test.{ts,tsx}` — never `find` in bash). Dispatch one Coverage Analysis subagent to:
 
 1. **Discover test configuration**: locate `vitest.config.ts` or equivalent, verify the coverage provider (v8), check excluded patterns.
 2. **Run existing tests** and note any failures.
@@ -28,7 +28,7 @@ Batches:      1: auth/service, auth/controller, users/service   (450 lines, 3 fi
               3: posts/controller                               (300 lines, 1 file)
 ```
 
-Record the batch-to-file map in TodoWrite (one todo per batch) so no source file is skipped. Dispatch all batches in a single message, at most 8 concurrent. Each batch subagent runs this loop **for each source file**:
+Record the batch-to-file map in structured task-tracking capability (one todo per batch) so no source file is skipped. Dispatch all batches in a single message, at most 8 concurrent. Each batch subagent runs this loop **for each source file**:
 
 1. **Initial coverage check**: `vitest --coverage <spec path>`; note current coverage and the first uncovered line/branch.
 2. **Progressive writing loop** (repeat until 100%):
@@ -66,7 +66,7 @@ Aggregate removal reports, verify 100% is maintained per mirrored source file, a
 
 ## Sub-step 4 — Fix test issues & standards compliance
 
-List all test files with Glob. ≤25 files → one subagent; >25 files → batches of 10, max 8 concurrent. Each subagent: identify standards violations and logic errors; fix type errors (no `any`), apply the AAA pattern, correct naming, add missing documentation; then verify with the project test, lint, and type-check commands and confirm coverage is unchanged. Retry any batch that leaves issues open.
+List all test files with filesystem pattern search. ≤25 files → one subagent; >25 files → batches of 10, max 8 concurrent. Each subagent: identify standards violations and logic errors; fix type errors (no `any`), apply the AAA pattern, correct naming, add missing documentation; then verify with the project test, lint, and type-check commands and confirm coverage is unchanged. Retry any batch that leaves issues open.
 
 ## Sub-step 5 — Restructure fixtures & test doubles (plan, then execute)
 

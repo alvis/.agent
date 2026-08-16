@@ -1,6 +1,6 @@
 # Per-Commit Atomic Finalize — procedure (jj + git)
 
-Referenced from SKILL.md Step 3. Run by one `model:'haiku'` agent per commit. Finalizes EXACTLY ONE commit through seven sub-steps — replay, isolate, marker-check, gate, fold, reword, mark — that execute inside ONE dispatch. The operation is atomic: no sub-step may be deferred to a later phase or batched across commits, a commit is never left QA'd-but-unfolded, and the walk never advances past an unfolded commit. Patch-id marker mechanics: `markers.md`. Conventional Commits contract: `../../commit/references/conventional-commits.md`; commit and branch directions: `../../commit/SKILL.md`.
+Referenced from SKILL.md Step 3. Run by one mechanical-intelligence agent per commit. Finalizes EXACTLY ONE commit through seven sub-steps — replay, isolate, marker-check, gate, fold, reword, mark — that execute inside ONE dispatch. The operation is atomic: no sub-step may be deferred to a later phase or batched across commits, a commit is never left QA'd-but-unfolded, and the walk never advances past an unfolded commit. Patch-id marker mechanics: `markers.md`. Conventional Commits contract: `../../commit/references/conventional-commits.md`; commit and branch directions: `../../commit/SKILL.md`.
 
 Ownership: this reference observes, gates, and **validates** corrections inside disposable worktrees. Every history mutation that lands on an owning commit — fold, amend, reword, snapshot bracket, checkpoint, head move — is **applied by `coding:commit`** on request, with the exact operation and target named. The commands shown below for those steps are the operations to request, not commands this skill's workers run against the user's stack.
 
@@ -80,7 +80,7 @@ The lockfile this commit's OWN install regenerated is a MANDATORY part of the fo
 2. **Mechanical fixes — no user prompt needed**: type prefix casing, trailing-period removal, length trim (≤50 target / ≤72 hard), imperative-mood correction, scope kebab-casing, dropping catalog prefixes. Request the reword from `coding:commit`; the operations it applies:
    - **jj**: `jj describe -r <rev> -m "<subject>"`
    - **git**: `git commit --amend --no-verify -m "<subject>"` (against the replayed commit, before the checkpoint)
-3. **Meaning change — confirm first**: a type change (e.g. `feat`→`fix`) or a scope change that alters what the commit claims to do raises `pending_decision { kind: meaning_reword }`. The coordinator confirms via `AskUserQuestion` before the reword is requested.
+3. **Meaning change — confirm first**: a type change (e.g. `feat`→`fix`) or a scope change that alters what the commit claims to do raises `pending_decision { kind: meaning_reword }`. The coordinator confirms through the graphical or structured user-input capability before the reword is requested.
 
 ## Step 7 — Mark, checkpoint, advance
 

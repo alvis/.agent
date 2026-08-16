@@ -512,15 +512,16 @@ and missing substantive approval instead of dispatching another review.
 
 ### 5. Schedule and consume the initial poll
 
-Immediately after every initial publication, run this command with actual
-bottom-to-top PR URLs substituted:
+Immediately after every initial publication, use the recurring scheduling
+capability at a five-minute interval with actual bottom-to-top PR URLs
+substituted into this payload:
 
 ```text
-/loop 5m Dispatch ONE small read-oriented polling subagent for <stack PR URLs> in bottom-up order. Pass it the stack and discovered expected hosted checks, and require it to load and follow the Poll contract in coding:pr references/create-update.md; only when it classifies a red check, require it to load references/repair-red-ci.md. Consume its bounded <report>, then take the parent action it requests. The scheduled parent MUST NOT run gh polling itself.
+Dispatch ONE small read-oriented polling subagent for <stack PR URLs> in bottom-up order. Pass it the stack and discovered expected hosted checks, and require it to load and follow the Poll contract in coding:pr references/create-update.md; only when it classifies a red check, require it to load references/repair-red-ci.md. Consume its bounded <report>, then take the parent action it requests. The scheduled parent MUST NOT run gh polling itself.
 ```
 
-Capture the returned task/job ID as `active_loop_id`. Cancel only that exact ID
-with `CronDelete(active_loop_id)` or the scheduler's natural cancellation keyed
+Capture the returned task/job ID as `active_schedule_id`. Cancel only that exact ID
+with the task-ID cancellation capability or the scheduler's natural cancellation keyed
 by the same ID; never cancel by cadence or description.
 
 #### Poll contract

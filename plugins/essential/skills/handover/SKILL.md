@@ -1,7 +1,8 @@
 ---
 name: handover
 description: Persist work stream state and update the global overview, both in the default source tree's centralized .state/, so the session can pause and any later session resume from the files on disk. Use when pausing coding work; this skill records continuity and does not execute the work.
-model: opus
+metadata:
+  intelligence: low
 argument-hint: "[work-id-filter]"
 ---
 

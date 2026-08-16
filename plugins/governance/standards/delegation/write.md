@@ -20,7 +20,7 @@
 
 ### Messages (DEL-MSG)
 
-- **DEL-MSG-01**: Keep every `Agent`, `Task`, and `SendMessage` body within 4,096 characters and include a bounded mission capsule.
+- **DEL-MSG-01**: Keep every subagent-dispatch and direct teammate-message body within 4,096 characters and include a bounded mission capsule.
 
 ### Reports (DEL-REPT)
 

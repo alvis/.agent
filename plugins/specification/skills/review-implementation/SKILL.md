@@ -1,7 +1,8 @@
 ---
 name: review-implementation
 description: Review implementation against an authoritative local, inline-origin, or Notion specification, coordinate the seven canonical review areas, and summarize dispositions in the active work item. Use for alignment, ticket validation, omissions, drift, and unsanctioned behavior.
-model: opus
+metadata:
+  intelligence: high
 argument-hint: "[specifier] [--work-id=<id>] [--plan-source=<path>] [--transport-root=<dir>] [--transport-profile=<absolute-file>] [--area=alignment|correctness|security|quality|testing|docs|style|all]"
 ---
 

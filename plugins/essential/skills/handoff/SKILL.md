@@ -1,6 +1,8 @@
 ---
 name: handoff
 description: 'Create or execute a context-complete cross-domain plan as an orchestrator. Use when another agent must continue without prior context, or when a multi-domain plan needs coordinated execution while this skill retains decision ownership. For coding-session persistence, use essential:handover.'
+metadata:
+  intelligence: high
 ---
 
 # Handoff
@@ -21,7 +23,7 @@ persists the current coding session in continuation files.
 ## Inputs
 
 - **Required**: the work to plan, or an existing plan to execute.
-- **Optional**: the `Workflow` tool for multi-phase execution; `coding:*`
+- **Optional**: an ephemeral parallel-execution capability for multi-phase execution; `coding:*`
   skills when available — confirm availability before routing to one,
   otherwise name the equivalent action or files without invoking it.
 - **Required evidence for a persisted plan**: current repository root, active
@@ -54,11 +56,11 @@ that contract.
      explicit non-goals.
    - **Direction** — include an ordered step-by-step implementation plan with
      exact files, reasons, per-phase acceptance, and rollback/stop conditions.
-     When `Workflow` is appropriate, embed a complete plain-JavaScript script or
+     When ephemeral parallel execution is appropriate, embed a complete plain-JavaScript script or
      an exact durable script path with its SHA-256 checksum and invocation
      arguments. It must run as-is: no placeholders or hidden context,
      deterministic inputs, explicit agent types, and validation against
-     `plugins/essential/references/workflow-tool.md`. Otherwise include an
+     `plugins/essential/references/parallel-execution.md`. Otherwise include an
      equivalent sequential command plan.
    - **Context** — retain the direction's current-state, related-decision, and
      recent-work navigation, then add these handoff-specific subsections:
@@ -85,7 +87,7 @@ that contract.
    the PM reconciles the lazy `proposals.md` overview. Update the child to
    `accepted` only after user approval.
 3. **Execute as orchestrator** (when execution is requested). Run a
-   multi-phase plan as a `Workflow` — one phase per stage, fanning out to
+   multi-phase plan through ephemeral parallel execution — one phase per stage, fanning out to
    subagents where a phase allows — instead of doing the work inline. Act as
    the orchestrator and decision maker only: route each phase to the right
    agent with complete context, synthesize the results, and make the calls.
@@ -110,8 +112,8 @@ that contract.
 - A reader without this session's context could execute the plan — no step
   depends on unstated knowledge or rediscovery of paths, SHAs, filenames,
   commands, tools, or source artifacts.
-- Direction embeds a complete dynamic Workflow script, or names the durable
-  script path, checksum, and args; if Workflow is not used, it embeds the
+- Direction embeds a complete parallel-execution script, or names the durable
+  script path, checksum, and args; if parallel execution is not used, it embeds the
   concrete sequential execution commands.
 - Every residual unknown is accepted and reversible, explicitly deferred with
   an owner and deadline, or blocking; the plan names evidence that requires a

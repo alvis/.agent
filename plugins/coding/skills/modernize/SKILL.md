@@ -1,7 +1,8 @@
 ---
 name: modernize
 description: 'Apply version-supported syntax and API upgrades based on the project runtime and toolchain. Use when replacing legacy constructs with supported modern equivalents; do not claim general refactoring, dependency upgrades, or behavioral feature work.'
-model: opus
+metadata:
+  intelligence: medium
 context: fork
 argument-hint: "<area> [--dry-run] [--target-version=X.Y]"
 ---
@@ -69,7 +70,7 @@ path" that the rest of the module can still bypass.
    report that the area already uses modern patterns and stop.
 5. **Apply.** On `--dry-run`, apply nothing: report each match's file, line,
    current pattern, proposed replacement, and motivating feature, and skip
-   verification. Otherwise apply each transform via Edit, one file at a time
+   verification. Otherwise apply each transform through the filesystem edit capability, one file at a time
    to avoid overlapping edits, then run `npx tsc --noEmit` and the project
    test script (`npm test` or the script from `package.json`). When
    verification fails, identify the offending transform, revert it, record it
