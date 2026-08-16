@@ -56,6 +56,51 @@
             "additionalProperties": false
           }
         },
+        "PreToolUse": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["matcher", "hooks"],
+            "properties": {
+              "matcher": {
+                "type": "string",
+                "minLength": 1
+              },
+              "hooks": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "required": ["type", "command"],
+                  "properties": {
+                    "type": {
+                      "enum": ["command"]
+                    },
+                    "command": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "timeout": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "statusMessage": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "additionalContextLimit": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
         "SubagentStart": {
           "type": "array",
           "minItems": 1,
