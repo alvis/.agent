@@ -54,7 +54,7 @@ gh api --hostname "$HOST" --method POST \
 
 Assemble the file with `jq` and shell redirection into the review tree. Comment
 bodies carry newlines, backticks, and code fences, so string-concatenated JSON breaks
-on the first one — and a file-writing tool is denied by this agent's `Write`/`Edit`
+on the first one — and a file-writing capability is denied by this agent's filesystem write/edit
 fence.
 
 ## Failure recovery

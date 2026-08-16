@@ -1,6 +1,6 @@
 # Execution mechanisms
 
-The parent selects Workflow fan-out for independent code-producing slices and a
+The parent selects deterministic scripted execution for independent code-producing slices and a
 sequential Coding chain otherwise. The orchestrator does not edit source or
 history.
 
@@ -18,7 +18,7 @@ slice-local commit through `coding:commit`, but must not pass `--create-pr`, run
 `coding:pr create`, restack, or otherwise publish before the parent review/sync
 gate.
 
-## Workflow mechanism
+## Parallel-execution mechanism
 
 1. Read root `state.md` (and any `state/*.md` children) directly and
    determine `runnable_leaf_task_ids` from the task table. Parent tasks are

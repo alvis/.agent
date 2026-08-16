@@ -28,11 +28,19 @@ class RecordingRun:
         return outcome
 
 
-def write_skill(root: Path, name: str, description: str, body: str) -> Path:
+def write_skill(
+    root: Path,
+    name: str,
+    description: str,
+    body: str,
+    *,
+    intelligence: str = "medium",
+) -> Path:
     path = root / "skills" / name / "SKILL.md"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
-        f'---\nname: {name}\ndescription: "{description}"\n---\n\n{body}\n',
+        f'---\nname: {name}\ndescription: "{description}"\n'
+        f"requirements:\n  intelligence: {intelligence}\n---\n\n{body}\n",
         encoding="utf-8",
     )
     return path
@@ -87,6 +95,643 @@ def test_accepts_minimal_skill_without_ceremony(tmp_path: Path) -> None:
     assert "diagram" not in messages.lower()
     assert "subagent" not in messages.lower()
     assert "coherence mandate" not in messages.lower()
+
+
+@pytest.mark.parametrize(
+    "requirements",
+    (
+        "requirements:\n  intelligence: medium",
+        "requirements: {intelligence: medium}",
+        "requirements:\n  {intelligence: medium}",
+        "requirements:\n  {\n    intelligence: medium\n  }",
+    ),
+    ids=("block", "inline-flow", "indented-flow", "multiline-flow"),
+)
+def test_accepts_requirements_intelligence_mapping_forms(
+    tmp_path: Path,
+    requirements: str,
+) -> None:
+    skill = tmp_path / "skills/shared/SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text(
+        "---\n"
+        "name: shared\n"
+        'description: "Use when accepting portable intelligence across valid YAML mapping forms."\n'
+        f"{requirements}\n"
+        "---\n\n# Shared\n\n## Workflow\n\nDo the work.\n",
+        encoding="utf-8",
+    )
+
+    report = quick_validate.validate_policy(skill)
+
+    assert report["errors"] == []
+
+
+def test_accepts_whole_document_flow_frontmatter(tmp_path: Path) -> None:
+    skill = tmp_path / "skills/shared/SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text(
+        "---\n{name: shared, requirements: {intelligence: medium}}\n---\n\n"
+        "# Shared\n\n## Workflow\n\nDo the work.\n",
+        encoding="utf-8",
+    )
+
+    report = quick_validate.validate_policy(skill)
+
+    assert report["errors"] == []
+
+
+@pytest.mark.parametrize(
+    ("mapping_name", "frontmatter"),
+    (
+        (
+            "metadata",
+            "{name: shared, requirements: {intelligence: medium}, "
+            "metadata: &legacy {intelligence: high}}",
+        ),
+        (
+            "metadata",
+            "{name: shared, requirements: {intelligence: medium}, "
+            "metadata: *legacy}",
+        ),
+        (
+            "requirements",
+            "{name: shared, requirements: &required {intelligence: medium}}",
+        ),
+        (
+            "requirements",
+            "{name: shared, requirements: *required}",
+        ),
+    ),
+    ids=("metadata-node-property", "metadata-alias", "requirements-node-property", "requirements-alias"),
+)
+def test_rejects_node_references_in_whole_document_flow_frontmatter(
+    tmp_path: Path,
+    mapping_name: str,
+    frontmatter: str,
+) -> None:
+    skill = tmp_path / "skills/shared/SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text(
+        f"---\n{frontmatter}\n---\n\n# Shared\n\n## Workflow\n\nDo the work.\n",
+        encoding="utf-8",
+    )
+
+    report = quick_validate.validate_policy(skill)
+
+    assert report["errors"] == [
+        {
+            "message": (
+                f"Shared skill {mapping_name} must not use YAML node properties or aliases; "
+                "use a plain mapping."
+            ),
+            "line": 2,
+        }
+    ]
+
+
+def test_rejects_inherited_skill_intelligence(tmp_path: Path) -> None:
+    skill = write_skill(
+        tmp_path,
+        "inherited",
+        "Use when a shared workflow needs a concrete portable intelligence requirement.",
+        "# Inherited\n\n## Workflow\n\nDo the work.",
+        intelligence="inherit",
+    )
+
+    report = quick_validate.validate_policy(skill)
+
+    assert report["errors"] == [
+        {
+            "message": (
+                "Shared skills must declare a concrete requirements.intelligence; "
+                "inherit is agent-only."
+            ),
+            "line": 5,
+        }
+    ]
+
+
+def test_rejects_missing_skill_intelligence(tmp_path: Path) -> None:
+    skill = tmp_path / "skills/shared/SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text(
+        "---\n"
+        "name: shared\n"
+        'description: "Use when validating a missing portable intelligence requirement."\n'
+        "---\n\n# Shared\n\n## Workflow\n\nDo the work.\n",
+        encoding="utf-8",
+    )
+
+    report = quick_validate.validate_policy(skill)
+
+    assert report["errors"] == [
+        {"message": "Shared skills must declare exactly one requirements.intelligence."}
+    ]
+
+
+def test_rejects_unknown_skill_intelligence(tmp_path: Path) -> None:
+    skill = write_skill(
+        tmp_path,
+        "unknown",
+        "Use when validating an unknown portable intelligence requirement.",
+        "# Unknown\n\n## Workflow\n\nDo the work.",
+        intelligence="extreme",
+    )
+
+    report = quick_validate.validate_policy(skill)
+
+    assert report["errors"] == [
+        {
+            "message": (
+                "Shared skill requirements.intelligence must name a concrete level "
+                "from Essential's intelligence mapping."
+            ),
+            "line": 5,
+        }
+    ]
+
+
+def test_rejects_nested_skill_intelligence(tmp_path: Path) -> None:
+    skill = tmp_path / "skills/shared/SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text(
+        "---\n"
+        "name: shared\n"
+        'description: "Use when validating a nested portable intelligence requirement."\n'
+        "metadata:\n"
+        "  nested:\n"
+        "    intelligence: high\n"
+        "---\n\n# Shared\n\n## Workflow\n\nDo the work.\n",
+        encoding="utf-8",
+    )
+
+    report = quick_validate.validate_policy(skill)
+
+    assert report["errors"] == [
+        {"message": "Shared skills must declare exactly one requirements.intelligence."}
+    ]
+
+
+def test_rejects_legacy_metadata_intelligence(tmp_path: Path) -> None:
+    skill = tmp_path / "skills/shared/SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text(
+        "---\n"
+        "name: shared\n"
+        'description: "Use when validating removal of the legacy shared intelligence metadata path."\n'
+        "metadata:\n"
+        "  intelligence: medium\n"
+        "---\n\n# Shared\n\n## Workflow\n\nDo the work.\n",
+        encoding="utf-8",
+    )
+
+    report = quick_validate.validate_policy(skill)
+
+    assert report["errors"] == [
+        {
+            "message": (
+                "Shared skills must not declare metadata.intelligence; "
+                "use requirements.intelligence."
+            ),
+            "line": 5,
+        }
+    ]
+
+
+def test_rejects_legacy_metadata_intelligence_alongside_requirement(
+    tmp_path: Path,
+) -> None:
+    skill = tmp_path / "skills/shared/SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text(
+        "---\n"
+        "name: shared\n"
+        'description: "Use when rejecting legacy intelligence metadata even beside its replacement."\n'
+        "requirements:\n"
+        "  intelligence: medium\n"
+        "metadata:\n"
+        "  intelligence: medium\n"
+        "---\n\n# Shared\n\n## Workflow\n\nDo the work.\n",
+        encoding="utf-8",
+    )
+
+    report = quick_validate.validate_policy(skill)
+
+    assert report["errors"] == [
+        {
+            "message": (
+                "Shared skills must not declare metadata.intelligence; "
+                "use requirements.intelligence."
+            ),
+            "line": 7,
+        }
+    ]
+
+
+def test_rejects_flow_style_legacy_metadata_intelligence(tmp_path: Path) -> None:
+    skill = tmp_path / "skills/shared/SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text(
+        "---\n"
+        "name: shared\n"
+        'description: "Use when rejecting flow-style legacy intelligence metadata beside its replacement."\n'
+        "requirements:\n"
+        "  intelligence: medium\n"
+        "metadata: {intelligence: high}\n"
+        "---\n\n# Shared\n\n## Workflow\n\nDo the work.\n",
+        encoding="utf-8",
+    )
+
+    report = quick_validate.validate_policy(skill)
+
+    assert report["errors"] == [
+        {
+            "message": (
+                "Shared skills must not declare metadata.intelligence; "
+                "use requirements.intelligence."
+            ),
+            "line": 6,
+        }
+    ]
+
+
+def test_rejects_multiline_flow_style_legacy_metadata_intelligence(
+    tmp_path: Path,
+) -> None:
+    skill = tmp_path / "skills/shared/SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text(
+        "---\n"
+        "name: shared\n"
+        'description: "Use when rejecting multiline flow-style legacy intelligence metadata."\n'
+        "requirements:\n"
+        "  intelligence: medium\n"
+        "metadata:\n"
+        "  {intelligence: high}\n"
+        "---\n\n# Shared\n\n## Workflow\n\nDo the work.\n",
+        encoding="utf-8",
+    )
+
+    report = quick_validate.validate_policy(skill)
+
+    assert report["errors"] == [
+        {
+            "message": (
+                "Shared skills must not declare metadata.intelligence; "
+                "use requirements.intelligence."
+            ),
+            "line": 7,
+        }
+    ]
+
+
+def test_rejects_genuinely_multiline_flow_style_legacy_metadata_intelligence(
+    tmp_path: Path,
+) -> None:
+    skill = tmp_path / "skills/shared/SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text(
+        "---\n"
+        "name: shared\n"
+        'description: "Use when rejecting genuinely multiline flow-style legacy intelligence metadata."\n'
+        "requirements:\n"
+        "  intelligence: medium\n"
+        "metadata:\n"
+        "  {\n"
+        "    intelligence: high\n"
+        "  }\n"
+        "---\n\n# Shared\n\n## Workflow\n\nDo the work.\n",
+        encoding="utf-8",
+    )
+
+    report = quick_validate.validate_policy(skill)
+
+    assert report["errors"] == [
+        {
+            "message": (
+                "Shared skills must not declare metadata.intelligence; "
+                "use requirements.intelligence."
+            ),
+            "line": 8,
+        }
+    ]
+
+
+@pytest.mark.parametrize(
+    "metadata",
+    (
+        "metadata:\n  category: portable",
+        "metadata: {category: portable}",
+        "metadata:\n  {category: portable}",
+        "metadata:\n  {\n    category: portable\n  }",
+    ),
+    ids=("block", "inline-flow", "indented-flow", "multiline-flow"),
+)
+def test_allows_unrelated_metadata_forms(tmp_path: Path, metadata: str) -> None:
+    skill = tmp_path / "skills/shared/SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text(
+        "---\n"
+        "name: shared\n"
+        'description: "Use when preserving unrelated metadata across valid YAML mapping forms."\n'
+        "requirements:\n"
+        "  intelligence: medium\n"
+        f"{metadata}\n"
+        "---\n\n# Shared\n\n## Workflow\n\nDo the work.\n",
+        encoding="utf-8",
+    )
+
+    report = quick_validate.validate_policy(skill)
+
+    assert report["errors"] == []
+
+
+@pytest.mark.parametrize(
+    "metadata",
+    (
+        "metadata: &legacy {intelligence: high}",
+        "metadata: *legacy",
+    ),
+    ids=("node-property", "alias"),
+)
+def test_rejects_unsupported_metadata_node_references(
+    tmp_path: Path,
+    metadata: str,
+) -> None:
+    skill = tmp_path / "skills/shared/SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text(
+        "---\n"
+        "name: shared\n"
+        'description: "Use when rejecting metadata node references that can hide legacy intelligence."\n'
+        "requirements:\n"
+        "  intelligence: medium\n"
+        f"{metadata}\n"
+        "---\n\n# Shared\n\n## Workflow\n\nDo the work.\n",
+        encoding="utf-8",
+    )
+
+    report = quick_validate.validate_policy(skill)
+
+    assert report["errors"] == [
+        {
+            "message": (
+                "Shared skill metadata must not use YAML node properties or aliases; "
+                "use a plain mapping."
+            ),
+            "line": 6,
+        }
+    ]
+
+
+@pytest.mark.parametrize(
+    "requirements",
+    (
+        "requirements: &required {intelligence: medium}",
+        "requirements: *required",
+    ),
+    ids=("node-property", "alias"),
+)
+def test_rejects_unsupported_requirements_node_references(
+    tmp_path: Path,
+    requirements: str,
+) -> None:
+    skill = tmp_path / "skills/shared/SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text(
+        "---\n"
+        "name: shared\n"
+        'description: "Use when rejecting requirements node references that obscure concrete intelligence."\n'
+        f"{requirements}\n"
+        "---\n\n# Shared\n\n## Workflow\n\nDo the work.\n",
+        encoding="utf-8",
+    )
+
+    report = quick_validate.validate_policy(skill)
+
+    assert report["errors"] == [
+        {
+            "message": (
+                "Shared skill requirements must not use YAML node properties or aliases; "
+                "use a plain mapping."
+            ),
+            "line": 4,
+        }
+    ]
+
+
+@pytest.mark.parametrize(
+    ("mapping_name", "frontmatter", "expected_line"),
+    (
+        (
+            "metadata",
+            "requirements:\n  intelligence: medium\nmetadata:\n  <<: *legacy",
+            7,
+        ),
+        (
+            "metadata",
+            "requirements:\n  intelligence: medium\nmetadata: {<<: *legacy}",
+            6,
+        ),
+        (
+            "requirements",
+            "requirements:\n  intelligence: medium\n  <<: *required",
+            6,
+        ),
+        (
+            "requirements",
+            "requirements: {intelligence: medium, <<: *required}",
+            4,
+        ),
+    ),
+    ids=("metadata-block", "metadata-flow", "requirements-block", "requirements-flow"),
+)
+def test_rejects_yaml_merge_keys_in_intelligence_mappings(
+    tmp_path: Path,
+    mapping_name: str,
+    frontmatter: str,
+    expected_line: int,
+) -> None:
+    skill = tmp_path / "skills/shared/SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text(
+        "---\n"
+        "name: shared\n"
+        'description: "Use when rejecting YAML merge keys that can obscure portable intelligence."\n'
+        f"{frontmatter}\n"
+        "---\n\n# Shared\n\n## Workflow\n\nDo the work.\n",
+        encoding="utf-8",
+    )
+
+    report = quick_validate.validate_policy(skill)
+
+    assert report["errors"] == [
+        {
+            "message": (
+                f"Shared skill {mapping_name} must not use YAML merge keys; "
+                "use a plain mapping."
+            ),
+            "line": expected_line,
+        }
+    ]
+
+
+@pytest.mark.parametrize(
+    ("mapping_name", "frontmatter", "expected_line"),
+    (
+        (
+            "metadata",
+            "requirements:\n  intelligence: medium\n"
+            "metadata: {key: &legacy intelligence, *legacy: high}",
+            6,
+        ),
+        (
+            "metadata",
+            "requirements:\n  intelligence: medium\nmetadata:\n"
+            "  ? intelligence\n  : high",
+            7,
+        ),
+        (
+            "requirements",
+            "requirements: {intelligence: medium, key: &legacy intelligence, "
+            "*legacy: high}",
+            4,
+        ),
+        (
+            "requirements",
+            "requirements:\n  intelligence: medium\n  ? intelligence\n  : high",
+            6,
+        ),
+    ),
+    ids=("metadata-alias", "metadata-complex", "requirements-alias", "requirements-complex"),
+)
+def test_rejects_non_scalar_keys_in_intelligence_mappings(
+    tmp_path: Path,
+    mapping_name: str,
+    frontmatter: str,
+    expected_line: int,
+) -> None:
+    skill = tmp_path / "skills/shared/SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text(
+        "---\n"
+        "name: shared\n"
+        'description: "Use when rejecting aliased or complex keys that can obscure portable intelligence."\n'
+        f"{frontmatter}\n"
+        "---\n\n# Shared\n\n## Workflow\n\nDo the work.\n",
+        encoding="utf-8",
+    )
+
+    report = quick_validate.validate_policy(skill)
+
+    assert report["errors"] == [
+        {
+            "message": (
+                f"Shared skill {mapping_name} must use direct scalar keys; "
+                "aliases and complex keys are unsupported."
+            ),
+            "line": expected_line,
+        }
+    ]
+
+
+@pytest.mark.parametrize("key", ("'intelligence'", '"intelligence"'))
+def test_accepts_quoted_requirements_intelligence_key(
+    tmp_path: Path,
+    key: str,
+) -> None:
+    skill = write_skill(
+        tmp_path,
+        "quoted-requirement",
+        "Use when accepting a direct quoted scalar key for portable intelligence.",
+        "# Quoted requirement\n\n## Workflow\n\nDo the work.",
+    )
+    text = skill.read_text(encoding="utf-8").replace(
+        "  intelligence: medium",
+        f"  {key}: medium",
+    )
+    skill.write_text(text, encoding="utf-8")
+
+    report = quick_validate.validate_policy(skill)
+
+    assert report["errors"] == []
+
+
+@pytest.mark.parametrize("key", ("'intelligence'", '"intelligence"'))
+def test_rejects_quoted_metadata_intelligence_key(tmp_path: Path, key: str) -> None:
+    skill = tmp_path / "skills/shared/SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text(
+        "---\n"
+        "name: shared\n"
+        'description: "Use when rejecting a direct quoted legacy intelligence key."\n'
+        "requirements:\n"
+        "  intelligence: medium\n"
+        "metadata:\n"
+        f"  {key}: high\n"
+        "---\n\n# Shared\n\n## Workflow\n\nDo the work.\n",
+        encoding="utf-8",
+    )
+
+    report = quick_validate.validate_policy(skill)
+
+    assert report["errors"] == [
+        {
+            "message": (
+                "Shared skills must not declare metadata.intelligence; "
+                "use requirements.intelligence."
+            ),
+            "line": 7,
+        }
+    ]
+
+
+@pytest.mark.parametrize(
+    ("model_key", "expected_line"),
+    (
+        ("model", 4),
+        ("model ", 4),
+        ("'model'", 4),
+        ('"model"', 4),
+        (r'"mod\u0065l"', 4),
+        ("effort", 4),
+        ("model_reasoning_effort", 4),
+        ("model-reasoning-effort", 4),
+        ("modelReasoningEffort", 4),
+        ("reasoning_effort", 4),
+        ("reasoning-effort", 4),
+    ),
+)
+def test_rejects_model_selection_fields_across_supported_yaml_spellings(
+    tmp_path: Path,
+    model_key: str,
+    expected_line: int,
+) -> None:
+    skill = tmp_path / "skills/shared/SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text(
+        "---\n"
+        "name: shared\n"
+        'description: "Use when validating harness-neutral shared skill metadata across runtimes."\n'
+        f"{model_key}: provider-specific\n"
+        "metadata:\n"
+        "  intelligence: medium\n"
+        "---\n\n# Shared\n\n## Workflow\n\nDo the work.\n",
+        encoding="utf-8",
+    )
+
+    report = quick_validate.validate_policy(skill)
+
+    assert report["errors"] == [
+        {
+            "message": (
+                "Shared skills must not declare model or effort fields; use "
+                "requirements.intelligence."
+            ),
+            "line": expected_line,
+        }
+    ]
 
 
 def test_reports_allowed_tools_failure_by_shared_skill_path(tmp_path: Path) -> None:
@@ -367,7 +1012,9 @@ def test_ignores_allowed_tools_outside_root_mapping_keys(
 
     report = quick_validate.validate_policy(skill)
 
-    assert report["errors"] == []
+    assert report["errors"] == [
+        {"message": "Shared skills must declare exactly one requirements.intelligence."}
+    ]
 
 
 def test_reports_placeholders_long_body_and_missing_local_reference(

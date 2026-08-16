@@ -1,7 +1,8 @@
 ---
 name: commit
 description: 'Save code changes cleanly with jj-first, git-compatible routing. Use for commits, manifest-scoped lifecycle saves, split/absorb/edit operations, stacked changes, history reordering, retrospective blame fixes, or the --create-pr compatibility handoff; preserve the repository history policy and keep coding:commit as the sole history-mutation owner.'
-model: opus
+requirements:
+  intelligence: high
 argument-hint: "[--prepare-paths-from=<scope-request> | --paths-from=<manifest> --manifest-sha256=<sha256>] [--retrospective] [--reorder [--up-to <rev>]] [--create-pr] [--branch-prefix <name>] [--no-verify] [--dry-run] [--allow-rewrite-merged]"
 hooks:
   PreToolUse:
@@ -73,7 +74,7 @@ to the caller that owns any subsequent `coding:pr update`.
   then invoke `coding:pr verify --target <sha> --base <sha> --kind standalone`.
   `--no-verify` never skips this direct-sync gate. Passing it does not make a
   direct bookmark sync PR publication.
-- NEVER rewrite merged-on-origin history without explicit consent. Detected target → `AskUserQuestion`, default = the corrective-PR route in [workflow-correct-merged.md](references/workflow-correct-merged.md). `--allow-rewrite-merged` skips the prompt.
+- NEVER rewrite merged-on-origin history without explicit consent. For a detected target, prompt through the graphical or structured user-input tool; default to the corrective-PR route in [workflow-correct-merged.md](references/workflow-correct-merged.md). `--allow-rewrite-merged` skips the prompt.
 - Every change MUST be self-contained: compile + lint + tests pass for each change in isolation. Shared files (package.json, tsconfig, lockfiles) evolve incrementally — no forward references.
 - `--paths-from` is a closed-set save, not a path suggestion. Never save,
   stage, reset, stash, or rewrite a non-selected dirty path, and never continue
@@ -99,7 +100,7 @@ to the caller that owns any subsequent `coding:pr update`.
 | `--branch-prefix <name>` | Forward the branch/bookmark prefix to `coding:pr create` when `--create-pr` is present. |
 | `--no-verify` | Skip this skill's ordinary pre-commit and post-commit lint/test/build checks. It does not waive or pre-authorize the exact-revision gate before a PR handoff or sanctioned direct push. |
 | `--dry-run` | Print the plan, don't mutate. |
-| `--allow-rewrite-merged` | Explicit consent to rewrite history already merged on origin (skips the `AskUserQuestion` corrective-PR prompt). |
+| `--allow-rewrite-merged` | Explicit consent to rewrite history already merged on origin (skips the graphical or structured user-input tool corrective-PR prompt). |
 
 - **Prerequisites**: a git repository, jj-colocated or not. The
   manifest-scoped route additionally requires a checksum-bound manifest under

@@ -35,7 +35,10 @@ Settle this before editing:
 
 **Understand what you're changing first.** Before writing or fixing any code, build an understanding of the current implementation and its issues — run this once, by whichever is available: the `get_project_overview` MCP tool, the `ide__getDiagnostics` MCP tool, or the project's own build/type-check command — `npm run build` or `npx tsc --noEmit` for TypeScript, `ty` for Python, `cargo check` for Rust.
 
-**Carry out each action with the skill that matches it.** A skill is a tool you invoke with the Skill tool — it is not an agent. You never delegate work "to" a skill and never pass a skill name as a `subagent_type`; you *use* a skill to do the work yourself or inside a subagent. Each skill documents its applicable directions, templates, and standards internally.
+**Carry out each action with the skill that matches it.** Load or invoke a skill
+through the harness's skill mechanism; a skill is not an agent. Never delegate
+work "to" a skill or pass its name as an agent type. Use it yourself or inside
+a subagent. Each skill owns its directions, templates, and standards.
 
 | Action | Skill to invoke |
 |--------|-----------------|
@@ -127,7 +130,12 @@ Confirm every requirement was actually delivered — if a plan was executed, ope
 Who verifies is sized on the same test as "Decide who does the work" above:
 
 - **Small, non-consequential change with no review requested** — verify it yourself against the standards `coding:review-code` applies, then continue. Do not spawn a subagent to re-read a small edit you just made. Size alone never qualifies a change here: a one-line authorization, migration, or data-loss fix is consequential and takes the branch below.
-- **Consequential change, an explicit request for review, or PR finalization** — dispatch an independent review **subagent**; publishing a pull request is such a gate. For large changes, dispatch a **review coordinator** that fans out sub-review agents per area and consolidates their findings. Have the reviewer invoke the `coding:review-code` skill with the Skill tool — **skills and agent types are separate namespaces; never pass a skill name as a `subagent_type`.**
+- **Consequential change, an explicit request for review, or PR finalization** — dispatch an independent review **subagent**; publishing a pull request is such a gate. For large changes, dispatch a **review coordinator** that fans out sub-review agents per area and consolidates their findings. Have the reviewer load `coding:review-code` through the harness's skill mechanism. **Skills and agent types are separate namespaces; never pass a skill name as an agent type.**
+
+The selected reviewer must resolve to at least the intelligence required by
+`coding:review-code`. If the designated critic is underqualified, transfer the
+complete review task to an eligible independent agent before review begins, or
+ask the main agent to staff one; the recipient repeats the eligibility check.
 
 ### 2. Then the mechanical gates
 
@@ -145,8 +153,9 @@ Type diagnostics and focused tests are separate gates that `coding:lint` does no
   those owners.
 - **If the user did not explicitly request a commit, ask whether to commit the work** (via `coding:commit`).
 - **If HEAD is not the local main branch, or the work is in a `jj` workspace or
-  linked Git worktree, `AskUserQuestion`** whether to open a PR or move the work
-  onto local main. The shared guide owns the distinction between those
+  linked Git worktree, use the graphical or structured user-input tool
+  to ask whether to open a PR or move the work onto local main.** The shared
+  guide owns the distinction between those
   workspace types.
 
 ### Pull requests

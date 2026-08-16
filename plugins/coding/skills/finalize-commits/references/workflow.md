@@ -1,17 +1,17 @@
-# Per-Commit Loop as an ultracode Workflow (+ Mechanism B fallback)
+# Per-Commit Loop with deterministic scripted execution
 
-Referenced from SKILL.md Step 2. Defines how the atomic per-commit walk runs as a dynamic Workflow when the `Workflow` tool is available, and the inline fallback when it is not. Per-commit procedure: `qa-loop.md`. All history mutations — folds, rewords, order surgery, and the final head move — are applied by `coding:commit`; publication is applied by `coding:pr create`. This file only orchestrates.
+Referenced from SKILL.md Step 2. Defines how the atomic per-commit walk runs through deterministic scripted execution when that capability is available, and the inline fallback when it is not. Per-commit procedure: `qa-loop.md`. All history mutations — folds, rewords, order surgery, and the final head move — are applied by `coding:commit`; publication is applied by `coding:pr create`. This file only orchestrates.
 
 ## Shape
 
-Strictly sequential walk, oldest-first, one commit at a time. One `model:'haiku'` agent per commit executes the FULL atomic seven-sub-step operation from `qa-loop.md` — replay, isolate, marker-check, gate, fold, reword, mark — inside a single dispatch; nothing is split across workflow steps or batched across commits. **The coordinator governs** — it owns every `pending_decision` and resumes the run. Sequential (not fanout) because each commit replays onto the previous commit's folded result and history rewrites must not race; N isolated installs of wall-clock is the accepted price of atomicity.
+Strictly sequential walk, oldest-first, one commit at a time. One mechanical-intelligence agent per commit executes the FULL atomic seven-sub-step operation from `qa-loop.md` — replay, isolate, marker-check, gate, fold, reword, mark — inside a single dispatch; nothing is split across execution steps or batched across commits. **The coordinator governs** — it owns every `pending_decision` and resumes the run. Sequential (not fanout) because each commit replays onto the previous commit's folded result and history rewrites must not race; N isolated installs of wall-clock is the accepted price of atomicity.
 
 The walk chains the rebuilt head forward:
 
 ```
 cur = stackBase                              # parent of the oldest target
 for each target (oldest-first):
-    result = haiku(qa-loop.md, cur, target)
+    result = dispatch(mechanical, qa-loop.md, cur, target)
     cur = result.newSha                      # the folded, marked commit
 ```
 
@@ -24,30 +24,30 @@ When the run includes order changes or hunk folds — Step 2's recommendation, a
 - **Gate A — tip invariance, before any QA spend**: every order fix is an internal move, so the tip tree must be invariant. Verify `git diff <originalTip> <rebuiltTip> -- . ':(exclude)<lockfile>'` is EMPTY (jj: `jj diff --from <original> --to <rebuilt> --git -- '~<lockfile>'`). Non-empty means the surgery changed content — `coding:commit` rolls back; the walk does not start.
 - **Gate B — after the walk, before the branch head moves**: the same tip-equivalence check against the fully rebuilt tip (only QA folds and rewords may differ), PLUS the lock fixed-point: run the project install at the rebuilt tip and verify `git status --porcelain -- <lockfile>` is empty — the tip's lockfile is already self-consistent. Only after Gate B passes does `coding:commit` advance the branch head (and `HEAD`/`@`) to the rebuilt stack.
 
-## Mechanism A — Workflow tool
+## Mechanism A — deterministic scripted execution
 
-1. Build one step per target commit, each dispatching one haiku agent that runs the full `qa-loop.md` operation for that `<rev/sha>`, receiving `cur` and returning `newSha`.
+1. Build one step per target commit, each dispatching one mechanical-intelligence agent that runs the full `qa-loop.md` operation for that `<rev/sha>`, receiving `cur` and returning `newSha`.
 2. A step returning `status: green` chains `cur = newSha` and advances the walk.
-3. A step returning `status: pending_decision` **stops** the workflow and surfaces the `pending_decision` block to the coordinator.
+3. A step returning `status: pending_decision` **stops** the execution and surfaces the `pending_decision` block to the coordinator.
 4. The coordinator resolves it:
-   - `test_fail` / `coverage_fail` → `AskUserQuestion` (fix now via `coding:fix` / accept / abort); on fix, re-run that commit's full atomic operation.
-   - `semantic_conflict` → `AskUserQuestion` to decide the resolution (nothing was auto-merged).
-   - `meaning_reword` → `AskUserQuestion` to confirm the type/scope change; on confirm, request the reword from `coding:commit`.
-5. The coordinator resumes the workflow from the stopped step via `resumeFromRunId`; the checkpoint ref for the last green position supplies `cur`.
+   - `test_fail` / `coverage_fail` → use the graphical or structured user-input tool (fix now via `coding:fix` / accept / abort); on fix, re-run that commit's full atomic operation.
+   - `semantic_conflict` → use the graphical or structured user-input tool to decide the resolution (nothing was auto-merged).
+   - `meaning_reword` → use the graphical or structured user-input tool to confirm the type/scope change; on confirm, request the reword from `coding:commit`.
+5. The coordinator resumes from the stopped step through the capability's run-resumption identifier; the checkpoint ref for the last green position supplies `cur`.
 6. The run completes when every commit reports `green`; Gate B then clears the head to move.
 
-## Mechanism B — no Workflow tool (fallback)
+## Mechanism B — inline fallback
 
 Drive the identical loop inline, with identical atomic semantics:
 
 ```
 cur = stackBase
 for rev in targets (oldest-first):
-    report = Agent(model='haiku', task=qa-loop.md for rev onto cur)
+    report = dispatch(intelligence='mechanical', task=qa-loop.md for rev onto cur)
     while report.status == 'pending_decision':
-        decision = AskUserQuestion(report.pending_decision)
+        decision = get_structured_user_input(report.pending_decision)
         apply(decision)            # coding:fix for code; confirmed rewords via coding:commit
-        report = Agent(model='haiku', task=qa-loop.md for rev onto cur)   # re-run the full atomic op
+        report = dispatch(intelligence='mechanical', task=qa-loop.md for rev onto cur)   # re-run the full atomic op
     assert report.status == 'green'
     cur = report.newSha
 ```

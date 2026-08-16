@@ -1,7 +1,8 @@
 ---
 name: complete-code
 description: Complete explicit production implementation stubs in an existing scope. Use for canonical implementation TODOs, temporary production stubs, and draft-code sentinels; route bugs, test work, unstubbed functionality, new features, and ambiguous markers to their owning workflows.
-model: opus
+requirements:
+  intelligence: medium
 context: fork
 argument-hint: "<scope>"
 ---

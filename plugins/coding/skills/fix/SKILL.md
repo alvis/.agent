@@ -1,7 +1,8 @@
 ---
 name: fix
 description: Fix diagnosed incorrect behavior, failed tests, type errors, lint failures, or broken CI. Use when a concrete failure can be reproduced or review findings identify a defect; route new functionality to write-code and green structural cleanup to refactor.
-model: opus
+requirements:
+  intelligence: high
 argument-hint: "[specifier] [--area=AREA] [--note=...] [--plan=PATH]"
 ---
 

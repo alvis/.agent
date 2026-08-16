@@ -5,23 +5,23 @@ Referenced from SKILL.md Workflow steps 6–8. Defines how the lead runs batches
 ## Lead rules (orchestration only)
 
 - **DO**: discover files, create batches, spawn teammates, manage lifecycle, aggregate results.
-- **DO NOT**: read standard files, run the scanner, apply standards, lint, review, or fix — teammates do all of it. Never `Read` any path containing `standards/`; pass the full standard file paths to teammates as strings.
+- **DO NOT**: read standard files, run the scanner, apply standards, lint, review, or fix — teammates do all of it. Never use filesystem reading capabilities on a path containing `standards/`; pass the full standard file paths to teammates as strings.
 - **DO NOT** assign new tasks to any agent that reported `context_level` >= 60% — retire it instead.
 - Reviewer lifecycle is managed on `ok`/`blocked` + `context_level` reports only. Detailed findings go in a bounded review artifact sent directly to the linter's `agent_id`; they never pass through the lead.
 
 ## Agent pool
 
-| Agent | Model | Role | Max concurrent | Lifecycle |
+| Agent | Intelligence | Role | Max concurrent | Lifecycle |
 |-------|-------|------|----------------|-----------|
-| Lead (skill agent) | opus | Orchestration only | 1 | Entire workflow |
-| `linter-N` | haiku | Run the scanner on its batch, apply standards scoped by `--scope`, fix reviewer feedback | 4 | Reused while `context_level` < 60%; waits for reviewer approval when violations were found; requests retirement at >= 60% with fix work remaining |
-| `reviewer-N` | sonnet | Independent compliance review (only when violations were found) | 2 | Sends a findings-artifact path directly to the linter; reports `ok`/`blocked` + `context_level` to the lead; reused < 60%, retired >= 60% |
+| Lead (skill agent) | medium | Orchestration only | 1 | Entire workflow |
+| `linter-N` | low | Run the scanner on its batch, apply standards scoped by `--scope`, fix reviewer feedback | 4 | Reused while `context_level` < 60%; waits for reviewer approval when violations were found; requests retirement at >= 60% with fix work remaining |
+| `reviewer-N` | medium | Independent compliance review (only when violations were found) | 2 | Sends a findings-artifact path directly to the linter; reports `ok`/`blocked` + `context_level` to the lead; reused < 60%, retired >= 60% |
 
-The lead maintains a registry per agent: configured name, returned `agent_id`, role, model, last `context_level`, and status (`working` / `idle` / `retired`). Excess batches queue until a slot frees. Every direct message uses the registry's `agent_id`, never the configured name or role.
+The lead maintains a registry per agent: configured name, returned `agent_id`, role, intelligence, last `context_level`, and status (`working` / `idle` / `retired`). Excess batches queue until a slot frees. Every direct message uses the registry's `agent_id`, never the configured name or role.
 
 ## Per-batch lint task contents
 
-Each `TaskCreate` stays at or below 4,096 characters and includes: the absolute standard paths (strings), the batch file list, the `--scope` value and its interpretation (`uncommitted`: `git diff` per file to find changed hunks, lint those ranges plus their enclosing functions/blocks; `all`: whole file; other: a focus hint), the runner command from SKILL.md step 6, and these instructions. If that would exceed the ceiling, put the assignment in a task-owned artifact and dispatch its absolute path plus at most two summary lines.
+Each structured task-tracking entry stays at or below 4,096 characters and includes: the absolute standard paths (strings), the batch file list, the `--scope` value and its interpretation (`uncommitted`: `git diff` per file to find changed hunks, lint those ranges plus their enclosing functions/blocks; `all`: whole file; other: a focus hint), the runner command from SKILL.md step 6, and these instructions. If that would exceed the ceiling, put the assignment in a task-owned artifact and dispatch its absolute path plus at most two summary lines.
 
 - confirm every advisory scanner candidate against the matching rule file (`./rules/<rule-id>.md`) before flagging, and follow its Fix section;
 - run the project lint/type/test tools after edits — not the scanner again;
@@ -52,4 +52,4 @@ Each `TaskCreate` stays at or below 4,096 characters and includes: the absolute 
 
 ## Iterating until clean with /goal
 
-Iteration is session-level via `/goal`, never looped inside this skill. To lint until clean: `/goal violations_found_total reaches 0 from a fresh /coding:lint pass on src/, or stop after 5 turns`, then invoke the skill. The report's leading `violations_found_total` + `status` keys exist so the goal evaluator (default Haiku) reads convergence directly: `compliant`/`0` signals the goal is met; `success` means violations were fixed this pass and another pass should verify clean state. Unused-code removals from the pre-flight are reported separately and never count toward `violations_found_total` — a one-time prune must not skew convergence.
+Iteration is session-level via `/goal`, never looped inside this skill. To lint until clean: `/goal violations_found_total reaches 0 from a fresh /coding:lint pass on src/, or stop after 5 turns`, then invoke the skill. The report's leading `violations_found_total` + `status` keys exist so a mechanical-intelligence goal evaluator reads convergence directly: `compliant`/`0` signals the goal is met; `success` means violations were fixed this pass and another pass should verify clean state. Unused-code removals from the pre-flight are reported separately and never count toward `violations_found_total` — a one-time prune must not skew convergence.

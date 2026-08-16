@@ -1,6 +1,8 @@
 ---
 name: presetter
 description: "Sets up, adapts, migrates, regenerates, and troubleshoots TypeScript projects that use Presetter. Must be used whenever any `presetter.config.ts` is spotted. Before generating configuration files for an exact target in a project written in TypeScript with no Presetter owner, use this skill to ask whether Presetter should own them."
+requirements:
+  intelligence: medium
 ---
 
 # Presetter

@@ -43,9 +43,9 @@ Present the rendered image — remote users cannot see the local Chrome window:
 1. `list_pages` → `new_page file://<absolute path>` → `take_screenshot` (full-page). **Look at the screenshot**: broken layout, missing fonts, clipped tiles, or unreadable rank badges get fixed BEFORE the user sees anything.
 2. Save or convert the screenshot to `<design-evidence-dir>/boards/<board-slug>.webp`, then `SendUserFile` with `files: [<screenshot image path>]`, `display: render`, and a caption naming each numbered candidate/variant. The screenshot IS the deliverable; optionally attach the board HTML as a secondary file for users who want live hover/motion.
 
-### A5. Choice Capture — the AskUserQuestion convention
+### A5. Choice Capture — the graphical or structured user-input tool convention
 
-One `AskUserQuestion` call per board (never batch two boards into one call). The convention, everywhere:
+One use of the graphical or structured user-input tool per board (never batch two boards into one call). The convention, everywhere:
 
 - ≤4 options per question (tool limit); every option's description states what picking it means.
 - The reviewer-ranked **#1 candidate is the stated safe default**, marked "(Recommended)" and listed first.
@@ -183,7 +183,7 @@ Variants must differ on at least two of: composition, density, imagery treatment
 
 ### C3. Choice Battery
 
-Per A5, one `AskUserQuestion` per area board:
+Per A5, use the graphical or structured user-input tool once per area board:
 
 - **Q — "{Area}: which design?"** Options: up to the top three ranked variants that exist (`#1 {name} (Recommended)`, `#2 {name}`, and `#3 {name}` when present) plus **"Another variant or mix — name the number(s)"**. Each description = the variant's one-line spec strip + why-this-rank. If `N>3`, variants `#4..#N` remain fully pickable through the fourth option or free-text Other; if `N=2`, omit the nonexistent `#3` option.
 

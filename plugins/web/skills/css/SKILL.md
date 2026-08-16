@@ -1,6 +1,8 @@
 ---
 name: css
 description: Scaffold or maintain a project's root stylesheet using the CSS-only light, dark, and system color-mode contract. Use for theme.css, globals.css, or app.css setup, migration from class-driven dark mode, semantic token wiring, or color-mode corrections. Detect conflicts, obtain migration approval, preserve existing tokens, and edit CSS only.
+requirements:
+  intelligence: medium
 argument-hint: "[project root or stylesheet] [--tokens=<roles>]"
 ---
 

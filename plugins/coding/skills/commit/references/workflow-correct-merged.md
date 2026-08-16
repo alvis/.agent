@@ -23,7 +23,7 @@ gh pr view <bookmark> --json state -q .state
 
 ### 1. Ask the user (unless `--allow-rewrite-merged`)
 
-If the user did NOT pass `--allow-rewrite-merged`, run `AskUserQuestion`:
+If the user did NOT pass `--allow-rewrite-merged`, use the graphical or structured user-input tool:
 
 ```text
 Target change <change_id> is already on origin and its PR is MERGED.
@@ -158,7 +158,7 @@ Notify reviewers and downstream consumers:
 ## Hard rules
 
 - Default route is ALWAYS the corrective PR. Only deviate on explicit user choice or `--allow-rewrite-merged`.
-- `--allow-rewrite-merged` skips the `AskUserQuestion` prompt but does NOT skip the integrity or exact-revision publication gate.
+- `--allow-rewrite-merged` skips the graphical or structured user-input tool prompt but does NOT skip the integrity or exact-revision publication gate.
 - Conventional regex enforced on any new change introduced.
 - A rewrite that touches main@origin's tip itself is forbidden — surface and abort regardless of consent.
 

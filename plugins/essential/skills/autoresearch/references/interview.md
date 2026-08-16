@@ -4,7 +4,7 @@ This reference holds the Step 2 question battery. The interview is **adaptive, n
 arguments or a pre-filled brief already answer unambiguously, and ask only what the mandatory-field checklist
 (`references/brief-template.md`) still needs. Mechanics:
 
-- **Batteries of <=4 questions** per `AskUserQuestion` call, grouped by domain. Never ask all nine domains at once.
+- **Batteries of <=4 questions** per use of the graphical or structured user-input tool, grouped by domain. Never ask all nine domains at once.
 - **Always offer a proposed default as an option.** The user should be able to accept a sensible default with one
   tap; free-text is the escape hatch, not the primary path.
 - **Loop until the exit-criteria pass.** Each failed criterion generates the next battery, targeted at exactly the

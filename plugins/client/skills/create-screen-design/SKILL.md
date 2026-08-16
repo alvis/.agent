@@ -1,7 +1,8 @@
 ---
 name: create-screen-design
 description: Create a new responsive screen-design contract from user-selected product and specification context, keep temporary exploration in the active work item, synchronize approved content through an explicitly selected body author and Notion transport, and promote durable design docs. Route existing screens to update-screen-design.
-model: opus
+requirements:
+  intelligence: high
 argument-hint: "<product> <screen descriptions...> [--work-id=<id>] [--context=<path-or-ref>] [--context-direction=<direction>] [--transport-root=<dir>] [--transport-profile=<absolute-file>] [--body-author=<plugin:skill>] [--template-ref=<ref>] [--parent-ref=<ref>] [--collection-ref=<ref>] [--constraints=...] [--platforms=...]"
 ---
 

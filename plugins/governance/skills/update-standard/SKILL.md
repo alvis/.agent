@@ -1,7 +1,8 @@
 ---
 name: update-standard
 description: Update explicitly selected plugin standards to the current meta.md, scan.md, write.md, and rules contract while preserving valid policy and stable rule IDs. Use when applying scoped rule changes, migrating standards to a template revision, or batch-updating the standards library. Require a path, glob, or --all; route missing targets to create-standard.
-model: opus
+requirements:
+  intelligence: high
 context: fork
 argument-hint: "<standard path, name, or glob> [--changes=...] [--all]"
 ---
@@ -59,7 +60,7 @@ standards.
 6. For multiple independent targets, bounded delegation per
    [delegation guidance](../../standards/delegation/) is
    allowed — at most 3 standard directories per batch (each directory is 3
-   tier files plus rules) and 8 parallel `Task` calls per dispatch — but
+   tier files plus rules) and 8 parallel subagent dispatches per request — but
    review the combined ID/dependency/link graph before validation.
 7. Run the verification below; when a check fails, fix the cause and re-run
    that check. Repeat until every check passes or a concrete blocker remains,

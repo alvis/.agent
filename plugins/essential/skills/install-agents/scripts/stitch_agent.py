@@ -73,7 +73,7 @@ def _reject_nonstandard_number(value: str) -> None:
     raise ValueError(f"non-standard JSON number: {value}")
 
 
-def _load_intelligence_levels() -> dict[str, dict[str, dict[str, str]]]:
+def _load_intelligence_levels() -> dict[str, dict[str, Any]]:
     """Load the authoritative harness projection matrix."""
     try:
         matrix = json.loads(
@@ -86,19 +86,53 @@ def _load_intelligence_levels() -> dict[str, dict[str, dict[str, str]]]:
         ) from error
     if not isinstance(matrix, dict) or not matrix:
         raise AgentTemplateError("intelligence-level matrix must be a non-empty object")
-    allowed_fields = {
+    allowed_projection_fields = {
         "claude": {"model", "effort"},
         "codex": {"model", "model_reasoning_effort"},
     }
+    ranks: list[int] = []
+    examples: set[str] = set()
     for level, projection in matrix.items():
         if not isinstance(level, str) or not isinstance(projection, dict):
             raise AgentTemplateError("invalid intelligence-level matrix entry")
-        if set(projection) != set(allowed_fields):
+        if set(projection) != {"rank", "best_for", *allowed_projection_fields}:
             raise AgentTemplateError(
-                f"intelligence level {level!r} must define claude and codex projections"
+                f"intelligence level {level!r} must define rank, best_for, "
+                "claude, and codex"
             )
-        for harness, fields in projection.items():
-            if not isinstance(fields, dict) or not set(fields) <= allowed_fields[harness]:
+
+        rank = projection["rank"]
+        if level == "inherit":
+            if rank is not None:
+                raise AgentTemplateError("inherit intelligence rank must be null")
+        elif not isinstance(rank, int) or isinstance(rank, bool) or rank < 0:
+            raise AgentTemplateError(
+                f"intelligence level {level!r} must have a non-negative integer rank"
+            )
+        else:
+            ranks.append(rank)
+
+        best_for = projection["best_for"]
+        if (
+            not isinstance(best_for, list)
+            or not best_for
+            or not all(
+                isinstance(example, str) and example.strip() for example in best_for
+            )
+        ):
+            raise AgentTemplateError(
+                f"intelligence level {level!r} best_for must contain task examples"
+            )
+        for example in best_for:
+            if example in examples:
+                raise AgentTemplateError(
+                    "intelligence task examples must be unique across levels"
+                )
+            examples.add(example)
+
+        for harness, allowed_fields in allowed_projection_fields.items():
+            fields = projection[harness]
+            if not isinstance(fields, dict) or not set(fields) <= allowed_fields:
                 raise AgentTemplateError(
                     f"invalid {harness} projection for intelligence level {level!r}"
                 )
@@ -106,6 +140,14 @@ def _load_intelligence_levels() -> dict[str, dict[str, dict[str, str]]]:
                 raise AgentTemplateError(
                     f"{harness} projection values must be strings for {level!r}"
                 )
+    if "inherit" not in matrix:
+        raise AgentTemplateError("intelligence-level matrix must define inherit")
+    if len(ranks) != len(set(ranks)):
+        raise AgentTemplateError("concrete intelligence ranks must be unique")
+    if sorted(ranks) != list(range(len(ranks))):
+        raise AgentTemplateError(
+            "concrete intelligence ranks must be contiguous from zero"
+        )
     return matrix
 
 
@@ -423,6 +465,27 @@ def _resolve_essential_references(
     )
 
 
+def _inject_intelligence_line(body: str, intelligence: str) -> str:
+    """Insert the metadata-derived intelligence contract below the title."""
+    if "Intelligence level:" in body:
+        raise AgentTemplateError(
+            "base.md must not duplicate the derived intelligence line"
+        )
+    title, separator, remainder = body.partition("\n")
+    if not title.startswith("# "):
+        raise AgentTemplateError(
+            "base.md must start with an H1 title for intelligence injection"
+        )
+    statement = (
+        "Intelligence level: inherit; resolve the effective harness level "
+        "before accepting a skill."
+        if intelligence == "inherit"
+        else f"Intelligence level: {intelligence}."
+    )
+    suffix = remainder if separator else ""
+    return f"{title}\n\n{statement}\n{suffix}"
+
+
 def stitch_agent_definition(
     template_directory: Path,
     *,
@@ -435,6 +498,7 @@ def stitch_agent_definition(
     sources = load_agent_sources(template_directory, allow_legacy=allow_legacy)
     body = (template_directory / "base.md").read_text(encoding="utf-8").lstrip("\n")
     validate_agent_contract(sources, body)
+    body = _inject_intelligence_line(body, sources.metadata["intelligence"])
     body = _resolve_essential_references(
         body,
         template_directory,
@@ -544,6 +608,7 @@ def stitch_codex_agent_definition(
     sources = load_agent_sources(template_directory, allow_legacy=allow_legacy)
     body = (template_directory / "base.md").read_text(encoding="utf-8").lstrip("\n")
     validate_agent_contract(sources, body)
+    body = _inject_intelligence_line(body, sources.metadata["intelligence"])
     fields = [
         ("name", sources.metadata["name"]),
         (

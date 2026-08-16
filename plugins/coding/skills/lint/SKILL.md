@@ -1,7 +1,8 @@
 ---
 name: lint
 description: Enforce coding standards mechanically across a selected scope with batched linters and independent reviewers. Use when source files need lint-error correction, standards enforcement, or consistent formatting, including calls extended by another plugin's portable lint profile; behavior-changing repairs belong to fix.
-model: opus
+requirements:
+  intelligence: medium
 argument-hint: "[specifier] [--scope=SCOPE] [--skip-unused] [--profile=ABSOLUTE_PATH]"
 ---
 
@@ -49,23 +50,23 @@ Fail before editing if the profile is invalid, references a missing standard/sca
 
 You are the lead orchestrator: coordinate, delegate, and aggregate only — never scan, lint, review, or read standard files yourself. Load [references/team-lint-cycle.md](references/team-lint-cycle.md) for the lead rules, agent pool lifecycle, per-batch task contents, the lint–review cycle, and `/goal` convergence semantics.
 
-0. Unless `--skip-unused` is set, run the pre-flight unused-code scan: invoke `coding:find-unused` with the specifier (or repo root). Zero findings → proceed silently. Otherwise present each finding via `AskUserQuestion` (file:line + symbol, Remove/Keep, ≤4 questions per call, paginated), then dispatch one haiku cleanup agent with the confirmed-unused list to delete precisely and report. Record scan/removed/kept counts for the final report; they never count toward `violations_found_total`. `--scope` does not apply here — dead-code detection is project-wide by nature.
+0. Unless `--skip-unused` is set, run the pre-flight unused-code scan: invoke `coding:find-unused` with the specifier (or repo root). Zero findings → proceed silently. Otherwise present each finding through a graphical or structured user-input tool (file:line + symbol, Remove/Keep, ≤4 questions per call, paginated), then dispatch one low-intelligence cleanup agent with the confirmed-unused list to delete precisely and report. Record scan/removed/kept counts for the final report; they never count toward `violations_found_total`. `--scope` does not apply here — dead-code detection is project-wide by nature.
 1. Parse `specifier`, `--scope`, and the optional profile independently of argument order.
 2. Resolve candidate files:
    - `uncommitted`: union unstaged, staged, and untracked files, then apply the specifier.
    - `all` or a custom scope: resolve the specifier directly.
    - Always exclude ignored files, dependencies, generated output, and paths outside the repository.
 3. Apply profile eligibility and exclusions when supplied. Stop cleanly if no files remain.
-4. Discover generic coding standards from active plugin context: collect the standard file paths listed under the "Plugin Constitution > Standards" sections of the system prompt (fall back to a Glob for `**/standards/**` when absent), select the set named by the linting Delegation Rule by matching names to filename stems (partial-stem matching tolerates renamed or split standards), and add testing standards when any target is a `*.spec.*` or `*.test.*` file. Add profile standards without replacing or duplicating generic standards. Pass standard paths to teammates as strings — the lead never reads their contents.
+4. Discover generic coding standards from active plugin context: collect the standard file paths listed under the "Plugin Constitution > Standards" sections of the system prompt (fall back to filesystem pattern search for `**/standards/**` when absent), select the set named by the linting Delegation Rule by matching names to filename stems (partial-stem matching tolerates renamed or split standards), and add testing standards when any target is a `*.spec.*` or `*.test.*` file. Add profile standards without replacing or duplicating generic standards. Pass standard paths to teammates as strings — the lead never reads their contents.
 5. Batch related files, with at most two files per batch.
-6. For each batch, delegate mechanical linting to a suitable available subagent that cannot delegate further (haiku linters, max 4 concurrent — see the team reference for the full task contents and lifecycle):
+6. For each batch, delegate mechanical linting to a suitable available subagent that cannot delegate further (low-intelligence linters, max 4 concurrent — see the team reference for the full task contents and lifecycle):
    - Run `${CODING_LINT_SKILL_DIR}/../../scripts/pyrun.sh ${CODING_LINT_SKILL_DIR}/../../scripts/lint_profile_runner.py [--profile=<absolute-path>] <files>` exactly once. The runner resolves Coding resources from its installed location.
    - The runner executes the generic scanner exactly once, then each profile scanner exactly once in declared order. Profile resources resolve relative to the absolute profile path.
    - Treat scanner output as advisory; confirm candidates against the matching rule before editing.
    - Apply generic and profile standards only within the requested scope.
    - Run project lint, type, and focused test commands after edits.
    - Return `violations_found`, `status`, files changed, checks run, and remaining issues.
-7. Independently review batches that changed files with two sonnet reviewers per batch, repeating the fix–review round until both approve (see the team reference). Already-compliant batches need no review.
+7. Independently review batches that changed files with two medium-intelligence reviewers per batch, repeating the fix–review round until both approve (see the team reference). Already-compliant batches need no review.
 8. Aggregate batch counts and use the worst status: `failure > partial > success > compliant`.
 9. Run the verification below; when a check fails, fix the cause and re-run that check. Repeat until every check passes or a concrete blocker remains, then report the blocker instead of looping.
 

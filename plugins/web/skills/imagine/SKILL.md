@@ -1,6 +1,8 @@
 ---
 name: imagine
 description: "Generate or edit images through the bundled multi-provider CLI, or write structured prompts and analyze visual styles from references. Use for concept art, product shots, covers, UI assets, transparent or vector output, inpainting, background changes, batch variants, and prompt-only work. Keep image generation separate from web design decisions and visual audits."
+requirements:
+  intelligence: medium
 argument-hint: "[prompt, instruction, or reference image for style analysis]"
 ---
 

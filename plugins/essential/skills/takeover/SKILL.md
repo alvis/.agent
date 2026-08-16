@@ -1,7 +1,8 @@
 ---
 name: takeover
 description: Resume paused work from the on-disk state under the default source tree's centralized .state/works/. With no argument, offer every incomplete work stream there, switching the working directory to the checkout a chosen stream is worked in. Settle every stream awaiting merge before offering the next task, then resolve pending decisions, always surface the unblocked streams as the recommended next work, delegate each stream's planning to the relevant lead role for a proposed team or workflow, and drive each selected stream toward its charter's success criteria. On completion, promote confirmed implementation and decisions to the repo's docs/ for every work type, and for coding streams delegate pull-request creation and monitoring to an executor agent running the relevant change-publication capability.
-model: opus
+requirements:
+  intelligence: high
 argument-hint: "[--revalidate]"
 ---
 
@@ -106,7 +107,7 @@ L2b. **Settle every `reviewing` stream before offering the next task.** A
     with `gh pr view <n> --json state,mergedAt`; with no PR recorded, fall back
     to whether its branch is merged into the default branch, or to patch
     equivalence. On merge evidence, set its lifecycle to `completed`, reconcile
-    its `overview.md` row, then ask with `AskUserQuestion` whether to remove that
+    its `overview.md` row, then use the graphical or structured user-input tool to ask whether to remove that
     stream's source tree from disk — routing any removal to
     [coding:cleanup](../../../coding/skills/cleanup/SKILL.md), which owns
     worktree inventory and per-target approval. Never run `git worktree remove`
@@ -114,7 +115,7 @@ L2b. **Settle every `reviewing` stream before offering the next task.** A
     A stream with no merge evidence yet stays `reviewing` and is reported as
     such. Only then continue to L3.
 
-L3. Offer the continuable streams with `AskUserQuestion`, grouped by the
+L3. Offer the continuable streams through the graphical or structured user-input tool, grouped by the
     checkout each is worked in and defaulting to this one's streams; `reviewing`
     streams that L2b could not settle, plus `completed` and `retiring` streams,
     are not resumable, so exclude them and name them so the user sees why.
@@ -164,7 +165,7 @@ L6. Reconcile a work directory this session did not write before treating it as
     stream and recommend `essential:doctor` rather than repairing it inline.
 
 L7. Resolve decisions that block a selected stream's next action with
-    `AskUserQuestion`; store detail in that stream's `decisions/<slug>.md`,
+    the graphical or structured user-input tool; store detail in that stream's `decisions/<slug>.md`,
     reconcile `decisions.md`, and update the affected state tasks. Then continue
     into the shared hand-off at step 11 — step 10's decision reconciliation is
     already done.
@@ -183,7 +184,7 @@ resolver failure, an unparseable `state.md`), stop that stream and recommend
 `essential:doctor` instead of repairing inline.
 
 10. Resolve decisions that block a selected stream's next action using
-    `AskUserQuestion`. Store detail in that stream's `decisions/<slug>.md`,
+    the graphical or structured user-input tool. Store detail in that stream's `decisions/<slug>.md`,
     reconcile `decisions.md`, and update the affected state tasks. Leave deferred
     questions explicit with owner/deadline. (Step L7 already did this; do not
     repeat it.)

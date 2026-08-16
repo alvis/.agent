@@ -65,7 +65,7 @@ def test_generic_authorities_and_dispatching_skills_reference_direction() -> Non
         PLUGIN / "README.md",
         PLUGIN / "references/orchestration.md",
         PLUGIN / "references/team-lifecycle.md",
-        PLUGIN / "references/workflow-tool.md",
+        PLUGIN / "references/scripted-execution.md",
         PLUGIN / "hooks/MAINAGENT.md",
         PLUGIN / "hooks/SUBAGENT.md",
     )
@@ -102,7 +102,7 @@ def test_autoresearch_first_prompt_blocks_use_the_canonical_fields() -> None:
 
 
 def test_shipped_first_prompts_enforce_item_and_shared_path_rules() -> None:
-    workflow = (PLUGIN / "references/workflow-tool.md").read_text(encoding="utf-8")
+    workflow = (PLUGIN / "references/scripted-execution.md").read_text(encoding="utf-8")
     loop = (PLUGIN / "skills/autoresearch/references/loop-workflow.md").read_text(
         encoding="utf-8"
     )
@@ -128,6 +128,29 @@ def test_shipped_first_prompts_enforce_item_and_shared_path_rules() -> None:
             assert re.search(r"^Path: (?:/|<absolute )", context, flags=re.MULTILINE)
             for _, path in items:
                 assert not path.startswith(("/", "<absolute "))
+
+
+def test_parallel_adapter_uses_one_intelligence_option_contract() -> None:
+    adapter = (PLUGIN / "references/scripted-execution.md").read_text(
+        encoding="utf-8"
+    )
+    loop = (PLUGIN / "skills/autoresearch/references/loop-workflow.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "agent(task, opts?)" in adapter
+    assert "`intelligence` (a concrete mapping level" in adapter
+    assert "adapter applies only that level's native model and effort projection" in adapter
+    assert "export default async function" not in loop
+    assert (
+        "const { brief, run_dir, baseline_score, resume_state, seed } = args;"
+        in loop
+    )
+    assert "agent({ intelligence" not in loop
+    assert loop.count("{ intelligence:") == 4
+    assert "slots.map((slot) =>\n      () => agent(" in loop
+    assert "candidates.map((c) =>\n          () => agent(" in loop
+    assert ".map((t) => () => agent(" in loop
 
 
 def test_legacy_prompt_shape_no_longer_competes_with_the_direction() -> None:

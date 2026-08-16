@@ -1,6 +1,8 @@
 ---
 name: write-skill
 description: "Use when authoring, revising, or validating an Agent Skill for Claude Code, Codex, or both through its create, update, and verify actions: define a reusable capability, align existing skills with repository policy, or check structure, triggers, portability, and behavior before use."
+requirements:
+  intelligence: high
 ---
 
 # Write Skill

@@ -22,6 +22,15 @@ QUICK_VALIDATE_PATH = (
     / "scripts"
     / "quick_validate.py"
 )
+INTELLIGENCE_LEVELS_PATH = (
+    ROOT
+    / "plugins"
+    / "essential"
+    / "skills"
+    / "install-agents"
+    / "references"
+    / "intelligence-levels.json"
+)
 SCHEMA_ROOT = ROOT / "scripts" / "schemas"
 JSON_TYPES = {
     "array": lambda value: isinstance(value, list),
@@ -55,6 +64,18 @@ CONTEXT_PAYLOAD_EVENTS = {
     "hooks/SUBAGENT.md": {"SubagentStart"},
 }
 CLAUDE_ONLY_SHARED_SKILLS = ("install-output-styles", "install-statusline")
+PROHIBITED_SHARED_TOOL_PATTERNS = (
+    re.compile(
+        r"\b(?:AskUserQuestion|SendMessage|TodoWrite|TaskCreate|TaskUpdate|"
+        r"TaskList|TaskGet|TeamCreate|TeamDelete|CronDelete|WebSearch|WebFetch)\b"
+    ),
+    re.compile(r"`Workflow`|\bWorkflow tool\b"),
+    re.compile(r"(?<![\w/-])/loop(?:\s|`|$)"),
+    re.compile(r"\bSkill tool\b"),
+    re.compile(r"`Agent` (?:calls|is available)"),
+    re.compile(r"`Task` (?:calls|payloads|subagents)"),
+    re.compile(r"\b(?:Glob|Read|Write|Edit) tool\b"),
+)
 RESOURCE_ROOT = re.compile(
     r"\$\{([A-Z][A-Z0-9_]*_(?:PLUGIN_ROOT|PLUGIN_DIR|SKILL_DIR))\}"
 )
@@ -236,13 +257,20 @@ def frontmatter_scalar(header: str, field: str) -> str:
     return value
 
 
-def skill_frontmatter(path: Path) -> tuple[str, str]:
+def skill_frontmatter(path: Path) -> tuple[str, str, str]:
     text = path.read_text()
     assert text.startswith("---\n")
     _, header, _ = text.split("---\n", 2)
+    intelligence_entries = quick_validate.requirements_intelligence_entries(
+        header.splitlines()
+    )
+    assert len(intelligence_entries) == 1
+    intelligence, _ = intelligence_entries[0]
+    assert intelligence is not None
     return (
         frontmatter_scalar(header, "name"),
         frontmatter_scalar(header, "description"),
+        intelligence,
     )
 
 
@@ -518,22 +546,124 @@ def test_codex_manifests_are_thin_adapters_over_shared_plugin_content() -> None:
 
 
 def test_shared_skills_follow_the_cross_harness_agent_skills_contract() -> None:
+    intelligence_levels = load_json(INTELLIGENCE_LEVELS_PATH)
+    concrete_model_names = {
+        fields["model"]
+        for projection in intelligence_levels.values()
+        for fields in (projection["claude"], projection["codex"])
+        if fields.get("model") not in (None, "inherit")
+    }
+
     for plugin in marketplace_plugins():
         plugin_root = resolve_plugin_path(ROOT, plugin["source"])
         skill_paths = sorted((plugin_root / "skills").glob("*/SKILL.md"))
         assert skill_paths
 
         for skill_path in skill_paths:
-            name, description = skill_frontmatter(skill_path)
+            name, description, intelligence = skill_frontmatter(skill_path)
             assert SKILL_NAME.fullmatch(name)
             assert len(name) <= 64
             assert name == skill_path.parent.name
             assert description
             assert len(description) <= 1024
+            assert intelligence in intelligence_levels
+            assert intelligence_levels[intelligence]["rank"] is not None
+            text = skill_path.read_text(encoding="utf-8")
+            assert all(model_name not in text for model_name in concrete_model_names)
             policy_report = quick_validate.validate_policy(skill_path)
             assert policy_report["errors"] == [], (
                 f"{skill_path.relative_to(ROOT)}: {policy_report['errors']}"
             )
+
+
+def test_canonical_skill_owners_meet_their_mandated_skill_requirements() -> None:
+    intelligence_levels = load_json(INTELLIGENCE_LEVELS_PATH)
+    owner_skills = (
+        ("code-quality-critic", "pr"),
+        ("testing-evangelist", "complete-test"),
+    )
+
+    for owner, skill in owner_skills:
+        metadata = load_json(
+            ROOT / "plugins/coding/agents" / owner / "frontmatter/meta.json"
+        )
+        _, _, requirement = skill_frontmatter(
+            ROOT / "plugins/coding/skills" / skill / "SKILL.md"
+        )
+        assert intelligence_levels[metadata["intelligence"]]["rank"] >= (
+            intelligence_levels[requirement]["rank"]
+        ), f"{owner} cannot execute its mandated coding:{skill} workflow"
+
+
+def test_shared_prose_uses_capabilities_instead_of_harness_tool_names() -> None:
+    allowlisted_adapter_parts = {
+        ("frontmatter", "claude.json"),
+        ("frontmatter", "codex.json"),
+    }
+    shared_paths = [
+        path
+        for path in tracked_paths()
+        if path.suffix in {".md", ".json"}
+        and "tests" not in path.parts
+        and not any(
+            path.parts[-2:] == adapter_parts
+            for adapter_parts in allowlisted_adapter_parts
+        )
+    ]
+    intelligence_levels = load_json(INTELLIGENCE_LEVELS_PATH)
+    concrete_model_names = {
+        fields["model"]
+        for projection in intelligence_levels.values()
+        for fields in (projection["claude"], projection["codex"])
+        if fields.get("model") not in (None, "inherit")
+    }
+
+    failures = []
+    for path in shared_paths:
+        text = path.read_text(encoding="utf-8")
+        for pattern in PROHIBITED_SHARED_TOOL_PATTERNS:
+            if match := pattern.search(text):
+                failures.append(
+                    f"{path.relative_to(ROOT)}: prohibited shared tool name "
+                    f"{match.group(0)!r}"
+                )
+        if path != INTELLIGENCE_LEVELS_PATH:
+            for model_name in concrete_model_names:
+                if re.search(rf"\b{re.escape(model_name)}\b", text, re.IGNORECASE):
+                    failures.append(
+                        f"{path.relative_to(ROOT)}: concrete model name "
+                        f"{model_name!r} outside a harness adapter"
+                    )
+
+    assert failures == []
+
+
+def test_claude_workflow_is_described_as_deterministic_scripted_execution() -> None:
+    adapters = (
+        ROOT / "plugins/coding/agents/tech-lead/frontmatter/claude.json",
+        ROOT / "plugins/coding/agents/ai-research-lead/frontmatter/claude.json",
+        ROOT / "plugins/web/agents/design-lead/frontmatter/claude.json",
+    )
+
+    for adapter in adapters:
+        prompt = load_json(adapter)["initialPrompt"]
+        assert "Claude Workflow provides deterministic scripted execution" in prompt
+        assert "may run sequentially or in parallel" in prompt
+
+
+def test_shared_prose_uses_exact_user_input_wording() -> None:
+    wording = re.compile(
+        r"(?:the )?graphical or structured user-input (?:capability|tool)",
+        re.IGNORECASE,
+    )
+
+    for path in tracked_paths():
+        if path.suffix not in {".md", ".json"} or "tests" in path.parts:
+            continue
+        for match in wording.finditer(path.read_text(encoding="utf-8")):
+            assert match.group(0).lower().removeprefix("the ") == (
+                "graphical or structured user-input tool"
+            ), path.relative_to(ROOT)
 
 
 def test_shipped_qualified_capabilities_exist_in_this_marketplace() -> None:

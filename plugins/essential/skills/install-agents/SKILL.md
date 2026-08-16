@@ -1,6 +1,8 @@
 ---
 name: install-agents
 description: "Discover, validate, stitch, and install specialist agent templates contributed by Essential, its marketplace, and explicitly trusted enabled marketplaces. Use when asked to install agents, set up subagents, refresh the agent team, or configure Claude Code or Codex on a new machine."
+requirements:
+  intelligence: medium
 ---
 
 # Install Agents
@@ -21,7 +23,7 @@ Markdown definition under `~/.claude/agents/` or a Codex TOML definition under
 4. Copies staged definitions into the selected harness's agent directory and regenerates shared lead support under `.essential/`, overwriting discovered same-named agents while leaving unrelated and formerly managed files untouched.
 5. Prints each installed path and a final count.
 
-Codex has no safe equivalent for Claude's color, permission mode, project-memory mode, worktree isolation, turn limit, startup prompt, or per-agent hooks, so the projection omits them. The Codex projection removes Claude-managed `Memory`, the Dynamic Workflow portion of `Delegation Modes`, and residual worktree or Workflow-launch promises elsewhere while retaining direct persistent delegation. Model tools, sandboxing, approvals, and local memories remain Codex-owned. Codex overlay fields must use scalar TOML-compatible values.
+Codex has no safe equivalent for Claude's color, permission mode, project-memory mode, worktree isolation, turn limit, startup prompt, or per-agent hooks, so the projection omits them. The Codex projection removes Claude-managed `Memory`, the Claude adapter's deterministic scripted-execution portion of `Delegation Modes`, and residual worktree or scripted-execution-launch promises elsewhere while retaining direct persistent delegation. Model tools, sandboxing, approvals, and local memories remain Codex-owned. Codex overlay fields must use scalar TOML-compatible values.
 
 ## Workflow
 

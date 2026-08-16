@@ -19,7 +19,7 @@ Claude does **not** re-run the crawl, does **not** re-audit code-shaped rules, a
 
 If `report.cross_origin_candidates` is non-empty:
 
-1. Use **AskUserQuestion once** with the list grouped by origin (social-media hosts are already excluded by the CLI).
+1. Use **the graphical or structured user-input tool once** with the list grouped by origin (social-media hosts are already excluded by the CLI).
 2. The user's answer determines which cross-origin pages to include in a follow-up scope. Record declined origins for the Phase 4 site-level section.
 3. Do not prompt again during this audit.
 

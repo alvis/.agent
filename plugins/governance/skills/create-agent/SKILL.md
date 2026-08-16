@@ -1,7 +1,8 @@
 ---
 name: create-agent
 description: "Creates a new specialist agent from a shared base prompt plus split metadata, Claude, and Codex JSON sources, proposing intelligence and permissions by role archetype and confirming them with the user before writing. Use when adding a new subagent, defining a new specialist role, scaffolding an agent definition, or when update-agent hands off new-agent creation."
-model: opus
+requirements:
+  intelligence: high
 context: fork
 argument-hint: "<role description> [--plugin=<owner>] [--intelligence=...] [--permission=...] [--yes]"
 ---
@@ -65,8 +66,9 @@ anything is written. `update-agent` owns changes to existing definitions.
      when the role needs them. A producer's independent-review posture is
      carried by its charter, its convergence predicate, and Essential's shared
      orchestration policy — never by a per-agent hook.
-4. Confirm before writing: compose one `AskUserQuestion` battery of at most
-   four questions covering intelligence level and — only when they deviate from
+4. Confirm before writing: compose one battery of at most four questions for the
+   graphical or structured user-input tool,
+   covering intelligence level and — only when they deviate from
    the archetype default — permissionMode and leaf-vs-spawn posture. List the
    recommended value first marked "(Recommended)" with a free-text override
    as the last option. Flags override their named fields and skip their
@@ -92,6 +94,8 @@ anything is written. `update-agent` owns changes to existing definitions.
    style, communication style, exact base context, coordination loop and stop
    rule, and collaboration/spawn posture. "Voice" means stable role-specific
    instructions, not a disposable persona, personalized identity, or decorative biography.
+   Start with one H1 title and do not write an intelligence line; the stitcher
+   derives exactly one line beneath the rendered title from `meta.json`.
 8. Add or update the task-to-agent routing row in the owning plugin's
    `hooks/ALLAGENT.md`, creating that file if necessary. Keep only this
    agent's owned tasks there; do not rebuild a central roster table.
@@ -127,7 +131,9 @@ anything is written. `update-agent` owns changes to existing definitions.
 - Check placeholders, the template key allowlist and required keys, referenced
   files/aliases/skills, duplicate seams, prompt contradictions, and the owning
   plugin routing row, point-form role-specific Collaboration section, and
-  `SendMessage` capability against the actual tool list. Shared delegation,
+  direct teammate-messaging capability against the runtime capability list.
+  Both rendered definitions must contain exactly one intelligence line matching
+  `meta.json`. Shared delegation,
   handoff, workflow, and review policy belongs in Essential's `hooks/ALLAGENT.md`, not
   individual agent bodies. Official runtime loading remains "not exercised" unless
   the installed loader was actually run.

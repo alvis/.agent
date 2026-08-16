@@ -30,13 +30,13 @@ Catalogue of safe vs risky operations on MDC files, with the invariant checklist
 | Bulk re-indent                       | easy to break adjacency or split children from parents.                                    |
 | Convert plain Markdown → MDC         | out of scope for v1; reject and direct user to author from spec.                           |
 
-For each risky op, present a one-line plan back to the user and wait for confirmation before issuing the `Edit`.
+For each risky operation, present a one-line plan back to the user and wait for confirmation before using the filesystem edit capability.
 
 ---
 
 ## 2. Invariant Checklist (run after EVERY edit)
 
-The skill MUST `Read` the modified region after editing and check each item. Failure on any item → fix before yielding.
+The skill MUST reread the modified region through the filesystem read capability and check each item. Failure on any item → fix before yielding.
 
 1. **Indent multiple of 2 spaces** on every modified line; no tabs introduced.
 2. **Annotation adjacency**: every `{{ … }}` block annotation is followed on the next line by its target block. No blank line between them.
@@ -63,9 +63,9 @@ When a verification check fails, prefer minimal repair over rewrite.
 | Symptom                                           | Recovery                                                                                          |
 | ------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
 | Blank line introduced between annotation and block | Remove the blank line (single-line delete).                                                       |
-| Annotation YAML now invalid (stray comma, etc.)  | Re-issue the `Edit` with the corrected `{{ … }}` only; do not touch surrounding lines.            |
+| Annotation YAML now invalid (stray comma, etc.)  | Edit only the corrected `{{ … }}`; do not touch surrounding lines.                                |
 | Marker `ref` no longer matches opening            | Update the marker (not the opening); the opening's `ref` is the source of truth.                  |
-| Marker indent off                                 | Re-indent the marker line to match the opening's indent (`Edit` with leading whitespace fix).     |
+| Marker indent off                                 | Re-indent the marker line to match the opening's indent with a leading-whitespace-only edit.       |
 | Child indent off after move                       | Re-indent the moved subtree; markers in the subtree must shift by the same amount.                |
 | Inline annotation drifted from its `]`           | Close the gap: `] {{ ` → `]{{ `.                                                                  |
 | Front-matter YAML invalid                         | Restore the prior front matter from the pre-edit Read; reapply the intended scalar change.        |

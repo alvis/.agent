@@ -5,6 +5,8 @@
      - frontmatter/claude.json — Claude-only frontmatter
      - frontmatter/codex.json — Codex-only fields
      Validate and build only a temporary artifact with Essential's install-agents stitch helper.
+     The stitcher derives one Intelligence level line beneath the rendered H1 from meta.json;
+     never duplicate that line in base.md.
      Before editing any agent, re-check the live Claude Code docs for the current valid frontmatter key surface —
      this template mirrors it at time of writing, but the docs win on conflict. Log any conflict you find. -->
 
@@ -51,8 +53,8 @@ Keep this object empty until Codex supports a native scalar per-agent field not 
 | Launch scenario | permissionMode |
 |---|---|
 | Main session (Project Manager or another user-facing entry agent) | per-role, from the table below |
-| Spawned subagent (via the `Agent` tool from another agent) | per-role, from the table below |
-| Workflow-spawned (dispatched inside a dynamic `Workflow` run) | **always `acceptEdits`** — no exceptions, the workflow has no interactive channel to fall back to |
+| Spawned subagent (via the runtime's subagent-dispatch capability) | per-role, from the table below |
+| Deterministic scripted-execution worker | **always `acceptEdits`** — no exceptions, the run has no interactive channel to fall back to |
 | Teammate (member of an Agent Team) | **inherits the appointed lead's `permissionMode`** — a teammate never sets its own |
 
 Per-role default (main-session/spawned-subagent scenarios only — workflow and teammate override above):
@@ -68,9 +70,9 @@ An explicit allowlist is a stale snapshot: tools introduced by plugins, MCP serv
 would be hidden from that agent.
 
 `leaf` is therefore a behavioral charter, not a frontmatter capability boundary. A leaf does not spawn or
-coordinate nested work even when `Agent` is available at runtime; it returns results or hand-off requests to the
+coordinate nested work even when subagent dispatch is available at runtime; it returns results or hand-off requests to the
 caller. `disallowedTools` remains valid for narrow durable prohibitions, but never use it to recreate a general
-allowlist or to hide `Agent` merely to encode leaf posture.
+allowlist or to hide subagent dispatch merely to encode leaf posture.
 
 Shared metadata and `base.md` must stay true when a harness omits one of these fields. In particular, never
 promise worktree or sandbox isolation in shared prose merely because `claude.json` sets `isolation`.

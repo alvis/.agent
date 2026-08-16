@@ -15,6 +15,7 @@ SCRIPTS = ROOT / "plugins/essential/skills/install-agents/scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 import install_agents as install_agents_module
+import stitch_agent as stitch_agent_module
 from install_agents import discover_agent_templates, install_agents
 from stitch_agent import (
     DESCRIPTION_LIMIT,
@@ -154,7 +155,7 @@ def test_stitches_nested_json_lists_and_multiline_strings_deterministically(
     assert rendered["model"] == "inherit"
     assert rendered["emptyObject"] == source["emptyObject"]
     assert rendered["emptyList"] == source["emptyList"]
-    assert "---\n\n# Test agent\n" in stitched
+    assert "---\n\n# Test agent\n\nIntelligence level: inherit; resolve the effective harness level before accepting a skill.\n" in stitched
     assert stitched == stitch_agent_definition(template)
 
 
@@ -178,7 +179,12 @@ def test_stitches_native_codex_agent_toml_from_the_same_template(
         "name": "test-agent",
         "description": "A test role. Preferably named Ava, Kit, or June when the main agent spawns this role.",
         "nickname_candidates": ["Ava", "Kit", "June"],
-        "developer_instructions": "# Test agent\n\nCodex instructions.\n",
+        "developer_instructions": (
+            "# Test agent\n\n"
+            "Intelligence level: inherit; resolve the effective harness level "
+            "before accepting a skill.\n\n"
+            "Codex instructions.\n"
+        ),
     }
     assert definition == stitch_codex_agent_definition(template)
 
@@ -206,9 +212,9 @@ def test_codex_projection_preserves_plugin_namespaces(
     codex = tomllib.loads(stitch_codex_agent_definition(template))
 
     assert json.loads(claude.split("---\n", 2)[1])["description"] == description
-    assert body in claude
+    assert "Intelligence level: inherit;" in claude
     assert codex["description"] == description
-    assert codex["developer_instructions"] == body
+    assert "Intelligence level: inherit;" in codex["developer_instructions"]
 
 
 @pytest.mark.parametrize("harness", ("claude", "codex"))
@@ -348,8 +354,10 @@ def test_projects_intelligence_level_to_both_harnesses(
         },
     )
 
-    claude = json.loads(stitch_agent_definition(template).split("---\n", 2)[1])
-    codex = tomllib.loads(stitch_codex_agent_definition(template))
+    claude_definition = stitch_agent_definition(template)
+    codex_definition = stitch_codex_agent_definition(template)
+    claude = json.loads(claude_definition.split("---\n", 2)[1])
+    codex = tomllib.loads(codex_definition)
 
     for field, value in INTELLIGENCE_LEVELS[intelligence_level]["claude"].items():
         assert claude[field] == value
@@ -361,6 +369,89 @@ def test_projects_intelligence_level_to_both_harnesses(
     if not INTELLIGENCE_LEVELS[intelligence_level]["codex"]:
         assert "model" not in codex
         assert "model_reasoning_effort" not in codex
+
+    expected_line = (
+        "Intelligence level: inherit; resolve the effective harness level "
+        "before accepting a skill."
+        if intelligence_level == "inherit"
+        else f"Intelligence level: {intelligence_level}."
+    )
+    for definition in (claude_definition, codex["developer_instructions"]):
+        assert definition.count("Intelligence level:") == 1
+        assert expected_line in definition
+
+
+def test_intelligence_matrix_has_contiguous_ranks_unique_examples_and_native_projections() -> None:
+    concrete = [
+        projection
+        for projection in INTELLIGENCE_LEVELS.values()
+        if projection["rank"] is not None
+    ]
+    ranks = [projection["rank"] for projection in concrete]
+    examples = [
+        example
+        for projection in INTELLIGENCE_LEVELS.values()
+        for example in projection["best_for"]
+    ]
+
+    assert sorted(ranks) == list(range(len(ranks)))
+    assert len(ranks) == len(set(ranks))
+    assert all(projection["best_for"] for projection in INTELLIGENCE_LEVELS.values())
+    assert len(examples) == len(set(examples))
+    assert INTELLIGENCE_LEVELS["inherit"]["rank"] is None
+
+    expected_projections = {
+        "mechanical": ({"model": "haiku"}, {"model": "gpt-5.6-luna", "model_reasoning_effort": "low"}),
+        "low": ({"model": "opus", "effort": "low"}, {"model": "gpt-5.6-luna", "model_reasoning_effort": "max"}),
+        "medium": ({"model": "opus", "effort": "medium"}, {"model": "gpt-5.6-sol", "model_reasoning_effort": "medium"}),
+        "high": ({"model": "opus", "effort": "high"}, {"model": "gpt-5.6-sol", "model_reasoning_effort": "high"}),
+        "xhigh": ({"model": "opus", "effort": "xhigh"}, {"model": "gpt-5.6-sol", "model_reasoning_effort": "xhigh"}),
+        "max": ({"model": "opus", "effort": "max"}, {"model": "gpt-5.6-sol", "model_reasoning_effort": "max"}),
+        "inherit": ({"model": "inherit"}, {}),
+    }
+    assert {
+        level: (projection["claude"], projection["codex"])
+        for level, projection in INTELLIGENCE_LEVELS.items()
+    } == expected_projections
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    (
+        (lambda matrix: matrix["low"].update(rank=0), "unique"),
+        (lambda matrix: matrix["max"].update(rank=7), "contiguous"),
+        (lambda matrix: matrix["low"].update(best_for=[]), "best_for"),
+        (
+            lambda matrix: matrix["low"].update(
+                best_for=matrix["mechanical"]["best_for"]
+            ),
+            "unique",
+        ),
+        (lambda matrix: matrix["inherit"].update(rank=6), "inherit"),
+        (
+            lambda matrix: matrix["high"]["codex"].update(effort="high"),
+            "codex projection",
+        ),
+    ),
+)
+def test_rejects_invalid_intelligence_matrix_schema(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    mutation: object,
+    message: str,
+) -> None:
+    matrix = json.loads(
+        (ROOT / "plugins/essential/skills/install-agents/references/intelligence-levels.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    mutation(matrix)
+    matrix_path = tmp_path / "intelligence-levels.json"
+    matrix_path.write_text(json.dumps(matrix), encoding="utf-8")
+    monkeypatch.setattr(stitch_agent_module, "INTELLIGENCE_LEVELS_PATH", matrix_path)
+
+    with pytest.raises(AgentTemplateError, match=message):
+        stitch_agent_module._load_intelligence_levels()
 
 
 def test_codex_projection_removes_claude_only_agent_behavior(
@@ -400,7 +491,7 @@ def test_codex_projection_removes_claude_only_agent_behavior(
     codex = tomllib.loads(stitch_codex_agent_definition(template))
     instructions = codex["developer_instructions"]
 
-    assert body in claude
+    assert "# Test agent\n\nIntelligence level: medium.\n\nShared behavior." in claude
     assert startup in claude
     assert "## Memory" not in instructions
     assert ".claude/agent-memory/" not in instructions
@@ -713,6 +804,28 @@ def test_mainagent_requires_canonical_state_without_duplicating_state_policy() -
         "16,384 bytes",
     ):
         assert duplicated_policy not in prompt
+
+
+def test_allagent_enforces_intelligence_eligibility_and_complete_handoff() -> None:
+    prompt = (ROOT / "plugins/essential/hooks/ALLAGENT.md").read_text(
+        encoding="utf-8"
+    )
+
+    for required_contract in (
+        "requirements.intelligence",
+        "skills/install-agents/references/intelligence-levels.json",
+        "visible agent rank meets the skill rank",
+        "Missing\n`requirements.intelligence` means eligible",
+        "transfer the complete task with its identity, evidence",
+        "constraints, acceptance criteria, and unresolved decisions",
+        "Ask the main agent\n"
+        "to staff a qualified agent",
+        "recipient repeats this check",
+        "main session without a level",
+        "unresolved cases are ineligible",
+        "does not own or invoke the higher-level skill",
+    ):
+        assert required_contract in prompt
 
 
 def test_role_hooks_expand_the_state_reference() -> None:
@@ -1632,13 +1745,13 @@ def test_duplicate_names_fail_before_any_destination_write(tmp_path: Path) -> No
         essential,
         "duplicate",
         frontmatter={"name": "duplicate"},
-        body="essential",
+        body="# Essential\n\nessential",
     )
     write_template(
         web,
         "duplicate",
         frontmatter={"name": "duplicate"},
-        body="web",
+        body="# Web\n\nweb",
     )
 
     with pytest.raises(AgentTemplateError, match="duplicate"):

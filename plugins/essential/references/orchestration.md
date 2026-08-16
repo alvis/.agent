@@ -7,9 +7,9 @@ Delegate on signal, not reflex. The Project Manager owns delivery across teams; 
 Classify the task and pick the substrate once, up front, then name the success criteria before launch — a run with no stop condition is not ready:
 
 - **Inline** — don't dispatch when dispatching would save no context, add no independence, and only cost latency or a lossy hand-off. Work you can finish in a handful of tool calls is inline; prefer one subagent over several.
-- **Parallel tasks** — independent, dispatch-and-score work whose siblings needn't talk → parallel `Agent` calls in a SINGLE message, one stable reference from [naming.md](naming.md) each.
+- **Parallel tasks** — independent, dispatch-and-score work whose siblings needn't talk → parallel uses of the subagent-dispatch capability in one request, one stable reference from [naming.md](naming.md) each.
 - **Agent Team** — ongoing, high-signal multi-role coordination where warm context avoids repeated setup → persistent teammates around a warm core. A need to relay reasoning or evidence is not sufficient; put durable detail in artifacts.
-- **Dynamic Workflow** — high-volume structured iteration toward a measurable target: fan-out plus adversarial verify plus a bounded, resumable correction loop, e.g. linting 100 projects with a fix → lint → re-fix-or-pass loop. A subagent never launches `Workflow` itself — it composes the input and asks the main agent to run it.
+- **Deterministic scripted execution** — high-volume structured iteration toward a measurable target: fan-out plus adversarial verification plus a bounded, resumable correction loop. A subagent composes the complete launch input and asks the main agent to run it.
 
 ## Delegating well
 
@@ -17,8 +17,8 @@ Classify the task and pick the substrate once, up front, then name the success c
 - **Give full context once.** Compose every first task handover from
   [directions/subagent-handover.md](directions/subagent-handover.md). Every
   later message is a delta.
-- **You own skills.** Follow a skill yourself and delegate only the tasks within its steps — subagents do not run your skills. Know where every standard and skill lives; never ask others to find them.
-- **Parallel first.** Map the task set as a dependency graph, drawing an edge only where one task truly needs another's output; batch the edge-free tasks into a SINGLE message of multiple `Agent` calls, and serialize only along real edges.
+- **Own only eligible skills.** Follow a skill yourself only when your resolved intelligence meets its requirement. Otherwise transfer the complete task under the eligibility contract in `hooks/ALLAGENT.md`. A qualified owner may delegate bounded steps without transferring skill ownership. Know where every standard and skill lives; never ask others to find them.
+- **Parallel first.** Map the task set as a dependency graph, drawing an edge only where one task truly needs another's output; batch the edge-free tasks into one request through the subagent-dispatch capability, and serialize only along real edges.
 - **One bounded task per subagent.** Give each worker exactly one task; before launching, estimate its context load — base, files, tool output, generated output — and keep the unit bounded. Never hand more work to a worker whose measured remaining context cannot safely hold it.
 - **Only the main agent names teammates** (rules in "Runtime teammate naming" below); nested agents never assign configured names.
 - **Reuse a warm peer by ID.** Route a small task that needs a large base context to the `agent_id` of a live teammate that already carries it — separate spawns do not share a cached base.
@@ -32,7 +32,7 @@ Explore the approach freely; ship narrowly. The requested scope is the deliverab
 
 ## Message discipline
 
-- **4,096 characters is a hard ceiling.** Before every `Agent`, `Task`, or `SendMessage` call, inspect the body. If it would exceed 4,096 characters, externalize the detail before sending. A lead or reviewer that receives an overlong inline body returns `blocked: externalize message` rather than adjudicating it.
+- **4,096 characters is a hard ceiling.** Before every subagent dispatch or direct teammate message, inspect the body. If it would exceed 4,096 characters, externalize the detail before sending. A lead or reviewer that receives an overlong inline body returns `blocked: externalize message` rather than adjudicating it.
 - **Reference durable artifacts.** Put long evidence, decisions, and state in a task-owned file at a known-readable absolute path. Do not persist secrets or transient credentials. Send the path plus at most two lines describing what it contains and why it matters; the recipient chooses whether to read it.
 - **Use terse deltas after dispatch.** Prefix every delta with the stable reference required by [naming.md](naming.md); an ordinal label such as `slice 1` is never a reference. Then prefer `ok`, `blocked: <one line>` with optional `need: <one line>`, `decision: <one line>`, `artifact: <absolute path>` plus one explanatory line, `hold: <one line>`, or `cancel: <one line>`. Apart from that reference, do not restate rails, paths, or evidence already delivered.
 - **Do not narrate lifecycle events.** Record idle, completion, and availability changes silently unless they alter the task. An idle-only notice gets no prose reply.
@@ -58,17 +58,19 @@ Only the main agent assigns a configurable teammate `name` or label. Use `<short
 - Nested agents omit configured names entirely. A permitted one-off nested spawn supplies only its `subagent_type`, task, and context.
 - Configured names are human-readable labels, not addresses. Capture the returned `agent_id` and use only that ID for direct communication.
 
-## Model and effort
+## Intelligence
 
-Haiku for deterministic procedure, opus for everything that reasons;
-cognitive demand is carried by effort — the model is not the lever. The
-effort dial and team-lifecycle rules live in
-[team-lifecycle.md](team-lifecycle.md); read it at spawn and wind-down
+Resolve task intelligence through the authoritative mapping at
+`skills/install-agents/references/intelligence-levels.json`; harness adapters
+derive their native model and effort fields from that level. Skills without an
+intelligence requirement remain eligible. Inherited and main-session projections
+use the total resolution contract in `hooks/ALLAGENT.md`. Lifecycle rules
+live in [team-lifecycle.md](team-lifecycle.md); read it at spawn and wind-down
 moments.
 
 ## Nesting
 
-- Nesting is exceptional and one-off: an agent may consider it only when `Agent` is available at runtime and the helper's single returned artifact or summary ends the delegation. A leaf-by-charter does not spawn even when the runtime exposes `Agent`.
+- Nesting is exceptional and one-off: an agent may consider it only when a subagent-dispatch capability is available and the helper's single returned artifact or summary ends the delegation. A leaf-by-charter does not spawn even when the runtime supports nested dispatch.
 - The nested call specifies an agent type such as `test-reporter`, never a configured name. The parent follows
   [directions/subagent-handover.md](directions/subagent-handover.md). The same
   4,096-character ceiling applies.

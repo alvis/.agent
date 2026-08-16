@@ -105,11 +105,12 @@ the single final check only for eligible work Markdown inside the target
 Use the user's approved monitoring authorization; ask before a new scheduled
 task if that authorization did not cover it. Schedule one check for the prior
 relevant CI wall time plus one minute and capture its task ID. A native one-shot
-scheduler may run the exact core poll prompt once. If only `/loop` supports the
-delay, run:
+scheduler may run the exact core poll prompt once. Otherwise use the recurring
+scheduling capability with this payload:
 
 ```text
-/loop <wall-time-plus-1m> <the exact explicit poll prompt from coding:pr references/create-update.md>
+interval: <wall-time-plus-1m>
+prompt: <the exact explicit poll prompt from coding:pr references/create-update.md>
 ```
 
 Capture the returned ID and cancel that exact ID after its first wake. Consume
@@ -117,7 +118,8 @@ the core poll report: green notifies/stops; red repeats this reference. If the
 result is pending, schedule and capture a replacement:
 
 ```text
-/loop 1m <the exact explicit poll prompt from coding:pr references/create-update.md>
+interval: 1m
+prompt: <the exact explicit poll prompt from coding:pr references/create-update.md>
 ```
 
 Continue until the core report marks every PR green or supplies a concrete

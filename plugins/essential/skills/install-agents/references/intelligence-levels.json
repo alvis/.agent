@@ -1,5 +1,11 @@
 {
   "mechanical": {
+    "rank": 0,
+    "best_for": [
+      "Apply a deterministic file move",
+      "Run a known verification command",
+      "Perform a format-only rewrite"
+    ],
     "claude": {
       "model": "haiku"
     },
@@ -9,6 +15,12 @@
     }
   },
   "low": {
+    "rank": 1,
+    "best_for": [
+      "Scaffold from an established template",
+      "Make a narrow configuration update",
+      "Record a routine work handover"
+    ],
     "claude": {
       "model": "opus",
       "effort": "low"
@@ -19,6 +31,12 @@
     }
   },
   "medium": {
+    "rank": 2,
+    "best_for": [
+      "Implement a localized behavior change",
+      "Refactor already-correct code",
+      "Analyze focused test or quality findings"
+    ],
     "claude": {
       "model": "opus",
       "effort": "medium"
@@ -29,6 +47,12 @@
     }
   },
   "high": {
+    "rank": 3,
+    "best_for": [
+      "Deliver a coupled multi-file feature",
+      "Diagnose and fix an uncertain defect",
+      "Plan or review an architectural change"
+    ],
     "claude": {
       "model": "opus",
       "effort": "high"
@@ -39,6 +63,12 @@
     }
   },
   "xhigh": {
+    "rank": 4,
+    "best_for": [
+      "Synthesize open-ended multi-source research",
+      "Conduct adversarial system analysis",
+      "Resolve an ambiguous cross-domain decision"
+    ],
     "claude": {
       "model": "opus",
       "effort": "xhigh"
@@ -49,6 +79,12 @@
     }
   },
   "max": {
+    "rank": 5,
+    "best_for": [
+      "Develop novel strategy under severe ambiguity",
+      "Redesign a high-stakes multi-system boundary",
+      "Reconcile deeply contradictory evidence"
+    ],
     "claude": {
       "model": "opus",
       "effort": "max"
@@ -59,6 +95,10 @@
     }
   },
   "inherit": {
+    "rank": null,
+    "best_for": [
+      "Resolve an agent level from one active harness projection before skill ownership"
+    ],
     "claude": {
       "model": "inherit"
     },
