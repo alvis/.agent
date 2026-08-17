@@ -1,9 +1,9 @@
 ---
 name: pr
-description: 'Use for GitHub pull-request workflows when the user asks to draft PR text, verify exact local CI parity, publish a branch, create, update, discover, check out, review, or merge a PR or linear stack. Trigger before running gh pr, inspecting GitHub stacks, or publishing PR-related changes.'
+description: 'Use for GitHub pull-request workflows when the user asks to draft PR text, verify exact local CI parity, resolve a bare PR or stack number, publish a branch, create, update, discover, check out, review, or merge a PR or linear stack. Trigger before running gh pr, inspecting GitHub stacks, or publishing PR-related changes.'
 requirements:
   intelligence: high
-argument-hint: "<author|verify|create|update|review|stack|merge> [arguments]"
+argument-hint: "<resolve|checkout|author|verify|create|update|review|stack|merge> [arguments]"
 ---
 
 # Pull Requests
@@ -31,6 +31,8 @@ and the overall verdict through
 ## Usage
 
 ```text
+/coding:pr resolve <number-or-pr-url> [--prefer stack|pr]
+/coding:pr checkout <number-or-pr-url-or-local-branch> [--prefer stack|pr]
 /coding:pr author [<commit-ref>] [--base <ref>]
 /coding:pr verify --target <revision-anchor> --base <revision-anchor> [--kind standalone|stack-tip]
 /coding:pr create [<commit-ref>] [--branch-prefix <name>] [--remote <name>] [--no-verify] [--no-review] [--max-iteration <count>] [--publish-only] [--dry-run]
@@ -47,12 +49,27 @@ remote mutation.
 
 ## Routing
 
+PR numbers and stack numbers are separate sequences, so a bare number can name
+both. Before `resolve`, `checkout`, `update`, `review`, `merge`, or a `stack`
+selector acts on a number or URL, bind its namespace through
+[references/resolve-reference.md](references/resolve-reference.md), which orders
+the two lookups by the request's own wording. Never report a number as
+unlocatable from one namespace's lookup alone.
+
 For every request to create, inspect, update, restructure, publish, check out,
 sync, navigate, unstack, or merge a GitHub PR stack, load
 [references/github-stacks.md](references/github-stacks.md) before selecting an
 operator. This applies even when the request arrives through `create`, `update`,
 or `merge`, rather than the explicit `stack` route.
 
+- `resolve` reports which namespace a number or URL names, and mutates nothing.
+  Follow [references/resolve-reference.md](references/resolve-reference.md) and
+  report the resolved surface, the rejected candidate, and any ambiguity.
+- `checkout` lands a resolved stack or PR in a `jj` workspace. Follow
+  [Land the resolved surface](references/resolve-reference.md#land-the-resolved-surface),
+  which fetches the resolved head and adds a workspace on it, leaving every
+  existing workspace untouched. It never commits, rewrites, pushes, or
+  publishes.
 - `author` writes deterministic PR title and body text without publication,
   using [templates/message.md](templates/message.md) when the repository has no
   local template.
@@ -88,12 +105,12 @@ or `merge`, rather than the explicit `stack` route.
   preprovisioned stack capsule is already that dedicated reviewer: it runs the
   review phase directly instead of nesting another dispatch.
 - `stack` follows
-  [references/github-stacks.md](references/github-stacks.md#list-or-check-out):
+  [references/github-stacks.md](references/github-stacks.md#list-and-land):
   - `list` lists the current repository's GitHub PR stacks.
-  - `checkout <stack-number-or-pr-number-or-pr-url-or-local-branch>` checks out
-    one explicitly selected stack and requires `gh stack`. Checkout may fetch
-    and create local tracking branches, but it does not own commits, history
-    rewriting, pushes, or PR publication.
+  - `checkout <stack-number-or-pr-number-or-pr-url-or-local-branch>` lands one
+    explicitly selected stack, after namespace resolution, in a `jj` workspace
+    at its top member's head. It may fetch, but it does not own commits,
+    history rewriting, pushes, or PR publication.
 - `merge` validates and merges a conventional linear stack bottom-up. For a
   GitHub PR stack, use the GitHub operator map loaded above instead. Otherwise
   load and follow

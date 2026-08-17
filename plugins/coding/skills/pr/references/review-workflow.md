@@ -94,6 +94,11 @@ and does not dispatch another agent.
 
 ### Resolve the pull request
 
+A bare number may name a stack rather than a PR. Bind its namespace through
+[resolve-reference.md](resolve-reference.md) first; a `stack` resolution reviews
+every PR the reported stack holds as one review unit, ordered bottom-up exactly
+as the source-tree path below does.
+
 From a PR number or URL, resolve canonical coordinates and metadata through the
 bundled helper:
 

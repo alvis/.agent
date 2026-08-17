@@ -21,7 +21,7 @@ owns review on both routes.
 ## Contents
 
 - [Run the requested action](#run-the-requested-action)
-- [List or check out](#list-or-check-out)
+- [List and land](#list-and-land)
 - [Create, extend, and publish](#create-extend-and-publish)
 - [Update and synchronize](#update-and-synchronize)
 - [Restructure or remove grouping](#restructure-or-remove-grouping)
@@ -53,7 +53,6 @@ Agents must select non-interactive forms:
 | --- | --- | --- |
 | inspect | `gh stack view --json` | bare `view` |
 | submit | `gh stack submit --auto [--remote <name>]` | bare `submit` |
-| checkout | `gh stack checkout <target>` | bare `checkout` |
 | initialize | `gh stack init [--base <trunk>] <branch>...` | bare `init` |
 | add layer | `gh stack add <branch>` | bare `add` |
 | merge | `gh stack merge <target> --yes --merge-method <method>` | interactive merge |
@@ -64,15 +63,30 @@ session; otherwise ask the user to operate the TUI or use the explicit
 unstack-and-reinitialize path below.
 
 Set `--remote <name>` on `link`, `push`, `submit`, `sync`, and `rebase` when the
-repository has multiple remotes. `checkout` has no remote flag: use configured
-remote resolution and stop on the command's actual ambiguity or remote error.
+repository has multiple remotes.
 
-## List or check out
+The plain-Git navigation, `init`, and `rebase` operators act on the layer the
+source tree currently holds, so they move it. As plugin safety policy, prove the
+tree is clean immediately before each of them; this is not an upstream CLI
+precondition:
+
+```bash
+WORKTREE_STATUS=$(git status --porcelain) || exit $?
+test -z "$WORKTREE_STATUS" || {
+  echo 'refusing to move the source tree: uncommitted changes' >&2
+  exit 1
+}
+```
+
+The jj route needs no such guard: it lands a resolved head in a new workspace
+and leaves every existing one untouched.
+
+## List and land
 
 For `/coding:pr stack list`, unconditionally inventory the current repository
 through its paginated `GET /repos/{owner}/{repo}/stacks` REST endpoint. Fetch
-every page and retain the JSON for agent decisions. Unlike the checkout chooser,
-the REST inventory keeps fully merged and closed stacks returned by the API.
+every page and retain the JSON for agent decisions. The REST inventory keeps
+fully merged and closed stacks returned by the API.
 
 ```bash
 bash "${CODING_PR_SKILL_DIR}/scripts/list-github-stacks.sh"
@@ -81,46 +95,27 @@ bash "${CODING_PR_SKILL_DIR}/scripts/list-github-stacks.sh"
 An empty array is success. A nonzero API status is failure; preserve stderr and
 stop.
 
-Bare `gh stack checkout` is a human-only interactive chooser that checks out the
-chosen local or remote stack; it is not a non-mutating inventory operation.
-Agent checkout is explicit and deterministic: require the caller's stack
-number, PR number, PR URL, or locally tracked branch. As plugin safety policy,
-run the clean-worktree guard immediately before every agent checkout, including
-update and navigation; this is not an upstream CLI precondition:
+That inventory is the only stack metadata this skill needs, and it needs no
+terminal. Every stack reports its number, destination, and open flag; every
+member reports its PR number, state, draft flag, head branch, and head SHA —
+enough to name a stack, pick a member, and see what is still open without a
+second call. Select the open stacks for a landing decision; an empty selection
+means the repository holds no open stack, which is an answer, not a lookup
+failure.
 
-```bash
-WORKTREE_STATUS=$(git status --porcelain) || exit $?
-test -z "$WORKTREE_STATUS" || {
-  echo 'refusing stack checkout: worktree has uncommitted changes' >&2
-  exit 1
-}
-```
+Landing is explicit and deterministic: require the caller's stack number, PR
+number, PR URL, or branch, and bind a bare number's namespace first through
+[resolve-reference.md](resolve-reference.md), because a stack number and a PR
+number carrying the same digits select different heads. Landing itself is a jj
+operation on the resolved head branch — fetch, then add a workspace, as
+[Land the resolved surface](resolve-reference.md#land-the-resolved-surface)
+directs. No gh-stack operator lands a stack for an agent, so no local stack
+tracking exists to inspect: verify the landed head against this REST inventory
+and `gh pr view` rather than `gh stack view --json`.
 
-For the preferred selector, then run an explicit
-`gh stack checkout <stack-number>`:
-
-```bash
-gh stack checkout "$STACK_SELECTOR" || exit $?
-git branch --show-current || exit $?
-gh stack view --json || exit $?
-```
-
-Prefer a stack number from the REST inventory. Resolution tries a
-numeric stack number first, then a locally tracked PR, a GitHub PR, and a
-local-only branch. A PR URL is accepted. A branch name resolves only against
-local stack tracking. Remote checkout may fetch PR branches and create local
-tracking branches; verify the selected branch and JSON composition afterward.
-If checkout reports that a different local stack already covers those branches,
-it cannot force replacement. Report the conflict. Only with explicit approval,
-rerun the clean-worktree guard above immediately before removing that local
-tracking, then retry the same explicit checkout:
-
-```bash
-gh stack unstack --local || exit $?
-gh stack checkout "$STACK_SELECTOR" || exit $?
-git branch --show-current || exit $?
-gh stack view --json || exit $?
-```
+Adopting a GitHub-only stack into local gh-stack tracking has no
+non-interactive form and is not an agent operation. When a plain-Git repository
+needs that tracking, ask the user to establish it.
 
 ## Create, extend, and publish
 
@@ -210,19 +205,23 @@ publication with gh-stack's rebase, sync, push, or submit operators.
 
 ### Plain Git repositories
 
-Run the clean-worktree guard from [List or check out](#list-or-check-out), check
-out the earliest unmerged owning layer, put the plain commit there through
-`coding:commit`, then propagate it with the extension:
+Run the clean-tree guard from
+[Run the requested action](#run-the-requested-action), position the source tree
+on the earliest unmerged owning layer with the extension's own navigation, put
+the plain commit there through `coding:commit`, then propagate it:
 
 ```bash
-gh stack checkout "$OWNING_BRANCH" || exit $?
+gh stack bottom || exit $?
+gh stack up "$LAYERS_ABOVE_BOTTOM" || exit $?
 # Invoke /coding:commit for the owning layer before continuing.
 gh stack rebase --upstack --remote "$REMOTE" || exit $?
 gh stack push --remote "$REMOTE" || exit $?
 gh stack view --json || exit $?
 ```
 
-Use `rebase --downstack` for trunk through the current layer, `--no-trunk` for
+Bind `LAYERS_ABOVE_BOTTOM` from the recorded bottom-to-top layer map, and omit
+the `up` call when the owning layer is the bottom itself. Use
+`rebase --downstack` for trunk through the current layer, `--no-trunk` for
 inter-layer alignment only, and `--continue` or `--abort` after conflicts.
 
 For full remote reconciliation use:
@@ -308,11 +307,16 @@ queue accepts the stack, in which case repository queue policy controls
 landing.
 
 `gh stack up [n]`, `down [n]`, `top`, `bottom`, and `trunk` are supported
-non-interactive navigation commands. For automation, when the destination is
-known, run the clean-worktree guard from
-[List or check out](#list-or-check-out), then use
-`gh stack checkout <exact-branch-or-PR>` followed by `view --json`. Do not use
-interactive `gh stack switch`.
+non-interactive navigation commands for a locally tracked plain-Git stack. They
+move the source tree, so run the clean-tree guard from
+[Run the requested action](#run-the-requested-action) first and confirm the
+destination with `view --json` afterward. Do not use interactive
+`gh stack switch`.
+
+On the jj route, moving between members is a revision choice, not a tree
+switch: add or reuse a workspace at the member's `<head-branch>@<remote>` as
+[Land the resolved surface](resolve-reference.md#land-the-resolved-surface)
+directs, so one member's work never displaces another's.
 
 ## Verify and recover
 

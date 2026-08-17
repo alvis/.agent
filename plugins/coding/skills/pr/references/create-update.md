@@ -108,7 +108,9 @@ labels come only from the receiving repository's live inventory below.
   to the current saved change — the jj working-copy change (`@`), or `HEAD` on
   the git path — and includes ordered unmerged descendants when they form a
   stack. `update` requires an open PR number/URL, a ref whose head has an open
-  PR, or an unambiguous current branch with an open PR.
+  PR, or an unambiguous current branch with an open PR. Bind a bare number's
+  namespace through [resolve-reference.md](resolve-reference.md) before treating
+  it as a PR; a `stack` resolution selects that stack's member PRs.
 - **Optional**:
 
 | Input | Effect |
