@@ -17,7 +17,7 @@ jj/git operator map.
 
 ## Inputs
 
-- **Required**: PR numbers in bottom-to-top order unless the user explicitly states the order is unknown; verify and stop if the real stack is not exactly linear.
+- **Required**: PR numbers in bottom-to-top order unless the user explicitly states the order is unknown; verify and stop if the real stack is not exactly linear. Bind each bare number's namespace through [resolve-reference.md](resolve-reference.md) first: a `stack` resolution belongs to GitHub's atomic stack merge in [github-stacks.md](github-stacks.md#merge-and-navigate), not to this bottom-up loop.
 - **Optional**:
   - `--method=rebase|squash|merge`; default is `rebase`.
   - `--force`; bypasses the green-CI gate but never bypasses stack-shape validation or conflict safety.
@@ -148,9 +148,9 @@ chain before continuing.
    restacked parent using that parent's pre-restack `round_tip`:
 
    ```bash
-   git switch <child-head-branch>
-   git rebase --onto <new-parent-ref> <round-parent-tip-sha>
-   git push --force-with-lease -- "$REMOTE" HEAD:<child-head-branch>
+   git rebase --onto <new-parent-ref> <round-parent-tip-sha> <child-head-branch>
+   git push --force-with-lease -- "$REMOTE" \
+     <child-head-branch>:<child-head-branch>
    ```
 
    ```bash

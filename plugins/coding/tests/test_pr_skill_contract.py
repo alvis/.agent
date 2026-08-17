@@ -2119,7 +2119,7 @@ def test_generic_stack_contract_delegates_github_listing_without_restatement() -
 def test_github_stack_listing_uses_only_the_paginated_rest_inventory() -> None:
     github_stacks = (WRITE_PR / "references" / "github-stacks.md").read_text()
     lister = STACK_LISTER.read_text()
-    list_section = github_stacks.split("## List or check out", 1)[1].split(
+    list_section = github_stacks.split("## List and land", 1)[1].split(
         "## Create, extend, and publish", 1
     )[0]
     normalized = " ".join(list_section.split())
@@ -2140,57 +2140,65 @@ def test_github_stack_listing_uses_only_the_paginated_rest_inventory() -> None:
     assert "Do not run `gh auth status`" in github_stacks
 
 
-def test_github_stack_checkout_separates_human_choice_from_agent_selection() -> None:
+def test_stack_landing_uses_a_jj_workspace_and_rest_metadata() -> None:
     github_stacks = (WRITE_PR / "references" / "github-stacks.md").read_text()
-    checkout_section = github_stacks.split("## List or check out", 1)[1].split(
+    resolution = (WRITE_PR / "references" / "resolve-reference.md").read_text()
+    landing = github_stacks.split("## List and land", 1)[1].split(
         "## Create, extend, and publish", 1
     )[0]
-    normalized = " ".join(github_stacks.lower().split())
-    normalized_checkout = " ".join(checkout_section.lower().split())
+    normalized = " ".join(landing.lower().split())
+    normalized_resolution = " ".join(resolution.lower().split())
 
-    assert "bare `gh stack checkout`" in normalized
-    assert "human-only interactive chooser" in normalized
-    assert "checks out the chosen local or remote stack" in normalized
-    assert "not a non-mutating inventory operation" in normalized
+    assert "only stack metadata this skill needs" in normalized
+    assert "needs no terminal" in normalized
     assert "require the caller's stack number, pr number, pr url" in normalized
-    assert 'gh stack checkout "$STACK_SELECTOR" || exit $?' in github_stacks
-    assert "gh stack view --json || exit $?" in github_stacks
-    assert "numeric stack number first" in normalized
-    assert "pr url" in normalized
-    assert "local-only branch" in normalized
-    assert "fetch" in normalized
-    assert "multiple remotes" in normalized
-    assert "it cannot force replacement" in normalized
-    assert "report the conflict" in normalized
-    assert "only with explicit approval" in normalized
-    assert "gh stack unstack --local || exit $?" in normalized
-    assert "exits 3" not in normalized_checkout
-    assert "prints both chains" not in normalized_checkout
+    assert "resolve-reference.md#land-the-resolved-surface" in landing
+    assert "no gh-stack operator lands a stack for an agent" in normalized
+    assert "rather than `gh stack view --json`" in normalized
+    assert 'jj git fetch --remote "$REMOTE" || exit $?' in resolution
+    assert '--revision "$HEAD_REF@$REMOTE" || exit $?' in resolution
+    assert "top member's head branch" in normalized_resolution
+    assert "leaves every other workspace's uncommitted work untouched" in (
+        normalized_resolution
+    )
 
 
-def test_github_stack_checkout_guards_local_mutations_with_a_clean_worktree() -> None:
+def test_pr_skill_never_moves_a_source_tree_with_git_or_gh() -> None:
+    forbidden = ("gh stack checkout", "gh pr checkout", "git checkout", "git switch")
+    inspected = 0
+
+    for path in sorted(WRITE_PR.rglob("*")):
+        if not path.is_file() or path.suffix not in {".md", ".py", ".sh"}:
+            continue
+        inspected += 1
+        text = path.read_text()
+        for command in forbidden:
+            assert command not in text, f"{path.name} still moves a tree: {command}"
+
+    assert inspected
+
+
+def test_tree_moving_stack_operators_share_one_clean_tree_guard() -> None:
     github_stacks = (WRITE_PR / "references" / "github-stacks.md").read_text()
-    checkout_section = github_stacks.split("## List or check out", 1)[1].split(
-        "## Create, extend, and publish", 1
+    action_section = github_stacks.split("## Run the requested action", 1)[1].split(
+        "## List and land", 1
     )[0]
 
-    status_check = checkout_section.index("git status --porcelain")
-    clean_check = checkout_section.index('test -z "$WORKTREE_STATUS"', status_check)
-    rejection = checkout_section.index("refusing stack checkout", clean_check)
-    initial_checkout = checkout_section.index(
-        'gh stack checkout "$STACK_SELECTOR"', rejection
-    )
-    approval = checkout_section.index("Only with explicit approval", initial_checkout)
-    repeated_guard = checkout_section.index(
-        "rerun the clean-worktree guard above", approval
-    )
-    local_unstack = checkout_section.index("gh stack unstack --local", repeated_guard)
-    retried_checkout = checkout_section.index(
-        'gh stack checkout "$STACK_SELECTOR"', local_unstack
-    )
+    status_check = action_section.index("git status --porcelain")
+    clean_check = action_section.index('test -z "$WORKTREE_STATUS"', status_check)
+    rejection = action_section.index("refusing to move the source tree", clean_check)
+    assert status_check < clean_check < rejection
+    assert "so they move it" in action_section
+    assert "The jj route needs no such guard" in action_section
+    assert github_stacks.count("git status --porcelain") == 1
 
-    assert status_check < clean_check < rejection < initial_checkout
-    assert approval < repeated_guard < local_unstack < retried_checkout
+    for consumer in ("gh stack bottom", "`gh stack up [n]`, `down [n]`"):
+        guard_reference = github_stacks.rindex(
+            "[Run the requested action](#run-the-requested-action)",
+            0,
+            github_stacks.index(consumer),
+        )
+        assert guard_reference < github_stacks.index(consumer)
 
 
 def test_github_stack_reference_maps_every_supported_operator() -> None:
@@ -2199,7 +2207,6 @@ def test_github_stack_reference_maps_every_supported_operator() -> None:
         "gh stack init",
         "gh stack add",
         "gh stack link",
-        "gh stack checkout",
         "gh stack view --json",
         "gh stack rebase",
         "gh stack sync",
@@ -2284,10 +2291,10 @@ def test_github_stack_mutation_snippets_guard_every_dependency_boundary() -> Non
 def test_github_stack_snippets_stop_before_consuming_failed_commands() -> None:
     github_stacks = (WRITE_PR / "references" / "github-stacks.md").read_text()
     discovery = STACK_LISTER.read_text()
-    checkout_command = github_stacks.index('gh stack checkout "$STACK_SELECTOR"')
-    checkout_start = github_stacks.rfind("```bash", 0, checkout_command)
-    checkout_end = github_stacks.index("```", checkout_command)
-    checkout = github_stacks[checkout_start:checkout_end]
+    propagation_command = github_stacks.index("gh stack rebase --upstack")
+    propagation_start = github_stacks.rfind("```bash", 0, propagation_command)
+    propagation_end = github_stacks.index("```", propagation_command)
+    propagation = github_stacks[propagation_start:propagation_end]
 
     assert "mktemp" not in discovery
     assert "trap " not in discovery
@@ -2301,10 +2308,11 @@ def test_github_stack_snippets_stop_before_consuming_failed_commands() -> None:
     parsing_guard = discovery.index('<<<"$STACKS_JSON" || exit $?', parsing)
     assert repo_command < repo_guard < api_command < api_guard < parsing < parsing_guard
 
-    checkout_command = checkout.index('gh stack checkout "$STACK_SELECTOR" || exit $?')
-    branch_verification = checkout.index("git branch --show-current || exit $?")
-    stack_verification = checkout.index("gh stack view --json || exit $?")
-    assert checkout_command < branch_verification < stack_verification
+    positioning = propagation.index("gh stack bottom || exit $?")
+    restack = propagation.index("gh stack rebase --upstack")
+    publication = propagation.index("gh stack push --remote")
+    stack_verification = propagation.index("gh stack view --json || exit $?")
+    assert positioning < restack < publication < stack_verification
 
 
 def test_github_stack_jj_route_uses_functional_colocation_proof() -> None:
