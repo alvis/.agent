@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# PreToolUse gate for AskUserQuestion: enforces the tag format documented in
+# references/directions/questions.md. Format only — no judgement of wording.
+# Compatible with bash 3.2+
+
+SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# shellcheck source=/dev/null
+source "$SCRIPTS_DIR/context.sh"
+
+deny() {
+  printf '%s' "$1" | jq -Rs \
+    '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:.}}'
+  exit 0
+}
+
+allow() {
+  output_hook_context "PreToolUse" \
+    "Remind you to follow instructions in essential:references/directions/questions.md"
+}
+
+input=$(cat)
+
+if ! printf '%s' "$input" | jq -e . >/dev/null 2>&1; then
+  allow
+fi
+
+# A tag is a single capitalised word in brackets, so ordinary Markdown links in
+# a description are not mistaken for one. Only the first line of a description
+# counts, matching where questions.md says tags may go. An option that already
+# carries a valid tag is not searched for unknown ones, so bracketed prose such
+# as "[Note]" beside a real tag is not read as a tag claim.
+reason=$(printf '%s' "$input" | jq -r '
+  ["Architectural","Ideal","Recommended","Pragmatic","Hotfix","Workaround"] as $valid
+  | [ .tool_input.questions[]?
+      | [ .options[]?
+          | { label: (.label // ""),
+              tags: ( ( (.label // "") + " " + (((.description // "") | split("\n"))[0] // "") )
+                      | [ scan("\\[[A-Z][A-Za-z]*\\]") | .[1:-1] ] ) } ] as $opts
+      | [ $opts[]
+          | . as $opt
+          | { label: $opt.label,
+              good: [ $opt.tags[] | select(. as $t | ($valid | index($t)) != null) ],
+              unknown: [ $opt.tags[] | select(. as $t | ($valid | index($t)) == null) ] } ] as $scored
+      | ( [ $scored[] | select((.good | length) == 0) ] ) as $tagless
+      | if ($tagless | length) > 0
+        then ( $tagless[0] ) as $first
+          | if ($first.unknown | length) > 0
+            then "unknown tag [" + ($first.unknown | join("], [")) + "] on option \"" + $first.label + "\". Use only: " + ($valid | join(", ")) + ". See essential:references/directions/questions.md."
+            else "option \"" + $first.label + "\" carries no tag. Tag every option with one or more of: " + ($valid | join(", ")) + ". See essential:references/directions/questions.md."
+            end
+        else empty
+        end ]
+  | .[0] // ""
+')
+
+if [[ -n "$reason" ]]; then
+  deny "$reason"
+fi
+
+allow

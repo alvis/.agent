@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# PreToolUse gate for subagent dispatch: enforces the first-prompt field format
+# in references/directions/subagent-handover.md, the message ceiling and
+# teammate-name format in references/orchestration.md, and the stable-reference
+# shape in references/naming.md. Presence and shape only.
+# Compatible with bash 3.2+
+
+SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# shellcheck source=/dev/null
+source "$SCRIPTS_DIR/context.sh"
+
+MESSAGE_CEILING=4096
+
+deny() {
+  printf '%s' "$1" | jq -Rs \
+    '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:.}}'
+  exit 0
+}
+
+allow() {
+  output_hook_context "PreToolUse" \
+    "Remind you to follow instructions in essential:references/orchestration.md"
+}
+
+input=$(cat)
+
+if ! printf '%s' "$input" | jq -e . >/dev/null 2>&1; then
+  allow
+fi
+
+name=$(printf '%s' "$input" | jq -r '.tool_input.name // ""')
+
+# Checked before the prompt guard below: Codex's spawn_agent carries a name and
+# a task but no prompt, and a malformed name is still a malformed name there.
+if [[ -n "$name" ]] && ! printf '%s' "$name" | grep -Eq '^[a-z0-9]+(-[a-z0-9]+){2,}$'; then
+  deny "name \"${name}\" must be lowercase kebab <short-name>-<role>-<task>. See essential:references/orchestration.md."
+fi
+
+if [[ "$(printf '%s' "$input" | jq -r '.tool_input.prompt | type')" != "string" ]]; then
+  allow
+fi
+
+prompt=$(printf '%s' "$input" | jq -r '.tool_input.prompt')
+
+# subagent-handover.md governs the first handover to a named teammate. Only the
+# main agent assigns a name, so a named dispatch is that handover; a nested
+# one-off spawn supplies just its type, task, and context, and is not checked.
+if [[ -n "$name" ]]; then
+  missing=""
+  for field in Goal Requirements Boundary Directions Context; do
+    if ! printf '%s\n' "$prompt" | grep -Eq "^${field}:"; then
+      if [[ -n "$missing" ]]; then
+        missing="${missing}, ${field}:"
+      else
+        missing="${field}:"
+      fi
+    fi
+  done
+
+  if [[ -n "$missing" ]]; then
+    deny "first prompt is missing ${missing}. See essential:references/directions/subagent-handover.md."
+  fi
+
+  # naming.md admits a work ID, runtime task ID, PR ID, or full commit SHA — all
+  # single bare tokens. A first line carrying inner whitespace or a field label
+  # is prose.
+  first_line=$(printf '%s\n' "$prompt" | grep -m1 -v '^[[:space:]]*$' || true)
+  first_line="${first_line#"${first_line%%[![:space:]]*}"}"
+  first_line="${first_line%"${first_line##*[![:space:]]}"}"
+  if ! printf '%s' "$first_line" | grep -Eq '^[A-Za-z0-9#][A-Za-z0-9._/#@-]*$'; then
+    deny "first line must be the stable reference alone (work ID, task ID, PR ID, or full commit SHA). See essential:references/naming.md."
+  fi
+fi
+
+# orchestration.md scopes the ceiling to every dispatch, named or not.
+length=$(printf '%s' "$input" | jq -r '.tool_input.prompt | length')
+if [[ "$length" -gt "$MESSAGE_CEILING" ]]; then
+  deny "prompt is ${length} characters, over the ${MESSAGE_CEILING} ceiling. Externalize the detail to a file and reference its path."
+fi
+
+allow

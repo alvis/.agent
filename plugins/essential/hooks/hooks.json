@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "printf '%s' 'Remind you to follow instructions in essential:references/directions/questions.md' | jq -Rs '{hookSpecificOutput:{hookEventName:\"PreToolUse\",additionalContext:.}}'"
+            "command": "\"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-}}/hooks/scripts/validate-question\""
           }
         ]
       },
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "printf '%s' 'Remind you to follow instructions in essential:references/directions/plan.md' | jq -Rs '{hookSpecificOutput:{hookEventName:\"PreToolUse\",additionalContext:.}}'"
+            "command": "\"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-}}/hooks/scripts/validate-plan\""
           }
         ]
       },
@@ -24,7 +24,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "printf '%s' 'Remind you to follow instructions in essential:references/orchestration.md' | jq -Rs '{hookSpecificOutput:{hookEventName:\"PreToolUse\",additionalContext:.}}'"
+            "command": "\"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-}}/hooks/scripts/validate-dispatch\""
           }
         ]
       }
