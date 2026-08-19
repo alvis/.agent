@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# PreToolUse gate for ExitPlanMode: enforces the required headings documented in
+# references/directions/plan.md. Presence only — order and content are not
+# judged. Compatible with bash 3.2+
+
+SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# shellcheck source=/dev/null
+source "$SCRIPTS_DIR/context.sh"
+
+deny() {
+  printf '%s' "$1" | jq -Rs \
+    '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:.}}'
+  exit 0
+}
+
+allow() {
+  output_hook_context "PreToolUse" \
+    "Remind you to follow instructions in essential:references/directions/plan.md"
+}
+
+input=$(cat)
+
+if ! printf '%s' "$input" | jq -e . >/dev/null 2>&1; then
+  allow
+fi
+
+# The plan body travels inline in tool_input.plan. Codex's update_plan carries a
+# step array under the same key and has no headings to check, so anything that
+# is not plan prose passes straight through.
+if [[ "$(printf '%s' "$input" | jq -r '.tool_input.plan | type')" != "string" ]]; then
+  allow
+fi
+
+plan=$(printf '%s' "$input" | jq -r '.tool_input.plan')
+
+missing=""
+for heading in Goal Requirements Boundary Direction Context; do
+  if ! printf '%s\n' "$plan" | grep -Eqi "^#{1,6}[[:space:]]*${heading}\\b"; then
+    if [[ -n "$missing" ]]; then
+      missing="${missing}, ${heading}"
+    else
+      missing="$heading"
+    fi
+  fi
+done
+
+if [[ -n "$missing" ]]; then
+  deny "missing headings: ${missing}. See essential:references/directions/plan.md."
+fi
+
+allow
