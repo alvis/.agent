@@ -9,12 +9,12 @@ hooks:
     - matcher: "Bash"
       hooks:
         - type: command
-          command: "bash ${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/pre-commit-hook.sh"
+          command: "bash \"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-}}/skills/commit/scripts/pre-commit-hook.sh\""
   PostToolUse:
     - matcher: "Bash"
       hooks:
         - type: command
-          command: "bash ${CLAUDE_PLUGIN_ROOT}/skills/commit/scripts/post-rewrite-hook.sh"
+          command: "bash \"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-}}/skills/commit/scripts/post-rewrite-hook.sh\""
 ---
 
 # Save Any Code Change — jj-first, git-compatible

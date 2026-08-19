@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sed \"s|{{PLUGIN_DIR}}|${CLAUDE_PLUGIN_ROOT}|g\" \"${CLAUDE_PLUGIN_ROOT}/hooks/ALLAGENT.md\" | jq -Rs '{hookSpecificOutput:{hookEventName:\"SessionStart\",additionalContext:.}}'"
+            "command": "[ -n \"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-}}\" ] || { echo \"plugin root unset\" >&2; exit 1; }; sed \"s|{{PLUGIN_DIR}}|${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-}}|g\" \"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-}}/hooks/ALLAGENT.md\" | jq -Rs '{hookSpecificOutput:{hookEventName:\"SessionStart\",additionalContext:.}}'"
           }
         ]
       },
@@ -13,7 +13,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if [ -n \"${PLUGIN_ROOT:-}\" ] && [ ! -f \"${CODEX_HOME:-${HOME}/.codex}/agents/design-lead.toml\" ]; then exit 0; fi; sed \"s|{{PLUGIN_DIR}}|${CLAUDE_PLUGIN_ROOT}|g\" \"${CLAUDE_PLUGIN_ROOT}/hooks/MAINAGENT.md\" | jq -Rs '{hookSpecificOutput:{hookEventName:\"SessionStart\",additionalContext:.}}'"
+            "command": "[ -n \"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-}}\" ] || { echo \"plugin root unset\" >&2; exit 1; }; if [ -n \"${PLUGIN_ROOT:-}\" ] && [ ! -f \"${CODEX_HOME:-${HOME}/.codex}/agents/design-lead.toml\" ]; then exit 0; fi; sed \"s|{{PLUGIN_DIR}}|${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-}}|g\" \"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-}}/hooks/MAINAGENT.md\" | jq -Rs '{hookSpecificOutput:{hookEventName:\"SessionStart\",additionalContext:.}}'"
           }
         ]
       }
@@ -23,7 +23,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sed \"s|{{PLUGIN_DIR}}|${CLAUDE_PLUGIN_ROOT}|g\" \"${CLAUDE_PLUGIN_ROOT}/hooks/ALLAGENT.md\" | jq -Rs '{hookSpecificOutput:{hookEventName:\"SubagentStart\",additionalContext:.}}'"
+            "command": "[ -n \"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-}}\" ] || { echo \"plugin root unset\" >&2; exit 1; }; sed \"s|{{PLUGIN_DIR}}|${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-}}|g\" \"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-}}/hooks/ALLAGENT.md\" | jq -Rs '{hookSpecificOutput:{hookEventName:\"SubagentStart\",additionalContext:.}}'"
           }
         ]
       }

@@ -5,8 +5,11 @@ does, delete it — that governs this file and everything shipped from this tree
 
 ## What this repository is
 
-This is the **source** of one plugin marketplace for Claude Code and Codex: the
-plugins under `plugins/` are projected into each harness's manifest format.
+This is the **source** of one plugin marketplace for Claude Code, Codex, and
+opencode: the plugins under `plugins/` are projected into each harness's manifest
+format. Claude Code and Codex are projected today and opencode is a committed
+target, so "Every harness, or none" below binds every design now rather than at
+porting time.
 
 This remains a greenfield project: breaking changes are accepted and expected.
 No legacy compatibility is needed; remove every deprecated symbol.
@@ -46,9 +49,21 @@ developer docs. Each context-owning plugin's
 and `jq` into the user's session context:
 
 ```bash
-sed "s|{{PLUGIN_DIR}}|${CLAUDE_PLUGIN_ROOT}|g" "${CLAUDE_PLUGIN_ROOT}/hooks/ALLAGENT.md" \
+sed "s|{{PLUGIN_DIR}}|${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-}}|g" \
+  "${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-}}/hooks/ALLAGENT.md" \
   | jq -Rs '{hookSpecificOutput:{hookEventName:"SessionStart",additionalContext:.}}'
 ```
+
+Claude Code sets `CLAUDE_PLUGIN_ROOT` and Codex sets `PLUGIN_ROOT`, so every path in
+every hook command — the `sed` replacement included — carries that exact anchor,
+quoted. Anchoring on one variable alone makes the hook resolve nothing under the other
+harness, and a `sed | jq` pipeline still exits 0 while emitting nothing. Quoting is
+equally load-bearing: the anchor expands to a path the user chose, so an unquoted
+expansion word-splits on a space and runs its first segment. Adding opencode extends
+this one chain by one segment — read its variable from opencode's own documentation
+rather than guessing a name, and give every command the new chain in the same change,
+since a chain that is current in some commands and stale in others fails just as
+silently.
 
 - `ALLAGENT.md` — injected at `SessionStart` **and** `SubagentStart`; carries that plugin's
   own routing only. Do not rebuild a central roster table in it.
@@ -70,6 +85,18 @@ These plugins are built to one model of how knowledge ages:
 reads, or retires anything. The invariants below are what it forbids while you edit
 these sources, and each is the rule a locally sensible change breaks first.
 
+- **Every harness, or none.** Claude Code, Codex, and opencode are one target, not a
+  primary plus two ports. Anything shipped from this tree — hook command, script,
+  agent or skill projection, installed path, config format, tool name — works under all
+  three or is not done. Reading one harness's value resolves to nothing under the others
+  and almost always fails silent rather than loud, so resolve every harness-specific
+  value through one ordered chain that a fourth harness extends by one segment, keep
+  that chain in exactly one place, terminate it so an unrecognized harness exits
+  non-zero instead of injecting nothing, and prove each harness in isolation: a test
+  that leaves the other harnesses' variables inherited resolves through the wrong one
+  and proves nothing. A feature only one harness has — Claude Code output styles and
+  statusline today — is scoped to it in the open, saying which harness and why; what
+  this forbids is the unmarked single-harness path in something meant for all of them.
 - **One home per fact.** Give every fact exactly one authoritative file. A second mention
   is derived: it names its source and is rewritten from that source, never patched in
   place. This is the rule behind "no central roster in a plugin's
