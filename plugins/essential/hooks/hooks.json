@@ -34,7 +34,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-}}/hooks/scripts/session-start"
+            "command": "\"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-}}/hooks/scripts/session-start\""
           }
         ]
       },
@@ -60,7 +60,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-}}/hooks/scripts/subagent-start"
+            "command": "\"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-}}/hooks/scripts/subagent-start\""
           }
         ]
       },

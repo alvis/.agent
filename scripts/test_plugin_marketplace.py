@@ -3,6 +3,7 @@ import importlib.util
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 from collections.abc import Sequence
@@ -1093,7 +1094,12 @@ def test_shared_hooks_follow_the_cross_harness_schema() -> None:
                     for payload_name in payload_events
                 ):
                     continue
-                relative_command = command.removeprefix(f"{PLUGIN_ROOT_ANCHOR}/")
+                # The anchor expands to a path the user chose, so an unquoted
+                # invocation word-splits on a space and runs its first segment.
+                assert command.startswith('"') and command.endswith('"')
+                relative_command = command[1:-1].removeprefix(
+                    f"{PLUGIN_ROOT_ANCHOR}/"
+                )
                 assert relative_command != command
                 assert (plugin_root / relative_command).is_file()
 
@@ -1124,7 +1130,7 @@ def test_context_hooks_replace_every_plugin_dir_placeholder() -> None:
                     ["/bin/sh", "-c", command],
                     capture_output=True,
                     check=True,
-                    env=os.environ | {"CLAUDE_PLUGIN_ROOT": str(plugin_root)},
+                    env=harness_env("CLAUDE_PLUGIN_ROOT", plugin_root),
                     input=json.dumps({"hook_event_name": event}),
                     text=True,
                 )
@@ -1188,6 +1194,40 @@ def test_every_hook_command_emits_context_under_both_harnesses(
             context = output["additionalContext"]
             assert context, (plugin_name, event, variable)
             assert "{{PLUGIN_DIR}}" not in context
+
+
+@pytest.mark.parametrize("plugin_name", PLUGINS_WITH_HOOKS)
+def test_every_hook_command_survives_a_space_in_the_plugin_root(
+    plugin_name: str, tmp_path: Path
+) -> None:
+    # An unquoted expansion splits on the space and the shell runs the first
+    # word as the command, so a plugin installed under a path like
+    # "Application Support" exits 127 with no output and no error the user sees.
+    installed = tmp_path / "with space" / plugin_name
+    shutil.copytree(ROOT / "plugins" / plugin_name, installed)
+    codex_home = tmp_path / "codex"
+    agents = codex_home / "agents"
+    agents.mkdir(parents=True)
+    for agent_name in CODEX_ROLE_AGENTS:
+        (agents / f"{agent_name}.toml").write_text('name = "installed"\n')
+
+    env = harness_env("CLAUDE_PLUGIN_ROOT", installed) | {
+        "CODEX_HOME": str(codex_home)
+    }
+
+    hooks = load_json(installed / "hooks" / "hooks.json")["hooks"]
+    for event in hooks:
+        for command in hook_commands(hooks, event):
+            completed = subprocess.run(
+                ["/bin/sh", "-c", command],
+                capture_output=True,
+                check=False,
+                env=env,
+                input=json.dumps({"hook_event_name": event, "tool_input": {}}),
+                text=True,
+            )
+            assert completed.returncode == 0, (plugin_name, event, completed.stderr)
+            assert completed.stdout, (plugin_name, event)
 
 
 def test_codex_role_bindings_wait_for_installed_custom_agents(
