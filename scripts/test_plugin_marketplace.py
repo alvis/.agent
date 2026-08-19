@@ -11,6 +11,12 @@ from pathlib import Path
 
 import pytest
 
+from harness_contract import (
+    HARNESS_ROOT_VARIABLES,
+    PLUGIN_ROOT_ANCHOR,
+    PLUGIN_ROOT_GUARD,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 MARKETPLACE_PATH = ROOT / ".claude-plugin" / "marketplace.json"
 CODEX_MARKETPLACE_PATH = ROOT / ".agents" / "plugins" / "marketplace.json"
@@ -485,12 +491,6 @@ def hook_commands(hooks: dict, event: str) -> list[str]:
     ]
 
 
-# Claude sets CLAUDE_PLUGIN_ROOT and Codex sets PLUGIN_ROOT, so a command
-# anchored on either alone resolves under one harness and fails open under the
-# other. Every hook command carries this exact anchor to stay greppable.
-PLUGIN_ROOT_ANCHOR = "${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-}}"
-
-HARNESS_ROOT_VARIABLES = ("CLAUDE_PLUGIN_ROOT", "PLUGIN_ROOT")
 
 
 def harness_env(variable: str, plugin_root: Path) -> dict[str, str]:
@@ -1089,6 +1089,11 @@ def test_shared_hooks_follow_the_cross_harness_schema() -> None:
         for event in expected_events:
             for command in hook_commands(hooks, event):
                 assert PLUGIN_ROOT_ANCHOR in command
+                # Every command terminates the chain before using it, so an
+                # unrecognized harness exits non-zero instead of injecting an
+                # empty context at rc 0.
+                assert command.startswith(PLUGIN_ROOT_GUARD)
+                invocation = command.removeprefix(PLUGIN_ROOT_GUARD)
                 if any(
                     command_references_payload(command, payload_name)
                     for payload_name in payload_events
@@ -1096,11 +1101,11 @@ def test_shared_hooks_follow_the_cross_harness_schema() -> None:
                     continue
                 # The anchor expands to a path the user chose, so an unquoted
                 # invocation word-splits on a space and runs its first segment.
-                assert command.startswith('"') and command.endswith('"')
-                relative_command = command[1:-1].removeprefix(
+                assert invocation.startswith('"') and invocation.endswith('"')
+                relative_command = invocation[1:-1].removeprefix(
                     f"{PLUGIN_ROOT_ANCHOR}/"
                 )
-                assert relative_command != command
+                assert relative_command != invocation
                 assert (plugin_root / relative_command).is_file()
 
     assert hook_files
@@ -1147,9 +1152,25 @@ PLUGINS_WITH_HOOKS = sorted(
     path.parent.parent.name for path in ROOT.glob("plugins/*/hooks/hooks.json")
 )
 
-# Role bindings gate on an installed custom agent, so every hook has something
-# to say only when these exist; see the role-binding test below.
-CODEX_ROLE_AGENTS = ("tech-lead", "design-lead")
+def _gated_role_agents() -> tuple[str, ...]:
+    # Role bindings gate on an installed custom agent, so every hook has
+    # something to say only when these exist; see the role-binding test below.
+    # Read from the guards themselves rather than restated, so a renamed or
+    # added binding cannot leave this fixture behind — a stale copy would fail
+    # far away, at an empty stdout with no hint a .toml was missing.
+    names = {
+        name
+        for path in ROOT.glob("plugins/*/hooks/hooks.json")
+        for commands in load_json(path)["hooks"].values()
+        for entry in commands
+        for hook in entry["hooks"]
+        for name in re.findall(r"agents/([\w-]+)\.toml", hook["command"])
+    }
+    assert names
+    return tuple(sorted(names))
+
+
+CODEX_ROLE_AGENTS = _gated_role_agents()
 
 
 @pytest.mark.parametrize("variable", HARNESS_ROOT_VARIABLES)
@@ -1197,6 +1218,37 @@ def test_every_hook_command_emits_context_under_both_harnesses(
 
 
 @pytest.mark.parametrize("plugin_name", PLUGINS_WITH_HOOKS)
+def test_every_hook_command_fails_loudly_under_an_unrecognized_harness(
+    plugin_name: str,
+) -> None:
+    # This is opencode's state today. Without a terminal on the chain the
+    # anchor expands empty, `sed` reads "/hooks/ALLAGENT.md", and the hook
+    # injects an empty context at rc 0 — the silent shape a new harness would
+    # inherit rather than be told about.
+    plugin_root = ROOT / "plugins" / plugin_name
+    env = {
+        name: value
+        for name, value in os.environ.items()
+        if name not in HARNESS_ROOT_VARIABLES
+    }
+
+    hooks = load_json(plugin_root / "hooks" / "hooks.json")["hooks"]
+    for event in hooks:
+        for command in hook_commands(hooks, event):
+            completed = subprocess.run(
+                ["/bin/sh", "-c", command],
+                capture_output=True,
+                check=False,
+                env=env,
+                input=json.dumps({"hook_event_name": event, "tool_input": {}}),
+                text=True,
+            )
+            assert completed.returncode != 0, (plugin_name, event, completed.stdout)
+            assert not completed.stdout, (plugin_name, event)
+            assert "plugin root unset" in completed.stderr
+
+
+@pytest.mark.parametrize("plugin_name", PLUGINS_WITH_HOOKS)
 def test_every_hook_command_survives_a_space_in_the_plugin_root(
     plugin_name: str, tmp_path: Path
 ) -> None:
@@ -1227,7 +1279,17 @@ def test_every_hook_command_survives_a_space_in_the_plugin_root(
                 text=True,
             )
             assert completed.returncode == 0, (plugin_name, event, completed.stderr)
-            assert completed.stdout, (plugin_name, event)
+            # A `sed | jq` pipeline exits with jq's status, and `jq -Rs` prints a
+            # complete envelope for empty input, so status and stdout presence
+            # both stay green over the silent emptiness this suite exists to
+            # catch. Only the parsed context distinguishes them.
+            context = json.loads(completed.stdout)["hookSpecificOutput"][
+                "additionalContext"
+            ]
+            assert context, (plugin_name, event)
+            assert "{{PLUGIN_DIR}}" not in context
+            if "{{PLUGIN_DIR}}" in command:
+                assert str(installed) in context, (plugin_name, event)
 
 
 def test_codex_role_bindings_wait_for_installed_custom_agents(

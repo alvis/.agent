@@ -91,9 +91,12 @@ these sources, and each is the rule a locally sensible change breaks first.
   three or is not done. Reading one harness's value resolves to nothing under the others
   and almost always fails silent rather than loud, so resolve every harness-specific
   value through one ordered chain that a fourth harness extends by one segment, keep
-  that chain in exactly one place, and prove each harness in isolation: a test that
-  leaves the other harnesses' variables inherited resolves through the wrong one and
-  proves nothing.
+  that chain in exactly one place, terminate it so an unrecognized harness exits
+  non-zero instead of injecting nothing, and prove each harness in isolation: a test
+  that leaves the other harnesses' variables inherited resolves through the wrong one
+  and proves nothing. A feature only one harness has — Claude Code output styles and
+  statusline today — is scoped to it in the open, saying which harness and why; what
+  this forbids is the unmarked single-harness path in something meant for all of them.
 - **One home per fact.** Give every fact exactly one authoritative file. A second mention
   is derived: it names its source and is rewritten from that source, never patched in
   place. This is the rule behind "no central roster in a plugin's

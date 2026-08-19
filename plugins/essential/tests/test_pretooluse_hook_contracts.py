@@ -7,6 +7,12 @@ from pathlib import Path
 
 import pytest
 
+from harness_contract import (
+    HARNESS_ROOT_VARIABLES,
+    PLUGIN_ROOT_ANCHOR,
+    PLUGIN_ROOT_GUARD,
+)
+
 PLUGIN = Path(__file__).resolve().parents[1]
 HOOKS = json.loads((PLUGIN / "hooks/hooks.json").read_text(encoding="utf-8"))
 
@@ -71,9 +77,6 @@ def command_for(matcher: str) -> str:
     return entries[0]["hooks"][0]["command"]
 
 
-# Claude sets CLAUDE_PLUGIN_ROOT; Codex sets PLUGIN_ROOT, which
-# hooks.json already uses as its harness discriminator.
-HARNESS_ROOT_VARIABLES = ("CLAUDE_PLUGIN_ROOT", "PLUGIN_ROOT")
 
 
 def harness_env(variable: str) -> dict:
@@ -131,17 +134,17 @@ def question(*options: dict) -> dict:
     }
 
 
-PLUGIN_ROOT_ANCHOR = "${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-}}"
-
-
 def test_every_pretooluse_hook_runs_an_executable_validator_script() -> None:
     for matcher in (QUESTIONS, PLANS, DISPATCH):
         command = command_for(matcher)
-        # Quoted so a plugin root containing a space still resolves; an
+        # Guarded so an unrecognized harness exits non-zero, and quoted so a
+        # plugin root containing a space still resolves; either way an
         # unresolvable command fails open and silently stops validating.
-        assert command.startswith(f'"{PLUGIN_ROOT_ANCHOR}/hooks/scripts/validate-')
-        assert command.endswith('"')
-        script = PLUGIN / command.strip('"').replace(f"{PLUGIN_ROOT_ANCHOR}/", "", 1)
+        assert command.startswith(PLUGIN_ROOT_GUARD)
+        invocation = command.removeprefix(PLUGIN_ROOT_GUARD)
+        assert invocation.startswith(f'"{PLUGIN_ROOT_ANCHOR}/hooks/scripts/validate-')
+        assert invocation.endswith('"')
+        script = PLUGIN / invocation.strip('"').replace(f"{PLUGIN_ROOT_ANCHOR}/", "", 1)
         assert os.access(script, os.X_OK), script
 
 
