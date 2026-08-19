@@ -41,7 +41,7 @@ def run_installed_hooks(
 ) -> tuple[subprocess.CompletedProcess[str], ...]:
     hooks_document = json.loads((plugin_root / "hooks/hooks.json").read_text())
     substitutions = {
-        "${CLAUDE_PLUGIN_ROOT}": str(plugin_root),
+        "${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-}}": str(plugin_root),
         "${HOME}": os.environ["HOME"],
     }
     completed = []

@@ -484,8 +484,29 @@ def hook_commands(hooks: dict, event: str) -> list[str]:
     ]
 
 
+# Claude sets CLAUDE_PLUGIN_ROOT and Codex sets PLUGIN_ROOT, so a command
+# anchored on either alone resolves under one harness and fails open under the
+# other. Every hook command carries this exact anchor to stay greppable.
+PLUGIN_ROOT_ANCHOR = "${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-}}"
+
+HARNESS_ROOT_VARIABLES = ("CLAUDE_PLUGIN_ROOT", "PLUGIN_ROOT")
+
+
+def harness_env(variable: str, plugin_root: Path) -> dict[str, str]:
+    # Setting one root variable while leaving the other inherited resolves the
+    # command through the wrong harness, so a Codex case would pass on the
+    # Claude variable and prove nothing about the fallback.
+    env = {
+        name: value
+        for name, value in os.environ.items()
+        if name not in HARNESS_ROOT_VARIABLES
+    }
+    env[variable] = str(plugin_root)
+    return env
+
+
 def command_references_payload(command: str, payload_name: str) -> bool:
-    target = f"${{CLAUDE_PLUGIN_ROOT}}/{payload_name}"
+    target = f"{PLUGIN_ROOT_ANCHOR}/{payload_name}"
     return f'"{target}"' in command
 
 
@@ -1066,13 +1087,13 @@ def test_shared_hooks_follow_the_cross_harness_schema() -> None:
 
         for event in expected_events:
             for command in hook_commands(hooks, event):
-                assert "${CLAUDE_PLUGIN_ROOT}" in command
+                assert PLUGIN_ROOT_ANCHOR in command
                 if any(
                     command_references_payload(command, payload_name)
                     for payload_name in payload_events
                 ):
                     continue
-                relative_command = command.removeprefix("${CLAUDE_PLUGIN_ROOT}/")
+                relative_command = command.removeprefix(f"{PLUGIN_ROOT_ANCHOR}/")
                 assert relative_command != command
                 assert (plugin_root / relative_command).is_file()
 
@@ -1116,6 +1137,59 @@ def test_context_hooks_replace_every_plugin_dir_placeholder() -> None:
                     assert str(plugin_root) in context
 
 
+PLUGINS_WITH_HOOKS = sorted(
+    path.parent.parent.name for path in ROOT.glob("plugins/*/hooks/hooks.json")
+)
+
+# Role bindings gate on an installed custom agent, so every hook has something
+# to say only when these exist; see the role-binding test below.
+CODEX_ROLE_AGENTS = ("tech-lead", "design-lead")
+
+
+@pytest.mark.parametrize("variable", HARNESS_ROOT_VARIABLES)
+@pytest.mark.parametrize("plugin_name", PLUGINS_WITH_HOOKS)
+def test_every_hook_command_emits_context_under_both_harnesses(
+    plugin_name: str, variable: str, tmp_path: Path
+) -> None:
+    # A hook that cannot resolve its plugin root fails open: the `sed | jq`
+    # payload commands still exit 0, so only asserting on the emitted context
+    # distinguishes a working hook from one that silently never fires.
+    plugin_root = ROOT / "plugins" / plugin_name
+    agents = tmp_path / "agents"
+    agents.mkdir()
+    for agent_name in CODEX_ROLE_AGENTS:
+        (agents / f"{agent_name}.toml").write_text('name = "installed"\n')
+
+    env = harness_env(variable, plugin_root) | {"CODEX_HOME": str(tmp_path)}
+
+    hooks = load_json(plugin_root / "hooks" / "hooks.json")["hooks"]
+    for event in hooks:
+        commands = hook_commands(hooks, event)
+        assert commands
+        for command in commands:
+            # A command whose file path carries the anchor while its `sed`
+            # replacement keeps a bare ${CLAUDE_PLUGIN_ROOT} still emits context
+            # under Codex, with every path inside it silently rooted at "/" —
+            # a half-conversion the runtime assertions below cannot see.
+            assert "CLAUDE_PLUGIN_ROOT" not in command.replace(PLUGIN_ROOT_ANCHOR, "")
+
+            completed = subprocess.run(
+                ["/bin/sh", "-c", command],
+                capture_output=True,
+                check=False,
+                env=env,
+                input=json.dumps({"hook_event_name": event, "tool_input": {}}),
+                text=True,
+            )
+            assert completed.returncode == 0, (plugin_name, event, completed.stderr)
+            assert completed.stdout, (plugin_name, event, variable)
+            output = json.loads(completed.stdout)["hookSpecificOutput"]
+            assert output["hookEventName"] == event
+            context = output["additionalContext"]
+            assert context, (plugin_name, event, variable)
+            assert "{{PLUGIN_DIR}}" not in context
+
+
 def test_codex_role_bindings_wait_for_installed_custom_agents(
     tmp_path: Path,
 ) -> None:
@@ -1133,21 +1207,18 @@ def test_codex_role_bindings_wait_for_installed_custom_agents(
             for command in hook_commands(hooks, "SessionStart")
             if command_references_payload(command, "hooks/MAINAGENT.md")
         )
-        base_env = os.environ | {
-            "CLAUDE_PLUGIN_ROOT": str(plugin_root),
-            "CODEX_HOME": str(tmp_path),
-        }
+        codex_home = {"CODEX_HOME": str(tmp_path)}
 
         claude = subprocess.run(
             ["/bin/sh", "-c", command],
             capture_output=True,
             check=True,
-            env=base_env,
+            env=harness_env("CLAUDE_PLUGIN_ROOT", plugin_root) | codex_home,
             text=True,
         )
         assert json.loads(claude.stdout)["hookSpecificOutput"]["additionalContext"]
 
-        codex_env = base_env | {"PLUGIN_ROOT": str(plugin_root)}
+        codex_env = harness_env("PLUGIN_ROOT", plugin_root) | codex_home
         codex_missing = subprocess.run(
             ["/bin/sh", "-c", command],
             capture_output=True,

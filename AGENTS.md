@@ -46,9 +46,15 @@ developer docs. Each context-owning plugin's
 and `jq` into the user's session context:
 
 ```bash
-sed "s|{{PLUGIN_DIR}}|${CLAUDE_PLUGIN_ROOT}|g" "${CLAUDE_PLUGIN_ROOT}/hooks/ALLAGENT.md" \
+sed "s|{{PLUGIN_DIR}}|${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-}}|g" \
+  "${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-}}/hooks/ALLAGENT.md" \
   | jq -Rs '{hookSpecificOutput:{hookEventName:"SessionStart",additionalContext:.}}'
 ```
+
+Claude Code sets `CLAUDE_PLUGIN_ROOT` and Codex sets `PLUGIN_ROOT`, so every path in
+every hook command — the `sed` replacement included — carries that exact anchor,
+quoted. Anchoring on one variable alone makes the hook resolve nothing under the other
+harness, and a `sed | jq` pipeline still exits 0 while emitting nothing.
 
 - `ALLAGENT.md` — injected at `SessionStart` **and** `SubagentStart`; carries that plugin's
   own routing only. Do not rebuild a central roster table in it.

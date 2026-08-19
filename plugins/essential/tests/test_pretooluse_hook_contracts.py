@@ -131,7 +131,7 @@ def question(*options: dict) -> dict:
     }
 
 
-PLUGIN_ANCHOR = "${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-}}"
+PLUGIN_ROOT_ANCHOR = "${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-}}"
 
 
 def test_every_pretooluse_hook_runs_an_executable_validator_script() -> None:
@@ -139,9 +139,9 @@ def test_every_pretooluse_hook_runs_an_executable_validator_script() -> None:
         command = command_for(matcher)
         # Quoted so a plugin root containing a space still resolves; an
         # unresolvable command fails open and silently stops validating.
-        assert command.startswith(f'"{PLUGIN_ANCHOR}/hooks/scripts/validate-')
+        assert command.startswith(f'"{PLUGIN_ROOT_ANCHOR}/hooks/scripts/validate-')
         assert command.endswith('"')
-        script = PLUGIN / command.strip('"').replace(f"{PLUGIN_ANCHOR}/", "", 1)
+        script = PLUGIN / command.strip('"').replace(f"{PLUGIN_ROOT_ANCHOR}/", "", 1)
         assert os.access(script, os.X_OK), script
 
 
