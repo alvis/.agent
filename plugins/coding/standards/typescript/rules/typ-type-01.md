@@ -2,7 +2,9 @@
 
 ## Intent
 
-Use `interface` for object shape contracts and extendable APIs. Use `type` for unions, intersections, mapped types, and computed types.
+Use `interface` for plain object shapes regardless of whether they are public,
+exported, private, or local. Use `type` for unions, intersections, mapped
+types, computed types, function signatures, and tuples. Shape decides; visibility does not.
 
 ## Fix
 
@@ -22,17 +24,10 @@ type EventHandler<T> = (event: T) => void;
 
 ### Choosing Between Interface and Type
 
-- **Do you need object shape composition (extending multiple shapes)?**
-  - YES: Use `interface`
-  - NO: Continue to next decision
-
-- **Do you need union, intersection, or computed types?**
-  - YES: Use `type`
-  - NO: Use `interface` (more readable)
-
-- **Is this for a public API/export?**
-  - YES: Use `interface` (allows declaration merging)
-  - NO: Use `type` (simpler, more flexible)
+- Plain object shape? Use `interface`, regardless of visibility.
+- Union, intersection, mapped/computed type, function signature, or tuple? Use `type`.
+- React component props are the explicit exception defined by `RC-STRUCT-02`:
+  use a `type` alias so intersections and React helper types compose consistently.
 
 ### Interface Strategy
 
@@ -44,14 +39,18 @@ export interface UpdateUserOptions {
 }
 export function updateUser(options: UpdateUserOptions) { /* ... */ }
 
-// ✅ GOOD: simple internal functions can use inline types
-function processData(options: { data: string; strict?: boolean }) { /* ... */ }
+// ✅ GOOD: internal plain object shapes also use interfaces
+interface ProcessDataOptions {
+  data: string;
+  strict?: boolean;
+}
+function processData(options: ProcessDataOptions) { /* ... */ }
 ```
 
 ## Edge Cases
 
 - When existing code matches prior violation patterns such as ❌ `type User = { id: string }`, refactor before adding new behavior.
-- If the type needs to be extended or implemented by classes, use `interface`.
+- Visibility never changes the choice for a plain object shape.
 - If the type involves unions, intersections, or mapped types, use `type`.
 
 ## Related

@@ -19,6 +19,19 @@ If a violation is detected, load the matching rule guide at `./rules/<rule-id>.m
 
 - DO NOT ship a single `Default` story when the component has multiple variants/states — cover primary, secondary, disabled, loading, and edge cases [`SB-COVERAGE-01`]
 
+### Story Structure
+
+- DO NOT export an inline or asserted meta object — declare `const meta = { ... } satisfies Meta<typeof Component>`, export it as default, derive `StoryObj<typeof meta>`, and include `tags: ['autodocs']` for component stories [`SB-STRUCT-01`]
+
+### Interactive Stories
+
+- DO NOT import `within` or `userEvent` from another package — use `@storybook/testing-library` [`SB-PLAY-01`]
+- DO NOT leave `userEvent` calls unawaited or omit an assertion of observable behavior from a `play` function [`SB-PLAY-01`]
+
+### Controls
+
+- DO NOT omit `argTypes` for configurable props: give enum, boolean, number, and color props suitable controls; disable function and complex-object controls explicitly; document each prop and the component [`SB-CONTROLS-01`]
+
 ### Pure Stories
 
 - DO NOT define components inline inside `render` — use existing components imported from the codebase [`SB-PURE-01`]
@@ -75,6 +88,14 @@ export const GoodData: Story = {
 2. **Poor story organization**
    - Problem: Stories scattered without logical grouping
    - Solution: Use path-based titles that mirror file structure
+
+## Rule Matrix
+
+| Rule ID | Violation | Bad Examples |
+|---|---|---|
+| `SB-STRUCT-01` | Meta is not declared with the canonical `satisfies` typing, or component stories omit autodocs/derived story typing | `export default { component: Button } as Meta<typeof Button>`; `type Story = StoryObj<typeof Button>` |
+| `SB-PLAY-01` | Play helpers use the wrong package, interactions are not awaited, or the result is not asserted | `import { userEvent } from '@storybook/test'`; `userEvent.click(button)`; a play function with no `expect(...)` |
+| `SB-CONTROLS-01` | A configurable prop lacks a suitable documented control, or a function/complex value exposes an unusable control | Enum prop without `options`; `onClick` without `control: false` |
 
 ## Quick Reference
 

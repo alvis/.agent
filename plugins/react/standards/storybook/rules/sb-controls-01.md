@@ -15,6 +15,8 @@ Configure `argTypes` so designers and PMs can explore every prop interactively, 
 
 ```typescript
 // ✅ GOOD: comprehensive control setup
+import type { Meta } from '@storybook/react';
+
 const meta = {
   title: 'Components/UI/Button',
   component: Button,
@@ -27,12 +29,16 @@ const meta = {
     size: {
       control: 'radio',
       options: ['sm', 'md', 'lg'],
+      description: 'Button size',
     },
     disabled: {
       control: 'boolean',
       description: 'Disable button interaction',
     },
-    onClick: { control: false }, // disable control for functions
+    onClick: {
+      control: false,
+      description: 'Called when the button is activated',
+    },
   },
   parameters: {
     docs: {
@@ -41,7 +47,7 @@ const meta = {
       },
     },
   },
-};
+} satisfies Meta<typeof Button>;
 ```
 
 ## Code Superpowers

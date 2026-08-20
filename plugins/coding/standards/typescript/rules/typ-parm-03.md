@@ -2,7 +2,10 @@
 
 ## Intent
 
-Object contract ordering is mandatory: required fields first, optional fields second, callback/function fields last. Apply the same order consistently across interfaces/types and related constructor/options contracts.
+Object contract ordering is mandatory: required fields first, optional fields
+second, callback/function fields last. Choose the declaration form through
+`TYP-TYPE-01` first, then apply this order consistently to the resulting
+interface or type and related constructor/options contracts.
 
 ## Fix
 
@@ -57,7 +60,7 @@ interface ExportOptions {
 
 ## Edge Cases
 
-- When existing code matches prior violation patterns such as ❌ `type X = { meta: string; id: string }` (metadata before identity), refactor before adding new behavior.
+- When existing code matches prior violation patterns such as ❌ `interface X { meta: string; id: string }` (metadata before identity), refactor before adding new behavior.
 - Required fields before optional fields within each category group.
 
 ## Related

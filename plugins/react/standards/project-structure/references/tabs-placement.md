@@ -16,6 +16,8 @@ Cross-references:
 
 ```typescript
 // src/components/headless/Tabs.tsx
+import type { FC, PropsWithChildren } from 'react';
+
 export type TabsProps = PropsWithChildren<{
   defaultValue: string;
   value?: string;
@@ -42,15 +44,33 @@ export const Tabs: FC<TabsProps> = ({ defaultValue, value, onValueChange, childr
 
 ```typescript
 // src/components/composites/Tabs.tsx
+import type { ComponentPropsWithoutRef, FC, PropsWithChildren } from 'react';
 import { Tabs as HeadlessTabs } from '#components/headless/Tabs';
 
-export const Tabs: FC<TabsProps> = (props) => (
+export type TabsProps = PropsWithChildren<ComponentPropsWithoutRef<typeof HeadlessTabs>>;
+export type TabsListProps = PropsWithChildren<ComponentPropsWithoutRef<'div'>>;
+export type TabsTriggerProps = PropsWithChildren<ComponentPropsWithoutRef<'button'>>;
+export type TabsContentProps = PropsWithChildren<ComponentPropsWithoutRef<'div'>>;
+
+const TabsRoot: FC<TabsProps> = (props) => (
   <HeadlessTabs {...props} />
 );
 
-Tabs.List = (p) => <div className="tabs-list">{p.children}</div>;
-Tabs.Trigger = (p) => <button className="tabs-trigger">{p.children}</button>;
-Tabs.Content = (p) => <div className="tabs-content">{p.children}</div>;
+const TabsList: FC<TabsListProps> = ({ children, className, ...listProps }) => (
+  <div {...listProps} className={['tabs-list', className].filter(Boolean).join(' ')}>{children}</div>
+);
+const TabsTrigger: FC<TabsTriggerProps> = ({ children, className, ...triggerProps }) => (
+  <button {...triggerProps} className={['tabs-trigger', className].filter(Boolean).join(' ')}>{children}</button>
+);
+const TabsContent: FC<TabsContentProps> = ({ children, className, ...contentProps }) => (
+  <div {...contentProps} className={['tabs-content', className].filter(Boolean).join(' ')}>{children}</div>
+);
+
+export const Tabs = Object.assign(TabsRoot, {
+  List: TabsList,
+  Trigger: TabsTrigger,
+  Content: TabsContent,
+});
 ```
 
 **When to use**: You need a styled Tabs component reused across multiple routes/features with the project's default visual language.
@@ -65,9 +85,12 @@ Tabs.Content = (p) => <div className="tabs-content">{p.children}</div>;
 
 ```typescript
 // src/components/composites/Tabs/variants/PillTabs.tsx
+import type { ComponentPropsWithoutRef, FC, PropsWithChildren } from 'react';
 import { Tabs } from '#components/composites/Tabs';
 
-export const PillTabs: typeof Tabs = (props) => (
+export type PillTabsProps = PropsWithChildren<ComponentPropsWithoutRef<typeof Tabs>>;
+
+export const PillTabs: FC<PillTabsProps> = (props) => (
   <Tabs {...props} className="tabs--pill" />
 );
 ```
@@ -84,6 +107,7 @@ export const PillTabs: typeof Tabs = (props) => (
 
 ```typescript
 // src/features/billing/components/BillingTabs.tsx
+import type { FC } from 'react';
 import { Tabs } from '#components/composites/Tabs';
 
 export const BillingTabs: FC = () => (
@@ -112,6 +136,7 @@ export const BillingTabs: FC = () => (
 
 ```typescript
 // src/app/dashboard/components/DashboardTabs.tsx
+import type { FC } from 'react';
 import { Tabs } from '#components/composites/Tabs';
 import { OverviewPanel } from './OverviewPanel';
 import { ActivityPanel } from './ActivityPanel';
@@ -140,26 +165,32 @@ export const DashboardTabs: FC = () => (
 
 ```typescript
 // src/app/settings/layout.tsx
+import type { ComponentPropsWithoutRef, PropsWithChildren } from 'react';
 import { SettingsTabs } from './components/SettingsTabs';
 
-export default function SettingsLayout({ children }: { children: ReactNode }) {
+export type SettingsLayoutProps = PropsWithChildren<ComponentPropsWithoutRef<'main'>>;
+
+export default function SettingsLayout({ children, ...mainProps }: SettingsLayoutProps) {
   return (
     <>
       <SettingsTabs />
-      <main>{children}</main>
+      <main {...mainProps}>{children}</main>
     </>
   );
 }
 
 // src/app/settings/components/SettingsTabs.tsx
 'use client';
+import type { ComponentPropsWithoutRef, FC } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 
-export const SettingsTabs: FC = () => {
+export type SettingsTabsProps = ComponentPropsWithoutRef<'nav'>;
+
+export const SettingsTabs: FC<SettingsTabsProps> = (navProps) => {
   const path = usePathname();
   return (
-    <nav role="tablist">
+    <nav {...navProps} role="tablist">
       <Link href="/settings/profile" aria-selected={path === '/settings/profile'}>Profile</Link>
       <Link href="/settings/billing" aria-selected={path === '/settings/billing'}>Billing</Link>
     </nav>
@@ -179,6 +210,7 @@ export const SettingsTabs: FC = () => {
 
 ```typescript
 // src/features/projects/containers/ProjectTabsContainer.tsx
+import type { FC } from 'react';
 import { Tabs } from '#components/composites/Tabs';
 import { useProjects } from '../hooks/useProjects';
 
@@ -213,18 +245,24 @@ export const ProjectTabsContainer: FC = () => {
 ```typescript
 // src/components/adapters/RadixTabsAdapter.tsx
 import * as RadixTabs from '@radix-ui/react-tabs';
+import type { ComponentPropsWithoutRef, ComponentType, FC, PropsWithChildren } from 'react';
 
-export type TabsProps = PropsWithChildren<{
+export type TabsProps = PropsWithChildren<
+  ComponentPropsWithoutRef<typeof RadixTabs.Root>
+> & {
   defaultValue: string;
-}>;
+};
+export type TabsListProps = PropsWithChildren<ComponentPropsWithoutRef<typeof RadixTabs.List>>;
+export type TabsTriggerProps = PropsWithChildren<ComponentPropsWithoutRef<typeof RadixTabs.Trigger>>;
+export type TabsContentProps = PropsWithChildren<ComponentPropsWithoutRef<typeof RadixTabs.Content>>;
 
 export const Tabs: FC<TabsProps> & {
-  List: typeof RadixTabs.List;
-  Trigger: typeof RadixTabs.Trigger;
-  Content: typeof RadixTabs.Content;
+  List: ComponentType<TabsListProps>;
+  Trigger: ComponentType<TabsTriggerProps>;
+  Content: ComponentType<TabsContentProps>;
 } = Object.assign(
-  ({ defaultValue, children }: TabsProps) => (
-    <RadixTabs.Root defaultValue={defaultValue}>{children}</RadixTabs.Root>
+  ({ children, ...rootProps }: TabsProps) => (
+    <RadixTabs.Root {...rootProps}>{children}</RadixTabs.Root>
   ),
   { List: RadixTabs.List, Trigger: RadixTabs.Trigger, Content: RadixTabs.Content },
 );

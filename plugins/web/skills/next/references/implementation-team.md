@@ -1,6 +1,6 @@
 # Implementation Team Dispatch
 
-Bounds for delegating multi-file code fixes discovered during a `next` debugging session. Delegate only when doing the edits directly would consume more session context than briefing teammates and reading their reports; small fixes stay inline. General batching, report, and decision rules live in `plugins/governance/standards/delegation/`; the values below tighten them for this skill.
+Bounds for delegating multi-file code fixes discovered during a `next` debugging session. Use this team only when the invoking agent already owns implementation for the affected files; otherwise hand the diagnosis to `frontend-implementer` or the documented implementation owner. General batching, report, and decision rules live in `plugins/governance/standards/delegation/`; the values below tighten them for this skill.
 
 ## Sizing
 

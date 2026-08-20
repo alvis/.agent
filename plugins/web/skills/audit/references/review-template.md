@@ -1,5 +1,7 @@
 # Canonical web-audit review template
 
+<report>
+
 Render audit findings into the shared Coding review-area schema. Never create a
 standalone audit Markdown report or a Web-specific detail-file format. Web
 fields enrich the canonical finding record; they do not replace its identity,
@@ -24,7 +26,10 @@ Do not duplicate one finding across areas. Design-contract compliance is
 contract drift is `style`. A visual audit does not imply a security review.
 
 Map the CLI's `critical|high|medium|low` severity to canonical
-`P0|P1|P2|P3`, respectively. Never collapse `low` into P2 or omit P3.
+`P0|P1|P2|P3`, respectively. `info` is advisory: retain it in raw evidence and
+concise context, but do not allocate a canonical priority finding or include it
+in priority counts unless stronger evidence raises its severity. Never collapse
+`low` into P2 or omit P3.
 
 ## Stable canonical identity
 
@@ -101,7 +106,8 @@ Derive `closed_findings`, `outstanding_findings`, priority counts, and verdict
 from all findings currently in that area file, including findings not emitted by
 the latest Web run. Outstanding P0 yields `fail`; outstanding P1 yields
 `requires_changes`; only outstanding P2/P3 yields `pass_with_suggestions`; zero
-outstanding yields `pass`.
+outstanding yields `pass`. Outstanding P0 or P1 blocks UI completion unless it
+is closed or explicitly risk-accepted under the disposition rules above.
 
 ## Context and scoring
 
@@ -138,3 +144,5 @@ review_reconciliation:
 An absent area is `not_run`, not `pass` or `skipped`, unless an existing
 canonical area file supplies current counts. The PM validates the payload
 against every existing detail file and then reconciles `review.md`.
+
+</report>

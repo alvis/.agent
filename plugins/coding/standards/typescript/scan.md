@@ -29,13 +29,13 @@ If a violation is detected, load the matching rule guide at `./rules/<rule-id>.m
 - DO NOT import or re-export through a parent-relative `../src` or `../source` path; this is a hard violation in JavaScript and TypeScript files [`TYP-IMPT-08`]
 - DO NOT break top-level symbol group ordering (imports → re-exports → types → constants → classes → functions), such as `export function run() {} const X = 1` [`TYP-MODL-01`]
 - DO NOT place helper/leaf functions before the public/root functions that call them, such as defining `checkFields()` before `processUser()` that calls it [`TYP-MODL-02`]
-- DO NOT expose default exports from modules where disallowed (unless file is a primary-export module — see rule) [`TYP-MODL-03`]
+- DO NOT expose default exports unless a documented external or runtime contract requires one [`TYP-MODL-03`]
 - DO NOT use explicit named re-exports from a barrel, or wildcard re-exports from a leaf file, in a barrel file [`TYP-MODL-04`]
 - DO NOT use unsafe optional object destructuring [`TYP-PARM-01`] (→ `FUNC-SIGN-04`)
-- DO NOT use inline/weak typing for exported contracts [`TYP-PARM-02`] (→ `FUNC-SIGN-05`)
-- DO NOT ignore property ordering contracts, such as `type X = { meta: string; id: string }` when canonical order is `id` then `meta` [`TYP-PARM-03`]
-- DO NOT shape class dependency contracts as infrastructure containers, such as `Readonly<{ database: Database; logger: Logger; httpClient: HttpClient }>`; use capability-shaped action functions like `Readonly<{ readUserById(id: string): Promise<User>; writeAuditEvent(event: AuditEvent): Promise<void> }>` instead [`TYP-PARM-04`]
-- DO NOT use `type` for plain object shapes (use `interface`) or `interface` for unions/intersections (use `type`), such as `type User = { id: string }` [`TYP-TYPE-01`]
+- DO NOT use inline/weak typing for exported contracts; non-trivial exported input/output uses named contracts whose declaration form follows TYP-TYPE-01 [`TYP-PARM-02`] (→ `FUNC-SIGN-05`)
+- DO NOT ignore property ordering contracts, such as `interface X { meta: string; id: string }` when canonical order is `id` then `meta` [`TYP-PARM-03`]
+- DO NOT shape class dependency contracts as infrastructure containers, such as `interface Dependencies { database: Database; logger: Logger; httpClient: HttpClient }`; use a named capability-shaped interface with action functions such as `readUserById` and `writeAuditEvent` instead [`TYP-PARM-04`]
+- DO NOT use `type` for plain object shapes (use `interface`) or `interface` for unions/intersections (use `type`), such as `type User = { id: string }`; exported React component props are the explicit `type`-alias exception required by `RC-STRUCT-02` [`TYP-TYPE-01`]
 - DO NOT leave public interfaces without required docs [`TYP-TYPE-02`]
 - DO NOT use `private` keyword instead of `#` prefix for class fields, or omit `readonly` where values are never reassigned, such as `class S { private repo: Repo }` [`TYP-TYPE-03`]
 - DO NOT leave generics unconstrained where bounds are needed [`TYP-TYPE-04`]
@@ -65,13 +65,13 @@ If a violation is detected, load the matching rule guide at `./rules/<rule-id>.m
 | `TYP-IMPT-08` | Parent-relative import or re-export traverses into `src` or `source` | `import { value } from "../../../../src/value"`; `export { value } from "../source/value"` |
 | `TYP-MODL-01` | Symbol group order violated (imports → re-exports → types → constants → classes → functions) | `export function run() {} const X = 1`; `const Y = 1; interface Config {}` |
 | `TYP-MODL-02` | Helper/leaf function appears before the root function that calls it | `function validate(u: User) {} export function createUser(u: User) { validate(u); }` |
-| `TYP-MODL-03` | Module exposes default export (unless primary-export module) | `export default userService` in a multi-export module |
+| `TYP-MODL-03` | Module exposes default export without a documented external/runtime contract | `export default userService` for internal preference |
 | `TYP-MODL-04` | Barrel re-export strategy violated (wildcard from leaf, or explicit from barrel) | `export * from './user-service'`; `export { Foo } from '#auth'` |
 | `TYP-PARM-01` | Optional object destructuring is unsafe | `function run({id}:Opts){}`; `function processUser({ name, role = 'user' }: UserOptions) {` |
-| `TYP-PARM-02` | Exported contract uses inline/weak typing | `export function setUser(p:any){}` |
-| `TYP-PARM-03` | Property ordering contract is ignored | `type X={meta:string,id:string}` |
-| `TYP-PARM-04` | Class dependency contract shaped as infrastructure containers instead of named capabilities | `Readonly<{ database: Database; logger: Logger; httpClient: HttpClient }>` |
-| `TYP-TYPE-01` | `type` used for object shape (should be `interface`) or `interface` used for union/intersection (should be `type`) | `type User = { id: string }` |
+| `TYP-PARM-02` | Exported contract uses inline/weak typing instead of named contracts whose declaration form follows TYP-TYPE-01 | `export function setUser(p:any){}` |
+| `TYP-PARM-03` | Property ordering contract is ignored | `interface X { meta: string; id: string }` |
+| `TYP-PARM-04` | Class dependency contract shaped as infrastructure containers instead of named capabilities | `interface Dependencies { database: Database; logger: Logger; httpClient: HttpClient }` |
+| `TYP-TYPE-01` | `type` used for plain object shape (except exported React component props under `RC-STRUCT-02`) or `interface` used for union/intersection | `type User = { id: string }` |
 | `TYP-TYPE-02` | Public interface lacks required docs | `interface User { id: string }`; `interface User {` |
 | `TYP-TYPE-03` | `private` used instead of `#` prefix, or `readonly` omitted on never-reassigned field | `class S { private repo: Repo }`; `class Service {` |
 | `TYP-TYPE-04` | Generic design lacks useful constraints | `interface Repo<T>{get(id:string):T}`; `function parse<T>(input: string): T` |

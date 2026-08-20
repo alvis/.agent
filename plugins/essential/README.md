@@ -88,6 +88,7 @@ semantic authority). Domain plugins own their own semantic templates.
   `state/*.md`, overviews, and `review.md`; workers return deltas.
 - **Done stays done.** Invalidation marks `validity: stale` and spawns
   remediation tasks; history is never falsified.
-- **Deleting `.state/` loses convenience, not truth.** Decisions,
-  approvals, and artifact identities also live in versioned docs; keep a copy
-  of the work directory to guard against `git clean -fdx`.
+- **`.state/` becomes disposable only after durable promotion and closure.**
+  It is not byte-reconstructible. Decisions, approvals, artifact identities,
+  unresolved risks, and reusable conclusions need durable carriers first; keep
+  a copy of active work to guard against `git clean -fdx`.

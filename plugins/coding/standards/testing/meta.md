@@ -18,7 +18,7 @@ This standard enforces requirements beyond typical Vitest practices:
 | Standard Practice                     | Our Stricter Requirement                       |
 |---------------------------------------|------------------------------------------------|
 | Broad test sets encouraged            | **Minimal tests with unique value only**       |
-| Coverage thresholds tuned per project | **100% line coverage is mandatory**            |
+| Coverage thresholds tuned per project | **100% statements, branches, functions, and lines** |
 | Hoisted mocks used broadly            | **`vi.hoisted` only for spy/error scenarios**  |
 | Mock typing treated as optional       | **`satisfies`-based mock typing is mandatory** |
 | Per-test setup as default             | **File/describe instances by default**         |

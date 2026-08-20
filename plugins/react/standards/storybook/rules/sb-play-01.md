@@ -10,15 +10,19 @@ Use `play` functions to script user interactions — clicks, typing, form submis
 - Inside `play`, scope queries to `within(canvasElement)`
 - Use semantic queries (`getByRole`, `getByLabelText`) so stories also validate accessibility
 - Await every interaction so test runners observe each step
+- Assert an observable result after the interaction
 
 ```typescript
 // ✅ GOOD: interactive story with play function
+import { expect } from '@storybook/jest';
+import { userEvent, within } from '@storybook/testing-library';
+
 export const Interactive: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const button = canvas.getByRole('button');
     await userEvent.click(button);
-    ...
+    await expect(button).toBeEnabled();
   },
 };
 
@@ -29,6 +33,7 @@ export const FormInteraction: Story = {
     const input = canvas.getByLabelText('Email');
     await userEvent.type(input, 'test@example.com');
     await userEvent.click(canvas.getByRole('button', { name: 'Submit' }));
+    await expect(input).toHaveValue('test@example.com');
   },
 };
 ```

@@ -20,10 +20,17 @@ When a client app — or one feature within a client app — needs a shared comp
 }
 ```
 
+The literals intentionally bind the most-specific component override knobs.
+The shared component still consumes them through its full component → active
+semantic/UI → literal chain; this scope does not create a competing styled
+declaration.
+
 ```tsx
 // ✅ GOOD: scope class wraps the buttons; no component changes
-export const CheckoutFlow: FC<PropsWithChildren> = ({ children }) => (
-  <section className="checkout-flow">
+export type CheckoutFlowProps = PropsWithChildren<ComponentPropsWithoutRef<'section'>>;
+
+export const CheckoutFlow: FC<CheckoutFlowProps> = ({ children, className = '', ...sectionProps }) => (
+  <section {...sectionProps} className={`checkout-flow ${className}`}>
     <Button variant="primary">Pay now</Button>
     {children}
   </section>

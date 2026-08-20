@@ -6,13 +6,14 @@ Read this before UI/UX design, CSS, image-generation, Next.js diagnosis, Storybo
 
 | Action | Instruction |
 | --- | --- |
-| Design or redesign an interface | `web:design` |
+| Define a visual contract and orchestrate its implementation | `web:design` |
 | Audit a rendered interface | `web:audit` |
 | Create or maintain the root color-mode stylesheet | `web:css` |
 | Generate or edit visual assets | `web:imagine` |
 | Diagnose a Next.js runtime | `web:next` |
 | Audit Storybook | `web:storybook` |
-| Write, test, review, save, or publish frontend code | Read `coding:references/WORKFLOW.md`, then use its action owner |
+| Create or edit production frontend code | `frontend-implementer`, following `coding:references/WORKFLOW.md` |
+| Test, review, save, or publish frontend code | Read `coding:references/WORKFLOW.md`, then use its action owner |
 | Create or materially rewrite project artifacts | Follow the injected `essential:references/state.md` contract |
 
 Before work delegation, read `web:references/ROUTING.md`.

@@ -142,8 +142,13 @@ Work **one** stream to completion before starting another: at most one stream
 sits at phase `working` or `reviewing`. A `reviewing` stream holds that slot
 even while it waits, since a verdict can send the work back, and being blocked
 never frees it. Finished execution sets phase `reviewing`, not
-a terminal state; `completed` needs merge evidence, never the author's
-say-so. Read [stream-completion.md](stream-completion.md) when a stream
+a terminal state; `completed` needs the stream's applicable landing evidence,
+never the author's say-so. Coding work lands by merge or presence on the
+default branch. Non-coding work lands by explicit acceptance plus durable
+promotion or an evidenced `not required` promotion receipt. A reviewing stream
+may be blocked on that external landing or acceptance wait after every required
+leaf is done; completion clears that resolved submission blocker and retains
+only independently unresolved blockers. Read [stream-completion.md](stream-completion.md) when a stream
 finishes or is settled.
 
 ### `goal.md`
@@ -266,11 +271,11 @@ kept outside the repository is the designed recovery — take one before a
 stream carries non-recoverable decisions, and promote durable knowledge
 early. [essential:doctor](../skills/doctor/SKILL.md) checks a recovered
 tree's structural integrity before it is resumed. Idle streams are parked and completed streams retired per
-[retirement.md](retirement.md); retirement deletes the operational
-projection, so it is gated on promotion and decision dispositions. A
+[retirement.md](retirement.md); retirement permanently archives the
+operational projection, so it is gated on promotion and decision dispositions. A
 completed stream's directory moves into `archive/` — the one sink for
-everything that leaves `works/` — when its overview row is dropped, days
-before the retention window deletes anything.
+everything that leaves `works/` — when its overview row is dropped. The
+archive is permanent; this lifecycle does not delete archived streams.
 
 ## Write boundary
 

@@ -12,11 +12,16 @@ Keep state close to where it's used. Lift state up only when two or more compone
 
 ```typescript
 // ✅ GOOD: local state for local concerns
-export const TodoItem: FC<Props> = ({ todo, onUpdate }) => {
+export type TodoItemProps = Omit<ComponentPropsWithoutRef<'div'>, 'children'> & {
+  todo: Todo;
+  onUpdate: (todo: Todo) => void;
+};
+
+export const TodoItem: FC<TodoItemProps> = ({ todo, onUpdate, ...divProps }) => {
   const [isEditing, setIsEditing] = useState(false);
 
   return (
-    <div>
+    <div {...divProps}>
       {isEditing ? <TodoEditForm ... /> : <TodoDisplay ... />}
     </div>
   );

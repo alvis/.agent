@@ -1,5 +1,7 @@
 # Handover completion
 
+<report>
+
 Return:
 
 ```yaml
@@ -12,7 +14,8 @@ streams_indexed: <n>
 streams_selected: <n>
 streams:
   - work_id: <id>
-    lifecycle: <initialized|active|blocked|reviewing|completed|retiring>
+    phase: <planned|working|reviewing|completed>
+    blocked_on: <named blocker|unknown|->
     work_dir: <absolute .state/works/<work-id> directory holding this stream>
     current_task_id: <full executable task ID or none>
     next_owner: <exact continuation owner or ->
@@ -32,11 +35,14 @@ generated_files: [<absolute created/materially rewritten paths, including overvi
 ```
 
 Every stream in `state_root/.state/works/` appears once in `streams`.
-`work_dir` is present for every stream whose work directory exists, including
-`reviewing`, `completed`, and `retiring` ones. `overview_path` is the global
-index beside them, updated with only the refreshed streams' rows.
+`work_dir` is present for `planned`, `working`, `reviewing`, and `completed`
+streams. Archived streams live under `.state/archive/`, outside this report.
+`overview_path` is the global index beside the live work, updated with only the
+refreshed streams' rows.
 Then state the immediate next action per selected stream.
 
 Reserve a top-level `handover: blocked` for a failure that prevents persistence
 itself — an unresolvable workspace, an unreadable contract, or an unwritable
 `overview.md`.
+
+</report>

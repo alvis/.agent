@@ -8,34 +8,19 @@ _Complete boilerplate template for React components with TypeScript, testing, an
 
 ````typescript
 // ComponentName.tsx
-import type { FC, ReactNode } from 'react';
+import type { ComponentPropsWithoutRef, FC, PropsWithChildren } from 'react';
 
 /**
  * Props for the ComponentName component
  * Brief description of what this component does
  */
-export interface ComponentNameProps {
+export type ComponentNameProps = PropsWithChildren<ComponentPropsWithoutRef<'button'>> & {
   /** Primary variant of the component */
   variant?: 'primary' | 'secondary' | 'tertiary';
 
   /** Size of the component */
   size?: 'small' | 'medium' | 'large';
-
-  /** Whether the component is disabled */
-  disabled?: boolean;
-
-  /** Click handler for interactive components */
-  onClick?: () => void;
-
-  /** Additional CSS class names */
-  className?: string;
-
-  /** Accessible label for screen readers */
-  'aria-label'?: string;
-
-  /** Child elements to render inside the component */
-  children: ReactNode;
-}
+};
 
 /**
  * ComponentName provides [brief description of functionality]
@@ -51,24 +36,10 @@ export const ComponentName: FC<ComponentNameProps> = ({
   variant = 'primary',
   size = 'medium',
   disabled = false,
-  onClick,
   className = '',
-  'aria-label': ariaLabel,
-  children
+  children,
+  ...buttonProps
 }) => {
-  const handleClick = () => {
-    if (!disabled && onClick) {
-      onClick();
-    }
-  };
-
-  const handleKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      handleClick();
-    }
-  };
-
   const componentClasses = [
     'component-name',
     `component-name--${variant}`,
@@ -79,12 +50,10 @@ export const ComponentName: FC<ComponentNameProps> = ({
 
   return (
     <button
+      {...buttonProps}
       type="button"
       className={componentClasses}
-      onClick={handleClick}
-      onKeyDown={handleKeyDown}
       disabled={disabled}
-      aria-label={ariaLabel}
       aria-disabled={disabled}
     >
       {children}
@@ -93,122 +62,18 @@ export const ComponentName: FC<ComponentNameProps> = ({
 };
 ````
 
-### Test File Template
-
-```typescript
-// ComponentName.spec.tsx
-import { render, screen, fireEvent } from '@testing-library/react';
-import { ComponentName, type ComponentNameProps } from './ComponentName';
-
-const defaultProps: ComponentNameProps = {
-  children: 'Test Component'
-};
-
-const renderComponentName = (props: Partial<ComponentNameProps> = {}) => {
-  return render(<ComponentName {...defaultProps} {...props} />);
-};
-
-describe('rc:ComponentName', () => {
-  it('should render with children', () => {
-    const expectedText = 'Custom Content';
-
-    renderComponentName({ children: expectedText });
-
-    expect(screen.getByRole('button')).toHaveTextContent(expectedText);
-  });
-
-  it('should apply variant classes correctly', () => {
-    renderComponentName({ variant: 'secondary' });
-
-    const button = screen.getByRole('button');
-    expect(button).toHaveClass('component-name--secondary');
-  });
-
-  it('should apply size classes correctly', () => {
-    renderComponentName({ size: 'large' });
-
-    const button = screen.getByRole('button');
-    expect(button).toHaveClass('component-name--large');
-  });
-
-  it('should handle click events', () => {
-    const mockClick = vi.fn();
-
-    renderComponentName({ onClick: mockClick });
-
-    fireEvent.click(screen.getByRole('button'));
-    expect(mockClick).toHaveBeenCalledOnce();
-  });
-
-  it('should handle keyboard events', () => {
-    const mockClick = vi.fn();
-
-    renderComponentName({ onClick: mockClick });
-
-    const button = screen.getByRole('button');
-
-    // Test Enter key
-    fireEvent.keyDown(button, { key: 'Enter' });
-    expect(mockClick).toHaveBeenCalledTimes(1);
-
-    // Test Space key
-    fireEvent.keyDown(button, { key: ' ' });
-    expect(mockClick).toHaveBeenCalledTimes(2);
-  });
-
-  it('should not call onClick when disabled', () => {
-    const mockClick = vi.fn();
-
-    renderComponentName({ onClick: mockClick, disabled: true });
-
-    fireEvent.click(screen.getByRole('button'));
-    expect(mockClick).not.toHaveBeenCalled();
-  });
-
-  it('should apply disabled attributes', () => {
-    renderComponentName({ disabled: true });
-
-    const button = screen.getByRole('button');
-    expect(button).toBeDisabled();
-    expect(button).toHaveAttribute('aria-disabled', 'true');
-    expect(button).toHaveClass('component-name--disabled');
-  });
-
-  it('should apply custom className', () => {
-    const customClass = 'custom-test-class';
-
-    renderComponentName({ className: customClass });
-
-    expect(screen.getByRole('button')).toHaveClass(customClass);
-  });
-
-  it('should apply aria-label', () => {
-    const ariaLabel = 'Custom accessible label';
-
-    renderComponentName({ 'aria-label': ariaLabel });
-
-    expect(screen.getByRole('button')).toHaveAttribute('aria-label', ariaLabel);
-  });
-
-  it('should have proper default props', () => {
-    renderComponentName();
-
-    const button = screen.getByRole('button');
-    expect(button).toHaveClass('component-name--primary');
-    expect(button).toHaveClass('component-name--medium');
-    expect(button).not.toBeDisabled();
-  });
-});
-```
-
 ### Storybook Stories Template
 
 ```typescript
 // ComponentName.stories.tsx
-import type { Meta, StoryObj } from '@storybook/react';
+import { expect, jest } from '@storybook/jest';
+import { userEvent, within } from '@storybook/testing-library';
+
 import { ComponentName } from './ComponentName';
 
-const meta: Meta<typeof ComponentName> = {
+import type { Meta, StoryObj } from '@storybook/react';
+
+const meta = {
   title: 'Components/ComponentName',
   component: ComponentName,
   parameters: {
@@ -236,7 +101,7 @@ const meta: Meta<typeof ComponentName> = {
       description: 'Whether the component is disabled'
     },
     onClick: {
-      action: 'clicked',
+      control: false,
       description: 'Callback fired when component is clicked'
     },
     className: {
@@ -252,7 +117,7 @@ const meta: Meta<typeof ComponentName> = {
       description: 'Content to display inside the component'
     }
   }
-};
+} satisfies Meta<typeof ComponentName>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -312,7 +177,15 @@ export const Large: Story = {
 export const Disabled: Story = {
   args: {
     disabled: true,
+    onClick: jest.fn(),
     children: 'Disabled Component'
+  },
+  play: async ({ args, canvasElement }) => {
+    const button = within(canvasElement).getByRole('button');
+    await expect(button).toBeDisabled();
+    await expect(button).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.click(button);
+    await expect(args.onClick).not.toHaveBeenCalled();
   }
 };
 
@@ -328,6 +201,10 @@ export const WithAriaLabel: Story = {
         story: 'Example showing how to provide accessible labels for screen readers.'
       }
     }
+  },
+  play: async ({ canvasElement }) => {
+    const button = within(canvasElement).getByRole('button');
+    await expect(button).toHaveAccessibleName('Custom accessible description');
   }
 };
 
@@ -335,7 +212,7 @@ export const WithAriaLabel: Story = {
 export const Interactive: Story = {
   args: {
     children: 'Click me!',
-    onClick: () => alert('Component clicked!')
+    onClick: jest.fn()
   },
   parameters: {
     docs: {
@@ -343,6 +220,11 @@ export const Interactive: Story = {
         story: 'Interactive example with click handler. Try clicking the component!'
       }
     }
+  },
+  play: async ({ args, canvasElement }) => {
+    const button = within(canvasElement).getByRole('button', { name: 'Click me!' });
+    await userEvent.click(button);
+    await expect(args.onClick).toHaveBeenCalledOnce();
   }
 };
 
@@ -391,7 +273,7 @@ export const AllSizes: Story = {
 // useComponentLogic.ts
 import { useState, useCallback } from 'react';
 
-export interface UseComponentLogicProps {
+export interface UseComponentLogicOptions {
   initialValue?: boolean;
   onChange?: (value: boolean) => void;
 }
@@ -399,7 +281,7 @@ export interface UseComponentLogicProps {
 export const useComponentLogic = ({
   initialValue = false,
   onChange
-}: UseComponentLogicProps = {}) => {
+}: UseComponentLogicOptions = {}) => {
   const [isActive, setIsActive] = useState(initialValue);
 
   const toggle = useCallback(() => {
@@ -431,16 +313,21 @@ export const useComponentLogic = ({
 };
 
 // AdvancedComponent.tsx
-export interface AdvancedComponentProps {
+import type { ComponentPropsWithoutRef, FC, PropsWithChildren } from 'react';
+
+export type AdvancedComponentProps = PropsWithChildren<
+  Omit<ComponentPropsWithoutRef<'button'>, 'aria-pressed' | 'onClick'>
+> & {
   initialActive?: boolean;
   onStateChange?: (active: boolean) => void;
-  children: ReactNode;
-}
+};
 
 export const AdvancedComponent: FC<AdvancedComponentProps> = ({
   initialActive = false,
   onStateChange,
-  children
+  className = '',
+  children,
+  ...buttonProps
 }) => {
   const { isActive, toggle } = useComponentLogic({
     initialValue: initialActive,
@@ -449,8 +336,9 @@ export const AdvancedComponent: FC<AdvancedComponentProps> = ({
 
   return (
     <button
+      {...buttonProps}
       type="button"
-      className={`advanced-component ${isActive ? 'active' : ''}`}
+      className={`advanced-component ${isActive ? 'active' : ''} ${className}`}
       onClick={toggle}
       aria-pressed={isActive}
     >
@@ -464,36 +352,36 @@ export const AdvancedComponent: FC<AdvancedComponentProps> = ({
 
 ```typescript
 // Card compound component example
+import { createContext, useContext } from 'react';
+
+import type { ComponentPropsWithoutRef, FC, PropsWithChildren } from 'react';
+
 interface CardContextValue {
   variant: 'default' | 'elevated' | 'outlined';
 }
 
-const CardContext = createContext<CardContextValue | null>(null);
-
-const useCardContext = () => {
-  const context = useContext(CardContext);
-  if (!context) {
-    throw new Error('Card compound components must be used within a Card');
-  }
-  return context;
+export type CardProps = PropsWithChildren<ComponentPropsWithoutRef<'div'>> & {
+  variant?: 'default' | 'elevated' | 'outlined';
 };
 
-export interface CardProps {
-  variant?: 'default' | 'elevated' | 'outlined';
-  children: ReactNode;
-  className?: string;
-}
+export type CardHeaderProps = PropsWithChildren<ComponentPropsWithoutRef<'header'>>;
+
+export type CardBodyProps = PropsWithChildren<ComponentPropsWithoutRef<'div'>>;
+
+export type CardFooterProps = PropsWithChildren<ComponentPropsWithoutRef<'footer'>>;
+
+const CardContext = createContext<CardContextValue | null>(null);
 
 export const Card: FC<CardProps> & {
   Header: FC<CardHeaderProps>;
   Body: FC<CardBodyProps>;
   Footer: FC<CardFooterProps>;
-} = ({ variant = 'default', children, className = '' }) => {
+} = ({ variant = 'default', children, className = '', ...divProps }) => {
   const contextValue = { variant };
 
   return (
     <CardContext.Provider value={contextValue}>
-      <div className={`card card--${variant} ${className}`}>
+      <div {...divProps} className={`card card--${variant} ${className}`}>
         {children}
       </div>
     </CardContext.Provider>
@@ -501,49 +389,42 @@ export const Card: FC<CardProps> & {
 };
 
 // Card sub-components
-interface CardHeaderProps {
-  children: ReactNode;
-  className?: string;
-}
-
-const CardHeader: FC<CardHeaderProps> = ({ children, className = '' }) => {
+const CardHeader: FC<CardHeaderProps> = ({ children, className = '', ...headerProps }) => {
   const { variant } = useCardContext();
 
   return (
-    <header className={`card__header card__header--${variant} ${className}`}>
+    <header {...headerProps} className={`card__header card__header--${variant} ${className}`}>
       {children}
     </header>
   );
 };
 
-interface CardBodyProps {
-  children: ReactNode;
-  className?: string;
-}
-
-const CardBody: FC<CardBodyProps> = ({ children, className = '' }) => {
+const CardBody: FC<CardBodyProps> = ({ children, className = '', ...divProps }) => {
   const { variant } = useCardContext();
 
   return (
-    <div className={`card__body card__body--${variant} ${className}`}>
+    <div {...divProps} className={`card__body card__body--${variant} ${className}`}>
       {children}
     </div>
   );
 };
 
-interface CardFooterProps {
-  children: ReactNode;
-  className?: string;
-}
-
-const CardFooter: FC<CardFooterProps> = ({ children, className = '' }) => {
+const CardFooter: FC<CardFooterProps> = ({ children, className = '', ...footerProps }) => {
   const { variant } = useCardContext();
 
   return (
-    <footer className={`card__footer card__footer--${variant} ${className}`}>
+    <footer {...footerProps} className={`card__footer card__footer--${variant} ${className}`}>
       {children}
     </footer>
   );
+};
+
+const useCardContext = () => {
+  const context = useContext(CardContext);
+  if (!context) {
+    throw new Error('Card compound components must be used within a Card');
+  }
+  return context;
 };
 
 // Attach sub-components
@@ -558,7 +439,7 @@ When creating a new component using this template:
 
 ✅ **Component Requirements**:
 
-- [ ] Props interface exported
+- [ ] Props type alias exported
 - [ ] Component uses FC type with arrow function
 - [ ] Default props defined with destructuring
 - [ ] Proper TypeScript types for all props
@@ -572,20 +453,14 @@ When creating a new component using this template:
 - [ ] Screen reader friendly labels
 - [ ] Focus management for interactive elements
 
-✅ **Testing Requirements**:
-
-- [ ] Test file uses 'rc:' prefix
-- [ ] All interactive behaviors tested
-- [ ] Accessibility attributes tested
-- [ ] Edge cases and error states tested
-- [ ] Props validation tested
-
 ✅ **Storybook Requirements**:
 
 - [ ] Default story with basic props
 - [ ] Stories for all variants/sizes
 - [ ] Accessibility example story
 - [ ] Interactive example with controls
+- [ ] Interaction behavior and assertions implemented in `.stories.tsx` `play()` functions
+- [ ] Accessibility attributes, edge cases, and error states asserted in stories
 - [ ] Documentation descriptions added
 
 ✅ **Performance Considerations**:

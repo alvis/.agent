@@ -2,7 +2,7 @@
 
 ## Intent
 
-Color-mode tokens MUST form a two-tier chain. **Tier 1** is the raw per-mode palette — `--theme-light-bg`, `--theme-light-fg`, `--theme-dark-bg`, `--theme-dark-fg`, etc. **Tier 2** is the active UI semantic token — `--ui-bg`, `--ui-fg`, `--ui-border`, `--ui-muted`, etc. — which aliases the active tier-1 value inside every mode branch. Components consume **only** tier-2 tokens. Tier-1 raw tokens MUST NOT appear in component CSS — that bypasses the alias and prevents the mode from switching with the cascade.
+Color-mode tokens MUST form a two-tier chain. **Tier 1** is the raw per-mode palette — `--theme-light-bg`, `--theme-light-fg`, `--theme-dark-bg`, `--theme-dark-fg`, etc. **Tier 2** is the active UI semantic token — `--ui-bg`, `--ui-fg`, `--ui-border`, `--ui-muted`, etc. — which aliases the active tier-1 value inside every mode branch. Styled declarations use component override → active tier-2 UI token → literal fallback. Tier-1 raw tokens MUST NOT appear in component CSS — that bypasses the alias and prevents the mode from switching with the cascade.
 
 ## Fix
 
@@ -16,7 +16,7 @@ Color-mode tokens MUST form a two-tier chain. **Tier 1** is the raw per-mode pal
 - Grep for `var\(--theme-(light|dark)-` outside the `@layer theme` block — every hit is a violation
 - Grep for `\[data-theme="(light|dark)"\]\s+\.[a-z]` (mode selector followed by a component class) — likely an inline conditional
 - Verify symmetry: every tier-1 token has a tier-2 alias declared in **every** mode branch
-- Component CSS files should reference `--ui-*` only; a grep for `--theme-` inside `src/components/**/*.css` should return zero
+- Component CSS files should use `var(--component-*, var(--ui-*, <literal>))`; a grep for `--theme-` inside `src/components/**/*.css` should return zero
 
 ## Common Mistakes
 
@@ -27,22 +27,12 @@ Color-mode tokens MUST form a two-tier chain. **Tier 1** is the raw per-mode pal
 
 ## Compliant Example
 
+The [canonical color-mode block](../write.md#canonical-color-mode-block) is the complete mode example: it declares raw and active tokens inside `@layer theme` for all five branches — baseline, system-light, explicit-light, system-dark, and explicit-dark. Components consume its active aliases through the full fallback chain:
+
 ```css
-@layer theme {
-  :root {
-    --theme-light-bg: #ffffff;
-    --theme-dark-bg: #09090b;
-    --ui-bg: var(--theme-light-bg); /* tier 2 alias, light default */
-  }
-
-  :root[data-theme="dark"] {
-    --ui-bg: var(--theme-dark-bg); /* tier 2 alias, dark override */
-  }
-}
-
-/* component */
 .card {
-  background: var(--ui-bg); /* tier 2 only */
+  background: var(--card-bg, var(--ui-bg, #ffffff));
+  color: var(--card-fg, var(--ui-fg, #18181b));
 }
 ```
 
@@ -61,8 +51,8 @@ Color-mode tokens MUST form a two-tier chain. **Tier 1** is the raw per-mode pal
 
 ## Edge Cases
 
-- A computed value (e.g. `color-mix(in oklab, var(--ui-bg) 80%, transparent)`) MAY appear in component CSS, but its inputs MUST still be tier-2 tokens.
-- Charts/data viz that need raw access to both palettes (e.g. light/dark series swatches in a legend) MAY read tier-1 directly with an exception note (`reason: no_workaround`).
+- A computed value MAY appear in the chain, but its inputs MUST still resolve through an active tier-2 token and literal fallback: `var(--card-bg, color-mix(in oklab, var(--ui-bg, #ffffff) 80%, transparent))`.
+- Charts and data visualizations define active semantic roles for series and swatches; they do not read tier-1 raw tokens from component CSS.
 
 ## Related
 

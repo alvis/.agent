@@ -92,7 +92,14 @@ Maintain logical heading order for screen reader navigation.
 
 ```typescript
 // ✅ GOOD: proper focus management in modal
-export const Modal: FC<ModalProps> = ({ isOpen, onClose, children }) => {
+export type ModalProps = PropsWithChildren<
+  Omit<ComponentPropsWithoutRef<'div'>, 'children'>
+> & {
+  isOpen: boolean;
+  onClose: () => void;
+};
+
+export const Modal: FC<ModalProps> = ({ isOpen, onClose, children, ...dialogProps }) => {
   const dialogRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
@@ -120,6 +127,7 @@ export const Modal: FC<ModalProps> = ({ isOpen, onClose, children }) => {
 
   return (
     <div
+      {...dialogProps}
       ref={dialogRef}
       role="dialog"
       aria-modal="true"
@@ -137,6 +145,18 @@ export const Modal: FC<ModalProps> = ({ isOpen, onClose, children }) => {
 
 ```typescript
 // ✅ GOOD: complete accessible form field
+export type FormFieldProps = Omit<
+  ComponentPropsWithoutRef<'input'>,
+  'name' | 'required' | 'type'
+> & {
+  label: string;
+  name: string;
+  type?: ComponentPropsWithoutRef<'input'>['type'];
+  required?: boolean;
+  helpText?: string;
+  error?: string;
+};
+
 export const FormField: FC<FormFieldProps> = ({
   label,
   name,
@@ -204,7 +224,12 @@ Use icons and text alongside color to convey information.
 
 ```typescript
 // ✅ GOOD: status with icon and text
-export const StatusIndicator: FC<Props> = ({ status, message }) => {
+export type StatusIndicatorProps = Omit<ComponentPropsWithoutRef<'div'>, 'children'> & {
+  status: Status;
+  message: string;
+};
+
+export const StatusIndicator: FC<StatusIndicatorProps> = ({ status, message, ...statusProps }) => {
   const getStatusIcon = (status: Status) => {
     switch (status) {
       case 'success': return <CheckIcon aria-hidden="true" />;
@@ -216,6 +241,7 @@ export const StatusIndicator: FC<Props> = ({ status, message }) => {
 
   return (
     <div
+      {...statusProps}
       className={`status-${status}`}
       role="status"
       aria-label={`${status}: ${message}`}
@@ -253,7 +279,9 @@ export const useLiveAnnouncement = () => {
 };
 
 // usage in notifications
-export const NotificationSystem: FC<Props> = () => {
+export type NotificationSystemProps = Omit<ComponentPropsWithoutRef<'div'>, 'children'>;
+
+export const NotificationSystem: FC<NotificationSystemProps> = (regionProps) => {
   const { announce } = useLiveAnnouncement();
 
   const handleSuccess = useCallback((message: string) => {
@@ -261,7 +289,7 @@ export const NotificationSystem: FC<Props> = () => {
   }, [announce]);
 
   return (
-    <div role="region" aria-label="Notifications">
+    <div {...regionProps} role="region" aria-label="Notifications">
       {/* notification content */}
     </div>
   );
@@ -272,7 +300,11 @@ export const NotificationSystem: FC<Props> = () => {
 
 ```typescript
 // ✅ GOOD: content hidden visually but available to screen readers
-export const VisuallyHidden: FC<{ children: ReactNode }> = ({ children }) => {
+export type VisuallyHiddenProps = PropsWithChildren<
+  Omit<ComponentPropsWithoutRef<'span'>, 'style'>
+>;
+
+export const VisuallyHidden: FC<VisuallyHiddenProps> = ({ children, ...spanProps }) => {
   const srOnlyStyle: CSSProperties = {
     position: 'absolute',
     width: '1px',
@@ -285,7 +317,7 @@ export const VisuallyHidden: FC<{ children: ReactNode }> = ({ children }) => {
     border: '0',
   };
 
-  return <span style={srOnlyStyle}>{children}</span>;
+  return <span {...spanProps} style={srOnlyStyle}>{children}</span>;
 };
 
 // usage for icon buttons
@@ -311,7 +343,21 @@ export const VisuallyHidden: FC<{ children: ReactNode }> = ({ children }) => {
 
 ```typescript
 // pattern template
-export const AccessibleModal: FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
+export type AccessibleModalProps = PropsWithChildren<
+  Omit<ComponentPropsWithoutRef<'div'>, 'children' | 'title'>
+> & {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+};
+
+export const AccessibleModal: FC<AccessibleModalProps> = ({
+  isOpen,
+  onClose,
+  title,
+  children,
+  ...dialogProps
+}) => {
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -335,7 +381,7 @@ export const AccessibleModal: FC<ModalProps> = ({ isOpen, onClose, title, childr
 
   return (
     <div className="modal-overlay">
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="modal-title" tabIndex={-1}>
+      <div {...dialogProps} ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="modal-title" tabIndex={-1}>
         <h2 id="modal-title">{title}</h2>
         {children}
       </div>

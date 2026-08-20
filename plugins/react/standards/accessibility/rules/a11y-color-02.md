@@ -12,7 +12,17 @@ Never use color alone to convey state, meaning, or feedback. Colorblind users (~
 
 ```typescript
 // ✅ GOOD: status with icon and text
-export const StatusIndicator: FC<Props> = ({ status, message }) => {
+import type { ComponentPropsWithoutRef, FC } from 'react';
+
+export type StatusIndicatorProps = Omit<
+  ComponentPropsWithoutRef<'div'>,
+  'aria-label' | 'role'
+> & {
+  status: Status;
+  message: string;
+};
+
+export const StatusIndicator: FC<StatusIndicatorProps> = ({ className, status, message, ...statusProps }) => {
   const getStatusIcon = (status: Status) => {
     switch (status) {
       case 'success': return <CheckIcon aria-hidden="true" />;
@@ -24,7 +34,8 @@ export const StatusIndicator: FC<Props> = ({ status, message }) => {
 
   return (
     <div
-      className={`status-${status}`}
+      {...statusProps}
+      className={[`status-${status}`, className].filter(Boolean).join(' ')}
       role="status"
       aria-label={`${status}: ${message}`}
     >

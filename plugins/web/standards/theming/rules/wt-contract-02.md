@@ -27,15 +27,14 @@ Tailwind v4.3's `@theme` block is special: every token inside it generates a uti
 @theme {
   --color-brand: #111827;
   --radius-card: 0.5rem;
+  --spacing-control: 2.5rem;
   --font-sans: "Inter", system-ui, sans-serif;
 }
 
 @layer components {
   .ui-button {
-    --button-primary-bg: var(--color-brand);
-    --button-md-height: 2.5rem;
-    background: var(--button-primary-bg, var(--color-brand, #111827));
-    height: var(--button-md-height, 2.5rem);
+    background: var(--button-primary-bg, var(--ui-accent, #111827));
+    height: var(--button-height, var(--spacing-control, 2.5rem));
   }
 }
 ```

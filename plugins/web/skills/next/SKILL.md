@@ -45,10 +45,17 @@ Debug and inspect Next.js applications by combining Chrome DevTools MCP and the 
 
    Fallback order, per-category rationale, and multi-step recipes (slow page, broken component render, mobile layout, failed API call, SSR inspection): see [references/tool-routing.md](references/tool-routing.md). Full tool inventories: [references/chrome-devtools-tools.md](references/chrome-devtools-tools.md) and [references/next-browser-commands.md](references/next-browser-commands.md).
 3. Execute with the primary tool; fall back to the secondary when the primary is unavailable or insufficient.
-4. Analyze and summarize findings with evidence. If code fixes are needed, provide file paths and specific changes. When the fix spans enough files that direct editing would swamp session context, dispatch an implementation team per [references/implementation-team.md](references/implementation-team.md); otherwise fix inline.
+4. Analyze and summarize findings with evidence. If code fixes are needed,
+   provide file paths and specific changes. Apply or dispatch repairs only when
+   the agent invoking this skill already owns implementation for the affected
+   files. Otherwise hand the evidence and proposed changes to
+   `frontend-implementer` (or the documented implementation owner) and do not
+   edit production source. An implementation-owning invoker may use
+   [references/implementation-team.md](references/implementation-team.md) for a
+   multi-file repair.
 5. When this skill creates or modifies any visible page or component, integrate design quality:
    - Invoke the `design` skill first for all visual decisions — layout, color, typography, spacing, animation. Do not implement UI without it; it iterates in a browser feedback loop toward 10/10 in all 12 design categories, within its own rework budget, and reports whatever still falls short as a residual gap for confirmation.
-   - After implementation, spawn a subagent to run the `audit` skill on the affected URL/component; it checks compliance against the web plugin's `standards/design/scan.md`. Address all P0 findings before considering work complete, P1 when feasible; P2 is optional polish. Work is not done until the audit subagent confirms visual quality.
+   - After implementation, spawn a subagent to run the `audit` skill on the affected URL/component; it checks compliance against the web plugin's `standards/design/scan.md`. P0 and P1 findings block UI completion unless closed under the canonical [audit disposition rules](../audit/references/review-template.md): a non-fixed closure requires explicit risk-acceptance authority, an accountable owner, non-placeholder rationale, durable acceptance evidence, and a concrete recheck condition. P2 and P3 are ranked follow-up, and info is advisory.
    - Consult the web plugin's `standards/design/write.md` for the spacing scale (4px/8px grid), type scale (1.25 ratio), color palette construction, component state requirements (loading/empty/error/success/permission), and token usage.
 6. If the issue is not resolved, try the fallback tool or a different approach and loop back to step 3.
 7. When done, optionally close skill-opened sessions with `next-browser close`; never close a browser session owned by another skill.
@@ -58,7 +65,7 @@ Debug and inspect Next.js applications by combining Chrome DevTools MCP and the 
 
 - Every diagnostic claim cites tool evidence (trace, snapshot, log, request, or screenshot), not inference alone.
 - Exclusive capabilities were routed to their owning tool per the table above.
-- For UI-creating or UI-modifying work: the design skill ran first and the audit subagent reported no unaddressed P0 findings.
+- For UI-creating or UI-modifying work: the design skill ran first and the audit subagent reported no outstanding P0/P1 findings under the canonical disposition rules.
 - Any dispatched implementation team was deleted and its reviewed slices accounted for.
 - Session teardown honored ownership.
 

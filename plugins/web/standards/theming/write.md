@@ -6,7 +6,7 @@
 ## Key Principles
 
 - **Library = clay, client = sculpture** — the library publishes a base CSS-variable contract with safe fallbacks; the client owns the final theme.
-- **Three-tier fallback chain** — every styled declaration resolves through `var(--component-specific, var(--semantic-token, hardcoded-default))`.
+- **Three-tier fallback chain** — every styled declaration resolves through `var(--component-specific, var(--active-semantic-or-ui-token, literal-default))`; `--ui-*` resolves to raw light/dark tokens in the active mode.
 - **Variants are semantic intent** — `primary | secondary | ghost | danger`, never brand identity (`blue`, `example`).
 - **Brand is scoped via `[data-brand="…"]`** — never via a component prop. Color mode rides alongside on `data-theme` (`light` / `dark`; absent = system) per `CSS-MODE-*`.
 
@@ -14,7 +14,7 @@
 
 | Rule              | One-liner                                                                                          |
 |-------------------|----------------------------------------------------------------------------------------------------|
-| `WT-CONTRACT-01`  | Every styled declaration uses `var(--component, var(--semantic, hardcoded))`.                       |
+| `WT-CONTRACT-01`  | Every styled declaration uses component → active semantic/UI → literal; mode-sensitive colors use `--ui-*`. |
 | `WT-CONTRACT-02`  | Semantic tokens go in `@theme`; component tokens go in plain CSS.                                   |
 | `WT-VARIANT-01`   | Variants and CSS token names express semantic role (heading, base, accent, card), never appearance (blue, -0, soft) or size tier (-md, -sm). |
 | `WT-VARIANT-02`   | Variant CSS classes resolve visuals through CSS variables, not literals.                            |
@@ -67,27 +67,23 @@ After this declaration, JSX can use `<div className="bg-brand text-surface round
 
 ## Component-Level Tokens — Plain CSS Variables
 
-Per-component tokens (`--button-primary-bg`, `--button-md-height`) MUST NOT live in `@theme` — they are not utility-class generators. They live in component CSS under `@layer components`, with the three-tier fallback chain pointing at the semantic token and a hardcoded default.
+Per-component tokens (`--button-primary-bg`, `--button-radius`) MUST NOT live in `@theme` — they are not utility-class generators. They live in component CSS under `@layer components`, with the three-tier fallback chain pointing at the active semantic/UI token and a literal default. Mode-sensitive colors point to `--ui-*`; `CSS-MODE-04` resolves those aliases to raw light/dark values.
 
 ```css
 /* packages/ui/src/components/Button.css */
 @layer components {
   .ui-button {
-    background: var(--button-primary-bg, var(--color-brand, #111827));
+    background: var(--button-primary-bg, var(--ui-accent, #111827));
     border-radius: var(--button-radius, var(--radius-card, 0.5rem));
-    height: var(--button-md-height, 2.5rem);
-    color: var(--button-primary-fg, var(--color-surface, #ffffff));
-    font-family: var(--font-sans, system-ui, sans-serif);
+    color: var(--button-primary-fg, var(--ui-on-accent, #ffffff));
+    font-family: var(--button-font, var(--font-sans, system-ui, sans-serif));
   }
 
   .ui-button--secondary {
-    background: var(--button-secondary-bg, transparent);
-    color: var(--button-secondary-fg, var(--color-text, #0a0a0a));
-    border: 1px solid var(--button-secondary-border, var(--color-text, #0a0a0a));
+    background: var(--button-secondary-bg, var(--ui-bg, transparent));
+    color: var(--button-secondary-fg, var(--ui-fg, #0a0a0a));
+    border: 1px solid var(--button-secondary-border, var(--ui-fg, #0a0a0a));
   }
-
-  .ui-button--sm { height: var(--button-sm-height, 2rem); }
-  .ui-button--lg { height: var(--button-lg-height, 3rem); }
 }
 ```
 
@@ -171,9 +167,10 @@ A client app overrides the semantic tokens (preferred, broad reach) and/or compo
 ```css
 /* apps/example/src/theme.css */
 [data-brand="example"] {
-  /* semantic-tier overrides — affects every component using --color-brand */
+  /* Tailwind semantic overrides generate utilities. */
   --color-brand: #ff6600;
   --color-surface: #fffaf5;
+
   --radius-card: 999px;
   --font-sans: "Example Display", system-ui, sans-serif;
 
@@ -183,20 +180,60 @@ A client app overrides the semantic tokens (preferred, broad reach) and/or compo
 }
 ```
 
-Semantic overrides are the default tool. Drop to component overrides only when one component needs to diverge from the broader palette.
+Semantic overrides are the default tool. Drop to component overrides only when one component needs to diverge from the broader palette. A scoped component-token declaration intentionally binds that most-specific override knob to its final value; the component's styled declaration still owns the component → active semantic/UI → literal fallback chain.
 
 ### Composing brand with color mode
 
-Brand identity (`data-brand`) and color mode (`data-theme`) compose at the selector level. The library's `@theme` block carries the brand-wide semantic palette; the `@layer theme` rules from `CSS-MODE-*` (see `plugin:web:standard:css`) carry the raw-mode tokens (`--theme-dark-bg`, …) plus the active-UI aliases (`--ui-bg`, …). A brand override scoped to a color mode chains both attributes:
+Brand identity (`data-brand`) and color mode (`data-theme`) compose at the selector level. The library's `@theme` block carries the brand-wide semantic palette; the `@layer theme` rules from `CSS-MODE-*` (see `plugin:web:standard:css`) carry the raw-mode tokens plus the active-UI aliases. The [canonical color-mode block](../css/write.md#canonical-color-mode-block) owns the full selector shape. A brand-specific block follows it exactly for the roles it overrides:
 
 ```css
-:root[data-brand="example"][data-theme="dark"] {
-  --color-accent: #ff6600;
-  --ui-bg: var(--theme-dark-bg);
+@layer theme {
+  :root[data-brand="example"] {
+    --theme-light-bg: #fffaf5;
+    --theme-light-accent: #c2410c;
+    --theme-dark-bg: #1c1917;
+    --theme-dark-accent: #fb923c;
+
+    color-scheme: light;
+    --ui-bg: var(--theme-light-bg);
+    --ui-accent: var(--theme-light-accent);
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root[data-brand="example"]:not([data-theme]) {
+      color-scheme: light;
+      --ui-bg: var(--theme-light-bg);
+      --ui-accent: var(--theme-light-accent);
+    }
+  }
+
+  :root[data-brand="example"][data-theme="light"] {
+    color-scheme: light;
+    --ui-bg: var(--theme-light-bg);
+    --ui-accent: var(--theme-light-accent);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root[data-brand="example"]:not([data-theme]) {
+      color-scheme: dark;
+      --ui-bg: var(--theme-dark-bg);
+      --ui-accent: var(--theme-dark-accent);
+    }
+  }
+
+  :root[data-brand="example"][data-theme="dark"] {
+    color-scheme: dark;
+    --ui-bg: var(--theme-dark-bg);
+    --ui-accent: var(--theme-dark-accent);
+  }
 }
 ```
 
-The brand selector reaches for raw-mode tokens via `var(--theme-dark-bg)` so the active-UI tokens still resolve through the mode layer — brand owns the semantic palette, color mode owns the surface/ink layer, and the cascade composes them without either side hardcoding the other's values.
+Raw tokens and aliases both remain inside `@layer theme`; baseline,
+system-light, explicit-light, system-dark, and explicit-dark branches all
+resolve the aliases. The fallback-less `var(--theme-*)` assignments here are
+token aliases, not styled declarations: their raw inputs are declared in the
+same layer. Component styles still use the full three-tier fallback chain.
 
 ## CSS Import Order
 
@@ -272,10 +309,16 @@ When a single feature needs one-off variation without forking the component, dec
 }
 ```
 
+These literals intentionally bind the most-specific component override knobs.
+They do not replace the consuming component declarations, which retain the
+full component → active semantic/UI → literal fallback chain.
+
 ```tsx
 // apps/example/src/features/checkout/CheckoutFlow.tsx
-export const CheckoutFlow: FC<PropsWithChildren> = ({ children }) => (
-  <section className="checkout-flow">
+export type CheckoutFlowProps = PropsWithChildren<ComponentPropsWithoutRef<'section'>>;
+
+export const CheckoutFlow: FC<CheckoutFlowProps> = ({ children, className = '', ...sectionProps }) => (
+  <section {...sectionProps} className={`checkout-flow ${className}`}>
     <Button variant="primary">Pay now</Button>
     {children}
   </section>
@@ -355,7 +398,7 @@ Each component's CSS MUST list its tokens in a comment block at the top of the f
 
 | Pattern                          | Use Case                                            | Example                                                          | Rule              |
 |----------------------------------|-----------------------------------------------------|------------------------------------------------------------------|-------------------|
-| Three-tier fallback              | All component CSS declarations                      | `var(--button-primary-bg, var(--color-brand, #111827))`          | `WT-CONTRACT-01`  |
+| Three-tier fallback              | All component CSS declarations                      | `var(--button-primary-bg, var(--ui-accent, #111827))`            | `WT-CONTRACT-01`  |
 | `@theme` block                   | Semantic tokens that generate Tailwind utilities    | `@theme { --color-brand: …; --radius-card: …; }`                 | `WT-TAILWIND-01`  |
 | `@layer components`              | Component CSS lives here                            | `@layer components { .ui-button { … } }`                         | `WT-TAILWIND-01`  |
 | `[data-brand="…"]` scope         | Client brand activation                             | `<html data-brand="example" data-theme="dark">…</html>`             | `WT-VARIANT-01`   |

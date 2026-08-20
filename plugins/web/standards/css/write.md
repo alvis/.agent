@@ -9,7 +9,7 @@
 - `:root[data-theme="light"|"dark"]` is the only color-mode selector; `data-brand` is a separate, orthogonal axis.
 - System mode is the absence of `data-theme`; `:root:not([data-theme])` + `@media (prefers-color-scheme: …)` resolves it.
 - All color-mode tokens and their `color-scheme` declarations live inside `@layer theme`.
-- Two tiers: tier-1 raw per-mode palette feeds tier-2 active UI tokens; components consume only tier-2.
+- Two tiers: tier-1 raw per-mode palette feeds tier-2 active UI tokens; component fallbacks consume tier 2 before their literal default.
 
 ## Core Rules Summary
 
@@ -18,7 +18,7 @@
 - **CSS-MODE-01**: Use `:root[data-theme="light"]` and `:root[data-theme="dark"]` for explicit color-mode overrides; the brand attribute is `data-brand`; `.dark` class and `data-mode` / `data-color-scheme` are forbidden.
 - **CSS-MODE-02**: Resolve system mode via `:root:not([data-theme])` + `@media (prefers-color-scheme: light|dark)`; absence of `data-theme` IS system mode and requires no JS.
 - **CSS-MODE-03**: Place all color-mode tokens inside `@layer theme`; every mode branch sets `color-scheme: light|dark` so native UA controls theme correctly.
-- **CSS-MODE-04**: Maintain a two-tier token chain — tier-1 raw mode tokens (`--theme-light-bg`) feed tier-2 active UI tokens (`--ui-bg`); components consume only tier-2.
+- **CSS-MODE-04**: Maintain a two-tier token chain — tier-1 raw mode tokens (`--theme-light-bg`) feed tier-2 active UI tokens (`--ui-bg`); styled declarations use the component override → active UI token → literal fallback chain and never consume raw tokens.
 
 ## Patterns
 
@@ -75,39 +75,17 @@ This is the reference contract. Every project's color-mode foundation MUST follo
 }
 ```
 
-Read the cascade as four branches: the `:root` baseline (light fallback for non-supporting UAs), then for each of `light` and `dark` a system branch (`:root:not([data-theme])` inside `@media (prefers-color-scheme: …)`) and an explicit branch (`:root[data-theme="…"]`). Every branch redeclares both `color-scheme` and the tier-2 aliases so the active mode is fully resolved at the `:root` level.
+Read the cascade as five branches: the `:root` baseline (light fallback for non-supporting UAs), then for each of `light` and `dark` a system branch (`:root:not([data-theme])` inside `@media (prefers-color-scheme: …)`) and an explicit branch (`:root[data-theme="…"]`). Every branch redeclares both `color-scheme` and the tier-2 aliases so the active mode is fully resolved at the `:root` level.
 
 ### Extending With More Semantic Tokens
 
-Add new semantic UI tokens by extending **both** tiers symmetrically. Tier 1 gains raw per-mode palette entries; every mode branch in `@layer theme` aliases those into tier 2. Components keep consuming tier-2 names only.
+Add new semantic UI tokens by extending **both** tiers symmetrically across all five branches in the canonical block. Tier 1 gains raw per-mode palette entries; every branch in `@layer theme` aliases those into tier 2. Component declarations then use their component override, the active tier-2 token, and a literal fallback.
 
 ```css
-@layer theme {
-  :root {
-    /* tier 1: raw palette additions */
-    --theme-light-border: #e4e4e7;
-    --theme-light-muted: #71717a;
-
-    --theme-dark-border: #27272a;
-    --theme-dark-muted: #a1a1aa;
-
-    /* tier 2: active aliases (light default) */
-    --ui-border: var(--theme-light-border);
-    --ui-muted: var(--theme-light-muted);
-  }
-
-  :root[data-theme="dark"] {
-    --ui-border: var(--theme-dark-border);
-    --ui-muted: var(--theme-dark-muted);
-  }
-
-  /* …repeat for system + light branches symmetrically… */
-}
-
 .card {
-  background: var(--ui-bg);
-  color: var(--ui-fg);
-  border: 1px solid var(--ui-border); /* tier-2 only */
+  background: var(--card-bg, var(--ui-bg, #ffffff));
+  color: var(--card-fg, var(--ui-fg, #18181b));
+  border: 1px solid var(--card-border, var(--ui-border, #e4e4e7));
 }
 ```
 
@@ -120,18 +98,7 @@ Brand and color mode are **independent axes**. The brand layer (`@theme` from Ta
 | Brand identity | `data-brand="example"` | `@theme` semantic tokens | `plugin:web:standard:theming` |
 | Color mode | `data-theme="light|dark"` | `@layer theme` raw + active UI tokens | This standard (`CSS-MODE-*`) |
 
-```css
-@layer theme {
-  /* default example + dark composition */
-  :root[data-brand="example"][data-theme="dark"] {
-    --ui-bg: var(--theme-dark-bg);
-    --ui-fg: var(--theme-dark-fg);
-    --ui-accent: var(--color-accent); /* brand layer feeds in here */
-  }
-}
-```
-
-A component never branches on brand or mode — it consumes `var(--ui-bg)` and lets the cascade decide.
+Extend brand-fed aliases across the same five branches shown in the canonical block; a compound selector may specialize a branch, but it does not replace the complete baseline/system/explicit contract. A component never branches on brand or mode — it uses a chain such as `var(--button-accent, var(--ui-accent, #2563eb))` and lets the cascade decide.
 
 ## Anti-Patterns
 
@@ -146,7 +113,7 @@ A component never branches on brand or mode — it consumes `var(--ui-bg)` and l
 ## Quick Decision Tree
 
 1. **Adding a new color-mode token?** Add tier-1 raw entries for every mode, then alias into tier-2 inside every mode branch (`CSS-MODE-04`).
-2. **Need to style a component for dark mode?** Don't. Style it once with `var(--ui-*)` tokens; the cascade resolves the mode (`CSS-MODE-04`).
+2. **Need to style a component for dark mode?** Don't. Style it once with `var(--component-*, var(--ui-*, <literal>))`; the cascade resolves the mode (`CSS-MODE-04`).
 3. **Toggling theme from a settings panel?** Set `<html data-theme="dark">`; remove the attribute to return to system (`CSS-MODE-01`, `CSS-MODE-02`).
 4. **Native control (scrollbar, date picker) looks wrong?** Verify `color-scheme` is set inside every mode branch in `@layer theme` (`CSS-MODE-03`).
 5. **Adding a brand variant?** Use a separate `data-brand` attribute; compose at `:root[data-brand="…"][data-theme="…"]` — never repurpose `data-theme` for brand (`CSS-MODE-01`).

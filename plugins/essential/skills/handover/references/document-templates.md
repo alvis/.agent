@@ -51,7 +51,7 @@ authored against — the canonical specification stays the sole authority.
 
 ## Status
 
-<Current lifecycle/task roll-up, owner, and exact next action.>
+<Current phase/task roll-up, owner, and exact next action.>
 
 ## Tasks
 
@@ -114,7 +114,7 @@ same-machine resume reads the outstanding approval/implementation work from
 proposal exists.
 
 `## Completion receipt` appears once the stream reaches phase `completed` and
-holds its merge evidence, promoted `docs/` paths, and each outlives-me item
+holds its applicable landing evidence, promoted durable paths, and each outlives-me item
 with the owner that took it; the stream's overview row is generated from it.
 Omit it before then.
 

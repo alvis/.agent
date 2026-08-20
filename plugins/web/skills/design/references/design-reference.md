@@ -59,7 +59,7 @@ Non-negotiable requirements before handoff. Only apply craft details when they s
 - Optical alignment: nudge icons by eye so buttons feel centered; buttons with text and an icon use slightly less padding on the icon side (e.g., `pl-4 pr-3.5`); play triangles and asymmetric icons shift 1-2px toward the heavier side
 - Shadows over borders: use layered `box-shadow` for depth on cards, buttons, and elevated elements; reserve `border` for dividers, table cells, and layout separation (applies primarily to light mode; dark mode uses background-color stepping instead)
 - Image outlines: add a subtle inset outline so images hold their own depth: `outline: 1px solid rgba(0,0,0,0.1); outline-offset: -1px` (light) or `outline: 1px solid rgba(255,255,255,0.1); outline-offset: -1px` (dark)
-- Minimum hit area: every interactive target at least 40x40px; extend with a centered pseudo-element when the visible element is smaller; never let hit areas of two interactive elements overlap
+- Minimum hit area: every interactive target at least 44x44px under this project's stricter rule (not a WCAG AA requirement); extend with a centered pseudo-element when the visible element is smaller; never let hit areas of two interactive elements overlap
 - Light-mode surface hierarchy: adjacent nested surfaces must be visually distinguishable. Minimum: background-color step of at least 4% lightness between sidebar and main area, and between main area and cards; or a shadow of at least `0 1px 3px rgba(0,0,0,0.10)` on elevated cards. A white card on a near-white background with `box-shadow: 0 1px 2px rgba(0,0,0,0.05)` is invisible -- that is not depth
 - Dark-mode surface hierarchy: page canvas is near-black solid (e.g., `#08090a`). Elevation uses semi-transparent white overlays: cards at `rgba(255,255,255,0.02)`, elevated surfaces at `0.04`, prominent panels at `0.05`. Borders follow the same logic: `rgba(255,255,255,0.05)` for subtle, `0.08` for standard. Traditional drop shadows are nearly invisible on dark surfaces; luminance stepping through background opacity is the primary depth cue
 - Border radius system: define role-named radius tokens during direction lock (`--radius-control`, `--radius-card`, `--radius-modal`; fully-round elements use the `9999px` literal). Commit to the set before the first component so all surfaces share the same spatial language — never size-tier names like `--radius-md` (WT-VARIANT-01)
@@ -125,7 +125,13 @@ Choose light or dark deliberately based on audience and context. Neither is a de
 | Hospital or clinical patient portal | Light | Trust and legibility are paramount; clinical associations favor light |
 | Vintage or artisanal brand site | Cream/warm light | Dark would clash with analog material references |
 
-If the answer is not obvious from context, default to light. If both modes are needed, ship light first and layer dark-mode tokens on top.
+A light-only visual direction is a deliberate design choice, not a default and
+not a runtime mode contract. Record the chosen direction from audience and
+context evidence. When the product supports both light and dark runtime modes,
+route implementation through `web:css`: define raw light/dark tokens inside
+`@layer theme`, resolve active semantic/UI tokens across all five branches
+(baseline, system light, explicit light, system dark, explicit dark), and let
+components consume only those active tokens with the canonical fallback chain.
 
 ## Absolute Bans
 

@@ -20,7 +20,7 @@ This standard enforces requirements beyond typical TypeScript practices:
 | `any` used for speed             | **`any` is forbidden**                              |
 | Double-casting for compatibility | **No `as unknown as` in production code**           |
 | Mixed import styles tolerated    | **Strict import ordering and type/code separation** |
-| Default export is common         | **Named exports preferred**                         |
+| Default export is common         | **Only documented external/runtime contracts allow it** |
 | Loose file layout                | **Top-level symbol ordering is mandatory**          |
 
 ## Exception Policy
@@ -48,3 +48,4 @@ If exception note is missing, submission is rejected.
 - `TYP-PARM-*`: Parameter and contract-shape rules.
   - `TYP-PARM-04`: Dependency-contract fields model named capabilities (action functions like `readContextSource`), not infrastructure containers (`database`, `logger`, `httpClient`).
 - `TYP-TYPE-*`: Type-system and narrowing strategy rules.
+  - `TYP-TYPE-01`: Shape decides `interface` versus `type`; visibility does not.

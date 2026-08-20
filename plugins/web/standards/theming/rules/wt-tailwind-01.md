@@ -42,7 +42,7 @@ In Tailwind v4.3, the `@theme { … }` block is the authoritative declaration of
 /* packages/ui/src/components/Button.css */
 @layer components {
   .ui-button {
-    background: var(--button-primary-bg, var(--color-brand, #111827));
+    background: var(--button-primary-bg, var(--ui-accent, #111827));
     border-radius: var(--button-radius, var(--radius-card, 0.5rem));
   }
 }
@@ -54,6 +54,11 @@ In Tailwind v4.3, the `@theme { … }` block is the authoritative declaration of
   --radius-card: 999px;
 }
 ```
+
+Mode-sensitive overrides do not belong in that unlayered brand block. Use the
+complete baseline/system/explicit block in
+[`theming/write.md`](../write.md#composing-brand-with-color-mode), which keeps
+raw tokens and active aliases inside `@layer theme` per `CSS-MODE-03/04`.
 
 ## Code Superpowers
 

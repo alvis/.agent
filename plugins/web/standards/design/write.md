@@ -10,7 +10,7 @@
 - Anchor all spacing to a base grid (4px/8px) so margins, padding, and gaps are predictable and harmonious
 - Define complete interactive states for every control: default, hover, active, focus-visible, and disabled with explanation
 - Design every UI state explicitly: loading (skeleton/spinner), empty (explanation + next step), error (problem + cause + fix), success (confirmation + next action), and permission (why blocked + how to request)
-- Treat WCAG AA as the accessibility floor: contrast ratios, keyboard access, ARIA labels, touch targets >= 44px, and visible focus indicators are non-negotiable
+- Treat WCAG AA as the accessibility floor for contrast, keyboard access, names/labels, reflow, and visible focus; separately enforce the project's stricter >=44px touch-target rule
 - Use a single icon set consistently; reserve icon-only affordances for universally understood actions (search, close, menu) and label everything else
 - Use animation only to communicate hierarchy changes or state transitions -- keep motion subtle (fade, small translate) and layout-stable
 - Express brand personality through restrained color, spacious layout, and typographic voice -- never through dark patterns or decorative excess
@@ -148,5 +148,5 @@
 1. **Hierarchy first**: Establish clear visual levels -- primary CTA, heading scale, whitespace rhythm (`DES-HIER`, `DES-TYPO`).
 2. **Tokens second**: Define color palette, spacing scale, and type scale as design tokens before building components (`DES-COLR`, `DES-SPAC`, `DES-CONS`).
 3. **States third**: Design every UI state (loading, empty, error, success, disabled) for each component (`DES-STAT`).
-4. **Accessibility fourth**: Verify contrast ratios, keyboard flow, ARIA labels, and touch targets meet the AA floor (`DES-A11Y`, `DES-RESP`).
+4. **Accessibility fourth**: Verify contrast ratios, keyboard flow, and ARIA labels meet the AA floor; verify touch targets meet the separate stricter project rule (`DES-A11Y`, `DES-RESP`).
 5. **Polish last**: Apply animation, icon refinement, and brand personality only after the structural foundation is solid (`DES-ICON`, `DES-BRND`).

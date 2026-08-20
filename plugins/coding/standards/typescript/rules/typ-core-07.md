@@ -100,7 +100,7 @@ export const validateEmail = (email: string): boolean => { /* ... */ };
 export { UserRepository } from "./user-repository";
 export type { User, CreateUser } from "./types";
 
-// ❌ BAD: default exports (avoid unless required)
+// ❌ BAD: default export without a documented external/runtime requirement
 export default userService;
 ```
 

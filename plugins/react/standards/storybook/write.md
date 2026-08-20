@@ -42,10 +42,17 @@ export const WithClick: Story = {
 
 ```typescript
 // PaymentFlow.demo.stories.tsx - complex multi-component scenarios
+import type { Meta, StoryObj } from '@storybook/react';
+
 const meta = {
   title: 'Demos/E-Commerce/PaymentFlow',
+  component: PaymentForm,
   parameters: { layout: 'fullscreen' },
-};
+  tags: ['autodocs'],
+} satisfies Meta<typeof PaymentForm>;
+
+export default meta;
+type Story = StoryObj<typeof meta>;
 
 export const CompleteCheckout: Story = {
   render: () => (
@@ -66,7 +73,6 @@ export const CompleteCheckout: Story = {
 components/
   Button/
     Button.tsx
-    Button.spec.tsx
     Button.stories.tsx
   Forms/
     PaymentForm/
@@ -81,12 +87,15 @@ components/
 
 ```typescript
 // ✅ GOOD: interactive story with play function
+import { expect } from '@storybook/jest';
+import { userEvent, within } from '@storybook/testing-library';
+
 export const Interactive: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const button = canvas.getByRole('button');
     await userEvent.click(button);
-    ...
+    await expect(button).toBeEnabled();
   },
 };
 
@@ -97,6 +106,7 @@ export const FormInteraction: Story = {
     const input = canvas.getByLabelText('Email');
     await userEvent.type(input, 'test@example.com');
     await userEvent.click(canvas.getByRole('button', { name: 'Submit' }));
+    await expect(input).toHaveValue('test@example.com');
   },
 };
 ```
@@ -107,6 +117,8 @@ export const FormInteraction: Story = {
 
 ```typescript
 // ✅ GOOD: comprehensive control setup
+import type { Meta } from '@storybook/react';
+
 const meta = {
   title: 'Components/UI/Button',
   component: Button,
@@ -119,12 +131,16 @@ const meta = {
     size: {
       control: 'radio',
       options: ['sm', 'md', 'lg'],
+      description: 'Button size',
     },
     disabled: {
       control: 'boolean',
       description: 'Disable button interaction',
     },
-    onClick: { control: false }, // disable control for functions
+    onClick: {
+      control: false,
+      description: 'Called when the button is activated',
+    },
   },
   parameters: {
     docs: {
@@ -133,7 +149,7 @@ const meta = {
       },
     },
   },
-};
+} satisfies Meta<typeof Button>;
 ```
 
 ## Patterns & Best Practices
@@ -161,8 +177,15 @@ const meta = {
   parameters: { layout: 'centered' },
   tags: ['autodocs'],
   argTypes: {
-    variant: { control: 'select', options: ['primary', 'secondary'] },
-    disabled: { control: 'boolean' },
+    variant: {
+      control: 'select',
+      options: ['primary', 'secondary'],
+      description: 'Visual style variant',
+    },
+    disabled: {
+      control: 'boolean',
+      description: 'Disable component interaction',
+    },
   },
 } satisfies Meta<typeof ComponentName>;
 
@@ -189,7 +212,8 @@ export const EdgeCase: Story = { args: { children: 'Very long text content...' }
 2. **Decorator Usage** - Add context providers
 
    ```typescript
-   export default {
+   const meta = {
+     component: ComponentName,
      decorators: [
        (Story) => (
          <ThemeProvider theme={defaultTheme}>
@@ -197,5 +221,7 @@ export const EdgeCase: Story = { args: { children: 'Very long text content...' }
          </ThemeProvider>
        ),
      ],
-   };
+   } satisfies Meta<typeof ComponentName>;
+
+   export default meta;
    ```

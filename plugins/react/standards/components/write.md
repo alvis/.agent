@@ -29,11 +29,13 @@ components/
 
 ### Props Design
 
-Keep props simple, predictable, and well-typed.
+Keep accepted props simple, predictable, and well-typed. Export a
+component-named props alias when a component accepts props; leave a genuinely
+zero-prop component as `FC` without an artificial empty alias.
 
 ```typescript
 // ✅ GOOD: simple, focused props
-export type AlertProps = {
+export type AlertProps = Omit<ComponentPropsWithoutRef<'div'>, 'children'> & {
   variant: "success" | "warning" | "error";
   message: string;
   onDismiss?: () => void;
@@ -46,6 +48,9 @@ export type BadProps = {
     behavior: { dismissible: boolean; callbacks: object; };
   };
 };
+
+// ✅ GOOD: zero-prop component needs no empty Props alias
+export const Divider: FC = () => <hr />;
 ```
 
 ### Extending Native Elements
@@ -54,7 +59,7 @@ Wrappers around native HTML elements inherit element props with `ComponentPropsW
 
 ```typescript
 // ✅ GOOD: anchor wrapper inherits all <a> attributes
-export type LinkProps = ComponentPropsWithoutRef<'a'> & {
+export type LinkProps = PropsWithChildren<ComponentPropsWithoutRef<'a'>> & {
   variant?: 'primary' | 'ghost';
 };
 
@@ -110,11 +115,16 @@ Keep state close to where it's used and lift up only when necessary.
 
 ```typescript
 // ✅ GOOD: local state for local concerns
-export const TodoItem: FC<Props> = ({ todo, onUpdate }) => {
+export type TodoItemProps = Omit<ComponentPropsWithoutRef<'div'>, 'children'> & {
+  todo: Todo;
+  onUpdate: (todo: Todo) => void;
+};
+
+export const TodoItem: FC<TodoItemProps> = ({ todo, onUpdate, ...divProps }) => {
   const [isEditing, setIsEditing] = useState(false);
 
   return (
-    <div>
+    <div {...divProps}>
       {isEditing ? <TodoEditForm ... /> : <TodoDisplay ... />}
     </div>
   );
@@ -123,7 +133,9 @@ export const TodoItem: FC<Props> = ({ todo, onUpdate }) => {
 // ✅ GOOD: context for deep prop drilling
 const UserContext = createContext<User | null>(null);
 
-export const UserProvider: FC<PropsWithChildren> = ({ children }) => {
+export type UserProviderProps = PropsWithChildren;
+
+export const UserProvider: FC<UserProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   return <UserContext.Provider value={user}>{children}</UserContext.Provider>;
 };
@@ -252,7 +264,7 @@ components/
 
 | Pattern | Use Case | Example | Notes |
 |---------|----------|---------|-------|
-| FC<Props> | All components | `const Button: FC<Props> = ...` | Always export Props as a `type` alias |
+| FC with named Props | Components that accept props | `const Button: FC<ButtonProps> = ...` | Export the component-named Props `type` alias; genuinely zero-prop components use bare `FC` without an artificial alias |
 | memo() | Expensive renders | `memo(({ items }) => ...)` | Use sparingly |
 | useMemo | Heavy calculations | `useMemo(() => sort(items), [items])` | Memoize expensive ops |
 | useCallback | Stable handlers | `useCallback((id) => update(id), [])` | Prevent child re-renders |

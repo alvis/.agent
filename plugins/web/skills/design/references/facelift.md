@@ -83,7 +83,7 @@ Run the standard Interactive Direction Picking from SKILL.md `<direction>` / `re
 
 ## 6. Team & Independence
 
-The **frontend-evaluator** seat (SKILL.md `<workflow>` Step 1) carries two lenses on facelift/full-page runs. Each is briefed independently — the lead targets the seat's captured `agent_id` and composes each direct teammate-messaging capability payload from scratch containing ONLY the permitted artifacts:
+The **aesthetic-evaluator** seat (SKILL.md `<workflow>` Step 1) carries two lenses on facelift/full-page runs. Each is briefed independently — the lead targets the seat's captured `agent_id` and composes each direct teammate-messaging capability payload from scratch containing ONLY the permitted artifacts:
 
 | Lens | Receives | Never receives |
 |------|----------|----------------|
@@ -107,8 +107,8 @@ Deliver the v2 in slices, each independently verified and saved:
 Per slice:
 
 1. **Build** — theming contract and component-reuse gate are already locked; the frontend-implementer works inside them, starting from this area's recorded pick (SKILL.md `<area_boards>` runs the boards in this slice order; the motion pass builds from the connective-tissue pick).
-2. **Critic verdict** — frontend-evaluator's design-critic lens, per §6 format, against the rubric.
-3. **Auditor metrics** — frontend-evaluator's perf/a11y lens: component-scope slices: contrast protocol only; page-scope slices (hero, motion pass, final assembly): full §8 budget.
+2. **Critic verdict** — aesthetic-evaluator's design-critic lens, per §6 format, against the rubric.
+3. **Auditor metrics** — aesthetic-evaluator's perf/a11y lens: component-scope slices: contrast protocol only; page-scope slices (hero, motion pass, final assembly): full §8 budget.
 4. **Below excellent on design or motion** → back to the frontend-implementer with the cited exemplar divergence as the rework brief. Not "make it better" — "here is the specific gap".
 5. **Pass** → save point via the `coding:commit` skill (record the change id; never raw git).
 6. **Append the ledger entry** to the active work design's implementation-state section:

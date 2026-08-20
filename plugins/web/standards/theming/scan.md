@@ -9,7 +9,7 @@ If a violation is detected, load the matching rule guide at `./rules/<rule-id>.m
 
 ### CSS Variable Contract
 
-- DO NOT use `var(--token)` without a semantic fallback AND a hardcoded default — every styled declaration must resolve through `var(--component, var(--semantic, hardcoded))` [`WT-CONTRACT-01`]
+- DO NOT use `var(--token)` without an active semantic/UI fallback and a literal default — every styled declaration resolves through `var(--component, var(--active-semantic-or-ui, literal))`; mode-sensitive colors use `--ui-*`, whose light/dark branches alias raw `--theme-*` tokens [`WT-CONTRACT-01`]
 - DO NOT place per-component tokens (`--button-primary-bg`, `--button-md-height`) inside `@theme { … }` — `@theme` is for utility-class generators (`--color-brand`, `--radius-card`) only [`WT-CONTRACT-02`]
 
 ### Variant & Token Naming
@@ -34,7 +34,7 @@ If a violation is detected, load the matching rule guide at `./rules/<rule-id>.m
 
 | Rule ID            | Violation                                                                                              | Bad Examples                                                                                                  |
 |--------------------|--------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------|
-| `WT-CONTRACT-01`   | Styled declaration without three-tier fallback chain                                                   | `background: var(--button-primary-bg);` (no semantic fallback, no hardcoded default)                          |
+| `WT-CONTRACT-01`   | Styled declaration without component → active semantic/UI → literal fallback, or mode color bypasses `--ui-*` | `background: var(--button-primary-bg);`; `background: var(--theme-dark-bg)` |
 | `WT-CONTRACT-02`   | Component-level token placed inside `@theme`, or semantic token placed outside `@theme`                | `@theme { --button-primary-bg: #111827; }`; `--color-brand` declared in a plain `:root { … }` block           |
 | `WT-VARIANT-01`    | Variant union uses visual/brand labels, component accepts `brand`/`client` prop, OR CSS token name uses position, color word, visual descriptor, or size tier | `variant?: 'blue' \| 'rounded' \| 'example'`; `<Button brand="example" />`; `--ink-0`, `--bg-1`, `--c-violet`, `--color-accent-violet`, `--line-soft`, `--glass-bg`, `--radius-md`, `--shadow-sm`, `--text-body-lg` |
 | `WT-VARIANT-02`    | Variant class bakes in literal colors / pixel values instead of CSS variables                          | `.ui-button--primary { background: #ff6600; }`                                                                |

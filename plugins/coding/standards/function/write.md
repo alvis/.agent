@@ -44,11 +44,11 @@ for (const x of items) cb(x);
 
 ```ts
 // good
-type Options = { model?: string; signal?: AbortSignal };
+interface Options { model?: string; signal?: AbortSignal }
 function run(input: Input, options?: Options): Out { /* defaults inside */ }
 
 // bad — required field in Options
-type Options = { model: string };
+interface Options { model: string }
 // bad — options itself required
 function run(input: Input, options: Options): Out {}
 ```

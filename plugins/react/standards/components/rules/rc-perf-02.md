@@ -12,7 +12,13 @@ Use `memo`, `useMemo`, and `useCallback` for genuinely expensive operations and 
 
 ```typescript
 // ✅ GOOD: memoize expensive calculations
-export const ExpensiveList = memo(({ items }: Props) => {
+import type { FC } from 'react';
+
+export type ExpensiveListProps = {
+  items: Item[];
+};
+
+export const ExpensiveList: FC<ExpensiveListProps> = memo(({ items }) => {
   const sortedItems = useMemo(() => 
     items.sort((a, b) => b.timestamp - a.timestamp), [items]
   );

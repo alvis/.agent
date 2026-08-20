@@ -5,11 +5,10 @@ does, delete it — that governs this file and everything shipped from this tree
 
 ## What this repository is
 
-This is the **source** of one plugin marketplace for Claude Code, Codex, and
-opencode: the plugins under `plugins/` are projected into each harness's manifest
-format. Claude Code and Codex are projected today and opencode is a committed
-target, so "Every harness, or none" below binds every design now rather than at
-porting time.
+This is the **source** of one plugin marketplace for Claude Code and Codex: the
+plugins under `plugins/` are projected into both harnesses' manifest formats.
+OpenCode and Grok Build are next-phase aims, not supported harnesses today; do
+not claim support or add requirements that depend on either projection.
 
 This remains a greenfield project: breaking changes are accepted and expected.
 No legacy compatibility is needed; remove every deprecated symbol.
@@ -59,11 +58,11 @@ every hook command — the `sed` replacement included — carries that exact anc
 quoted. Anchoring on one variable alone makes the hook resolve nothing under the other
 harness, and a `sed | jq` pipeline still exits 0 while emitting nothing. Quoting is
 equally load-bearing: the anchor expands to a path the user chose, so an unquoted
-expansion word-splits on a space and runs its first segment. Adding opencode extends
-this one chain by one segment — read its variable from opencode's own documentation
-rather than guessing a name, and give every command the new chain in the same change,
-since a chain that is current in some commands and stale in others fails just as
-silently.
+expansion word-splits on a space and runs its first segment. Adding another harness
+extends this one chain by one segment — read its variable from that harness's own
+documentation rather than guessing a name, and give every command the new chain in
+the same change, since a chain that is current in some commands and stale in others
+fails just as silently.
 
 - `ALLAGENT.md` — injected at `SessionStart` **and** `SubagentStart`; carries that plugin's
   own routing only. Do not rebuild a central roster table in it.
@@ -85,12 +84,12 @@ These plugins are built to one model of how knowledge ages:
 reads, or retires anything. The invariants below are what it forbids while you edit
 these sources, and each is the rule a locally sensible change breaks first.
 
-- **Every harness, or none.** Claude Code, Codex, and opencode are one target, not a
-  primary plus two ports. Anything shipped from this tree — hook command, script,
-  agent or skill projection, installed path, config format, tool name — works under all
-  three or is not done. Reading one harness's value resolves to nothing under the others
+- **Every current harness, or none.** Claude Code and Codex are one target, not a
+  primary plus a port. Anything shipped from this tree — hook command, script,
+  agent or skill projection, installed path, config format, tool name — works under both
+  or is not done. Reading one harness's value resolves to nothing under the other
   and almost always fails silent rather than loud, so resolve every harness-specific
-  value through one ordered chain that a fourth harness extends by one segment, keep
+  value through one ordered chain that a new harness extends by one segment, keep
   that chain in exactly one place, terminate it so an unrecognized harness exits
   non-zero instead of injecting nothing, and prove each harness in isolation: a test
   that leaves the other harnesses' variables inherited resolves through the wrong one
@@ -102,9 +101,11 @@ these sources, and each is the rule a locally sensible change breaks first.
   place. This is the rule behind "no central roster in a plugin's
   `plugins/<p>/hooks/ALLAGENT.md`" above — a
   convenience copy is drift with a head start.
-- **Regenerate projections; never trust them.** `.state/` state, overviews, and the
-  installed plugin cache are derived views, safe to delete and rebuild. Do not add a
-  cache, index, or generated summary that something else then depends on.
+- **Regenerate projections; never trust them.** Overviews and the installed plugin
+  cache are derived views, safe to delete and rebuild. `.state/` is operational
+  working memory, not byte-reconstructible; it becomes disposable only after every
+  durable fact is promoted and closure is recorded. Do not add a cache, index, or
+  generated summary that something else then depends on.
 - **Status is not validity.** `done` is terminal history; whether its result still holds
   is a separate question with a separate answer. A skill choosing what to recompute reads
   validity, never status, and never flips a completed row back.

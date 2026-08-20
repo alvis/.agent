@@ -24,7 +24,7 @@ System mode is not a value — it is the absence of an explicit override. A `:ro
 
 ### Two-Tier Token Chain
 
-Tier 1 is the raw per-mode palette (`--theme-light-bg`, `--theme-dark-bg`, …). Tier 2 is the active UI semantic token (`--ui-bg`, `--ui-fg`, …) that aliases the active tier-1 value inside every mode branch. Components consume **only** tier-2 tokens; they never reach past the alias to a raw mode token.
+Tier 1 is the raw per-mode palette (`--theme-light-bg`, `--theme-dark-bg`, …). Tier 2 is the active UI semantic token (`--ui-bg`, `--ui-fg`, …) that aliases the active tier-1 value inside every mode branch. Components consume tier 2 through the theming fallback chain `component override → active semantic/UI token → literal`; they never reach past the alias to a raw mode token.
 
 ## Rule Groups
 
