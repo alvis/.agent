@@ -1,8 +1,10 @@
-# TYP-MODL-03: Prefer Named Exports
+# TYP-MODL-03: Restrict Default Exports
 
 ## Intent
 
-Use named exports by default. Default exports are allowed only when an external contract requires it (e.g., Next.js page components).
+Use named exports unless a documented external or runtime contract requires a
+default export, such as a framework loader that discovers a default-exported
+entry point.
 
 ## Fix
 
@@ -15,22 +17,22 @@ export const validateEmail = (email: string): boolean => { /* ... */ };
 export { UserRepository } from "./user-repository";
 export type { User, CreateUser } from "./types";
 
-// ❌ BAD: default exports (avoid unless required)
+// ❌ BAD: internal preference is not a contract
 export default userService;
 ```
 
 ## Edge Cases
 
 - When existing code matches prior violation patterns such as ❌ `export default userService`, refactor before adding new behavior.
-- Default exports are acceptable only when an external framework or contract requires it.
-- Default export is acceptable — and encouraged — when a file's sole purpose is to expose **one primary symbol**, especially across a set of sibling files that each export the same kind of symbol (e.g., Next.js page/layout components, service operation handlers, route handlers, middleware). This lets consumers import without guessing the exported name.
+- Default exports are acceptable only when a documented external framework,
+  loader, configuration, or runtime contract requires them. Cite that contract
+  in project documentation, configuration, or an adjacent explanatory comment.
+- A file having one primary symbol, uniform sibling files, or a preferred import
+  spelling is not sufficient.
 - In barrel files, `export * from '#subpath'` is preferred when the source is itself a barrel — this is not a violation of this rule. See TYP-MODL-04.
 
 ```typescript
-// ✅ GOOD: default export for primary symbol in a uniform set
-// routes/health-check.ts
-export default async function healthCheck(...) { ... }
-
+// ✅ GOOD: Next.js runtime contract requires a default page component
 // pages/account-settings.tsx
 export default function AccountSettingsPage(...) { ... }
 ```

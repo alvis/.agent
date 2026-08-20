@@ -25,6 +25,9 @@ view of it, but not the record of record. Records of
 record are versioned `docs/` and external anchors (task, PR, Notion).
 Every state change, discovery, and decision is stored immediately in the
 journal and its owning state, decision, or discovery file.
+The projection is not byte-reconstructible. It becomes disposable only after
+accepted decisions, approved contracts, artifact identities, unresolved risks,
+and reusable conclusions have durable carriers and closure is recorded.
 
 ## Constitutional rules
 

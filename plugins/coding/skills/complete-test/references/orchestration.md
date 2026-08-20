@@ -16,7 +16,7 @@ Verify the baseline is present and accurate before planning batches from it.
 
 ## Sub-step 2 — Progressive test writing (parallel batches)
 
-Each subagent owns 2–5 source files (max 500 source lines per batch) and writes tests ONE at a time, verifying coverage after each and deleting tests that don't improve it.
+Each subagent owns 2–5 source files (max 500 source lines per batch) and writes tests ONE at a time, verifying coverage after each and retaining a zero-gain test only when it provides distinct behavioral evidence.
 
 **Batching algorithm**: start with the first uncovered file, add files until 5 files OR 500 lines is reached, create the batch, repeat until all files are assigned. Example:
 
@@ -31,15 +31,15 @@ Batches:      1: auth/service, auth/controller, users/service   (450 lines, 3 fi
 Record the batch-to-file map in structured task-tracking capability (one todo per batch) so no source file is skipped. Dispatch all batches in a single message, at most 8 concurrent. Each batch subagent runs this loop **for each source file**:
 
 1. **Initial coverage check**: `vitest --coverage <spec path>`; note current coverage and the first uncovered line/branch.
-2. **Progressive writing loop** (repeat until 100%):
+2. **Progressive writing loop** (repeat until statements, branches, functions, and lines are each 100%):
    a. Write ONE test targeting a specific uncovered line/branch (AAA pattern, proper types, per standards).
    b. Re-run the focused coverage command and parse the new numbers.
-   c. Decide: coverage increased (even by 1 line) → KEEP and move to the next uncovered target; coverage unchanged → DELETE the test immediately and write a different one.
-   d. 100% reached → next file in the batch; otherwise repeat from (a).
-3. **Batch completion verification**: run coverage for all the batch's test files together; verify every source file is at target; count tests created vs deleted.
+   c. Decide: coverage increased → KEEP; coverage unchanged → KEEP only when the test provides distinct behavioral evidence, otherwise DELETE it and write a different one.
+   d. All four metrics at 100% → next file in the batch; otherwise repeat from (a).
+3. **Batch completion verification**: run coverage for all the batch's test files together; verify every source file is at 100% statements, branches, functions, and lines; count tests created vs deleted.
 4. **Standards compliance**: lint the created test files, fix type errors, verify documentation.
 
-Each batch reports: per-file coverage (lines/branches/statements/functions), `tests_created` / `tests_kept` / `tests_deleted`, standards compliance, and whether all files reached target. **Retry rule**: if any batch reports partial or failed, re-batch the incomplete files and dispatch again (still capped at 8 concurrent).
+Each batch reports: per-file coverage (lines/branches/statements/functions), `tests_created` / `tests_kept` / `tests_deleted`, standards compliance, and whether all four metrics reached 100% in every file. **Retry rule**: if any batch reports partial or failed, re-batch the incomplete files and dispatch again (still capped at 8 concurrent).
 
 ## Sub-step 3 — Remove redundant tests (plan, then parallel removal)
 
@@ -86,7 +86,7 @@ Never leave old and new fixture systems in parallel. Report created/deleted file
 
 Run these mechanical gates once per state of the tree — in place, or through `test-runner` when the sweep's raw output would swamp this session; either way that run is authoritative for the files it measured, and no agent is dispatched to re-confirm a result whose inputs have not changed. They do not stand in for the independent final test review in step 8 of `SKILL.md`, which asks the different, behavioral question of what the suite fails to cover.
 
-1. **Coverage**: full coverage command; line/branch/statement/function all meet the target.
+1. **Coverage**: full coverage command; statements, branches, functions, and lines are each 100% in every selected source file.
 2. **Execution**: full test run passes; note flaky tests.
 3. **Standards**: lint clean, type-check clean.
 4. **Efficiency metrics**: count source files, test files, and total tests; record suite execution time; compute tests per source file and the coverage-per-test ratio. The final report requires these, and deletion and fixture restructuring make them unreconstructable from the baseline and per-batch deltas.
@@ -95,7 +95,7 @@ All green → hand off to the independent final test review. Every test-only cor
 
 ## Final report shape
 
-Aggregate into one report covering: baseline coverage → batches executed, tests created/kept/deleted → redundancy candidates, removed, kept-essential → issues fixed → fixtures consolidated, unused files deleted → final verified coverage, all-passing status, efficiency metrics, and per-source statements/branches/functions/lines. Name every justified gap.
+Aggregate into one report covering: baseline coverage → batches executed, tests created/kept/deleted → redundancy candidates, removed, kept-essential → issues fixed → fixtures consolidated, unused files deleted → final verified coverage, all-passing status, efficiency metrics, and per-source statements/branches/functions/lines. If any metric remains below 100%, name its concrete blocker and report the run incomplete.
 
 Include the deduplicated `generated_files` from all subtasks. No child runs file
 sizing; after every artifact writer returns, the PM checks only eligible work

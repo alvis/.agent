@@ -2,7 +2,11 @@
 
 ## Intent
 
-Exported functions with non-trivial input/output must use named interfaces or types. Simple scalar parameters (`id: string`) do not need dedicated types; this rule targets structured objects.
+Exported functions with non-trivial input/output must use named contracts whose
+declaration form follows `TYP-TYPE-01`. Plain object shapes use `interface`;
+unions, intersections, mapped/computed types, function signatures, and tuples
+use `type`. Simple scalar parameters (`id: string`) do not need dedicated
+contracts.
 
 ## Fix
 
@@ -14,8 +18,12 @@ export interface UpdateUserOptions {
 }
 export function updateUser(options: UpdateUserOptions) { /* ... */ }
 
-// ✅ GOOD: simple internal functions can use inline types
-function processData(options: { data: string; strict?: boolean }) { /* ... */ }
+// ✅ GOOD: internal plain object shapes also use interfaces
+interface ProcessDataOptions {
+  data: string;
+  strict?: boolean;
+}
+function processData(options: ProcessDataOptions) { /* ... */ }
 ```
 
 ## Edge Cases
@@ -24,4 +32,4 @@ function processData(options: { data: string; strict?: boolean }) { /* ... */ }
 
 ## Related
 
-FUNC-SIGN-05, TYP-PARM-01, TYP-PARM-03
+FUNC-SIGN-05, TYP-PARM-01, TYP-PARM-03, TYP-TYPE-01

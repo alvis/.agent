@@ -2,7 +2,7 @@
 
 ## Intent
 
-ARIA labels on icon-only buttons and non-standard controls. Form inputs must have associated `<label>` elements (not just placeholder). Meaningful `alt` text on images. Touch targets >=44x44 CSS px (web) / 48x48 dp (mobile).
+ARIA labels on icon-only buttons and non-standard controls. Form inputs must have associated `<label>` elements (not just placeholder). Meaningful `alt` text on images. Touch targets >=44x44 CSS px (web) / 48x48 dp (mobile). The 44px threshold is this project's stricter usability rule, not a WCAG AA requirement.
 
 ## Fix
 

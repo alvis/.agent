@@ -8,16 +8,20 @@ Never destructure optional objects directly in signatures without safe defaults 
 
 ```typescript
 // ❌ function processUser({ name, role = 'user' }: UserOptions) {}
-// ✅ safe destructuring with defaults
-function processUser(options?: {
+interface UserOptions {
   name: string;
   role?: string;
-}) {
+}
+
+// ✅ safe destructuring with defaults
+function processUser(options?: UserOptions) {
   const { name, role = 'user' } = { ...options };
 }
 ```
 
-See `FUNC-SIGN-04` for canonical guidance.
+See `FUNC-SIGN-04` for canonical guidance. Named parameter shapes follow
+`TYP-TYPE-01`: plain object shapes use `interface`; unions, intersections,
+mapped/computed types, function signatures, and tuples use `type`.
 
 ## Edge Cases
 
@@ -25,4 +29,4 @@ See `FUNC-SIGN-04` for canonical guidance.
 
 ## Related
 
-FUNC-SIGN-04, TYP-PARM-02, TYP-PARM-03
+FUNC-SIGN-04, TYP-PARM-02, TYP-PARM-03, TYP-TYPE-01

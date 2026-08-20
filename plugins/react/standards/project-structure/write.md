@@ -105,7 +105,15 @@ Stop at the first yes. Do not skip tiers.
 ```typescript
 // ✅ GOOD: route-local components/ (no underscore)
 // src/app/dashboard/components/DashboardHeader.tsx
-export const DashboardHeader: FC<Props> = ({ title }) => <header>{title}</header>;
+import type { ComponentPropsWithoutRef, FC } from 'react';
+
+export type DashboardHeaderProps = Omit<ComponentPropsWithoutRef<'header'>, 'children'> & {
+  title: string;
+};
+
+export const DashboardHeader: FC<DashboardHeaderProps> = ({ title, ...headerProps }) => (
+  <header {...headerProps}>{title}</header>
+);
 
 // ✅ GOOD: page.tsx as composition layer only
 // src/app/dashboard/page.tsx
@@ -180,9 +188,16 @@ export const InvoiceListContainer: FC = () => {
 
 // ✅ GOOD: presentational — prop-in, JSX-out
 // src/features/billing/components/InvoiceRow.tsx
-export interface InvoiceRowProps { invoice: Invoice }
-export const InvoiceRow: FC<InvoiceRowProps> = ({ invoice }) => (
-  <li>{invoice.number} — {invoice.amount}</li>
+import type { ComponentPropsWithoutRef, FC } from 'react';
+
+import type { Invoice } from '../types/Invoice';
+
+export type InvoiceRowProps = Omit<ComponentPropsWithoutRef<'li'>, 'children'> & {
+  invoice: Invoice;
+};
+
+export const InvoiceRow: FC<InvoiceRowProps> = ({ invoice, ...listItemProps }) => (
+  <li {...listItemProps}>{invoice.number} — {invoice.amount}</li>
 );
 
 // ❌ BAD: container/presentational mix
@@ -274,12 +289,16 @@ src/components/<bucket>/
 ```typescript
 // ✅ GOOD: theme-aware, semantic variant, no brand identity
 // packages/ui/src/primitives/Button.tsx
-export interface ButtonProps {
+import type { ComponentPropsWithoutRef, FC, PropsWithChildren } from 'react';
+
+export type ButtonProps = PropsWithChildren<ComponentPropsWithoutRef<'button'>> & {
   variant?: 'primary' | 'secondary' | 'danger';
-  children: ReactNode;
-}
-export const Button: FC<ButtonProps> = ({ variant = 'primary', children }) => (
-  <button data-variant={variant} className="ui-button">{children}</button>
+};
+
+export const Button: FC<ButtonProps> = ({ variant = 'primary', className = '', children, ...buttonProps }) => (
+  <button {...buttonProps} data-variant={variant} className={`ui-button ${className}`}>
+    {children}
+  </button>
 );
 // brand variation handled at the app root via [data-brand="example"] + CSS variables (WT-CONTRACT-01, WT-VARIANT-01)
 

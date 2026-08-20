@@ -71,13 +71,15 @@ files. Never terminate the run before the overview upsert.
 1. List every `state_root/.state/works/<work-id>/` stream per the
    Essential contract — always the complete set, never narrowed by
    `[work-id-filter]`, because the overview upsert (step 7) must show every
-   stream. For each stream, read `state.md` to record its lifecycle status and
-   one-line headline. Partition the streams three ways: `initialized`, `active`,
-   and `blocked` are **continuable**; `reviewing` is **awaiting merge** — its
-   execution is finished and its pull request(s) are proposed, so it is not
-   continuable, but neither is it settled, and `essential:takeover` checks it for
-   merge evidence; `completed` and `retiring` become **index-only** rows. None of
-   these is an error.
+   stream. For each stream, read `state.md` to record its phase, any separate
+   `Blocked on:` value, and one-line headline. Partition the streams three ways:
+   `planned` and `working` are **continuable**, whether runnable or currently
+   blocked; `reviewing` is **awaiting landing** — its
+   execution is finished and its applicable submission is recorded, so it is
+   not continuable, but neither is it settled, and `essential:takeover` checks
+   it for the applicable landing evidence; `completed` is an **index-only** row
+   while it remains in `works/`. `archived` streams live outside `works/` and
+   are not indexed here. None of these is an error.
    Then apply the optional `[work-id-filter]` to the continuable streams to
    derive the **selected** streams (all continuable streams when no filter is
    given); only the selected streams get a full refresh (steps 2–6). The filter
@@ -104,7 +106,7 @@ files. Never terminate the run before the overview upsert.
    `state.md` with evidence and recheck triggers.
 5. Generate one UTC ISO-8601 timestamp for the whole run. For each continuable
    stream, rewrite `state.md` as the complete work context: goal, full
-   parent/subtask task table with marked status and evidence, lifecycle, success
+   parent/subtask task table with marked status and evidence, phase, success
    criteria, decisions, dependencies, blockers, review dispositions, evidence,
    durable promotion, specification location, and a prominent link to
    `state/working.md`. Include a `## Continuation` section persisting the current
@@ -125,7 +127,7 @@ files. Never terminate the run before the overview upsert.
    [references/document-templates.md](references/document-templates.md).
    Immediately before writing, re-read the current `overview.md` so a concurrent
    update from another session is not lost. Upsert one row per stream from
-   step 1 — work ID, lifecycle, headline, next action, `Location` (the checkout
+   step 1 — work ID, phase, blocker, headline, next action, `Location` (the checkout
    the stream is worked in: path plus kind and revision), and any `docs/` link
    in `Documentations` — and preserve every other row, and the authored
    `Goal` and `Requirements` sections, byte-for-byte. If no
@@ -144,7 +146,7 @@ files. Never terminate the run before the overview upsert.
   `state_root/.state/overview.md`; no unselected stream's files were
   rewritten.
 - `overview.md` now carries one up-to-date row per stream — each with its
-  lifecycle, `Location`, `Spec`, and `Documentations` — and every row it did not
+  phase, blocker, `Location`, `Spec`, and `Documentations` — and every row it did not
   own is unchanged.
 - A takeover could resume every continuable stream from the on-disk state alone —
   `## Continuation` names the current task, next owner, next action, and
@@ -156,7 +158,7 @@ files. Never terminate the run before the overview upsert.
 - Each selected stream's `state.md` is complete, internally consistent, and links
   `state/working.md`; the latter contains only current-focus summary and fast
   paths.
-- Every overview matches its children and canonical status vocabulary.
+- Every overview matches its children and canonical phase/task-status vocabularies.
 - Decisions, assumptions, deviations, blockers, review dispositions, evidence,
   promotion, and specification state are preserved per selected stream.
 - No secret, credential, absolute host path, path traversal, or symlink escape

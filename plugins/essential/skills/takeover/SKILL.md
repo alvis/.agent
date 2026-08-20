@@ -1,6 +1,6 @@
 ---
 name: takeover
-description: Resume paused work from the on-disk state under the default source tree's centralized .state/works/. With no argument, offer every incomplete work stream there, switching the working directory to the checkout a chosen stream is worked in. Settle every stream awaiting merge before offering the next task, then resolve pending decisions, always surface the unblocked streams as the recommended next work, delegate each stream's planning to the relevant lead role for a proposed team or workflow, and drive each selected stream toward its charter's success criteria. On completion, promote confirmed implementation and decisions to the repo's docs/ for every work type, and for coding streams delegate pull-request creation and monitoring to an executor agent running the relevant change-publication capability.
+description: Resume paused work from the default source tree's centralized .state/works/. Offer incomplete streams, settle each reviewing stream against its applicable landing evidence, resolve pending decisions, delegate planning to the relevant lead, and drive the selected stream toward its charter. Promote durable results before non-coding completion; route coding publication through the relevant change-publication capability.
 requirements:
   intelligence: high
 argument-hint: "[--revalidate]"
@@ -8,18 +8,17 @@ argument-hint: "[--revalidate]"
 
 # Takeover
 
-Resume paused work streams. Resumption always reads the work state
-already on disk under `.state/works/`: it enumerates the current source
-tree's streams, reads the default source tree's global
-`.state/overview.md` to also offer other trees' streams, and continues one
-tree's streams from their own files. Resumption resolves pending decisions and
+Resume paused work streams. Resumption always reads the centralized work state
+under the default source tree's `state_root/.state/works/`, then reads that
+tree's global `.state/overview.md` for each stream's recorded source-checkout
+`Location`. Resumption resolves pending decisions and
 hands each selected stream to the relevant implementation skill, one hand-off
 per runnable next action. Resumption
 does not stop at that first hand-off: it surfaces the unblocked streams as the
 recommended next work, delegates each stream's planning to the relevant lead
 role, and drives each selected stream toward its charter's success criteria. At
-completion it promotes confirmed implementation and decisions to the repo's
-`docs/` for every work type, and for a coding stream delegates pull-request
+completion it promotes every stable durable fact, recording evidenced
+`not required` when none exists, and for a coding stream delegates pull-request
 creation and monitoring to an executor agent running the relevant
 change-publication capability. State stays in `.state/`, persisted
 continuously by the state contract.
@@ -28,8 +27,8 @@ continuously by the state contract.
 
 - Use for continuing paused work streams.
 - Only one work stream is worked at a time. Finish the current stream — to
-  `reviewing` or `completed` — or leave it explicitly `blocked` before starting
-  another.
+  phase `reviewing` or `completed` — or record its phase plus a separate
+  `Blocked on:` value before starting another.
 - Do not assume `.state/` is versioned. It is not per-tree either: every
   worktree and workspace resolves to the same centralized state under the
   default source tree, so there is nothing to synchronize between trees.
@@ -44,10 +43,11 @@ continuously by the state contract.
   their reviews, comments, and CI; takeover only records the resulting PRs and
   never reimplements publication or monitoring mechanics. A non-coding stream
   produces no pull request.
-- Promotion of durable knowledge to the repo's versioned `docs/` happens at
-  completion for every work type, following the state lifecycle's promotion
-  contract; `.state/` stays ignored work memory in the default source
-  tree, persisted continuously by that same contract.
+- At completion, promote each stable durable fact to its authoritative
+  destination and record the promoted paths; when no such fact exists, record
+  evidenced `not required`. A coding pull request need not contain a promoted
+  document. `.state/` stays ignored work memory in the default source tree,
+  persisted continuously by the state contract.
 ## Inputs
 
 - Optional `--revalidate`: forces re-verification of each selected stream's
@@ -71,25 +71,26 @@ offering streams are the explicit takeover exception to global bootstrap
 ordering: they may run first because they do not touch a target project's
 artifacts.
 
-The selected stream's `.state/works/<work-id>/` state already exists in
-its tree, so resume from it in place. No bootstrap, anchor application, or
-disposable tree is involved: there is nothing to reconstruct. When the user
-selects a stream owned by a different source tree, first switch the working
-directory to that tree's root, because only the owning tree holds that stream's
-state and its matching checkout. A stream's identity is the one recorded in its
-own state; never mint a replacement.
+The selected stream's `state_root/.state/works/<work-id>/` state already exists
+under the default source tree, so resume it there. No bootstrap, anchor
+application, or disposable tree is involved: there is nothing to reconstruct.
+When its recorded `Location` names a different source checkout, switch the
+working directory to that checkout only for source work; continue every state
+lookup and write through the same centralized `state_root`. A stream's identity
+is the one recorded in that centralized state; never mint a replacement.
 
 Bootstrap remains required only when a resume must **create** work memory that
 does not exist — the normal ignore gate, then the resolver with that exact work
 ID and `--bootstrap`. A directory that is already present needs neither,
-because it already carries its own initialized state.
+because it already carries its own work state.
 
 ## Workflow
 
 L1. Enumerate **every** incomplete work stream. Resolve `state_root` and read
     each `state_root/.state/works/<work-id>/state.md` directly; the
-    continuable ones (lifecycle `initialized`, `active`, or `blocked`) are the
-    resume candidates. This on-disk state is the authority, and it is the same
+    continuable ones (phase `planned` or `working`) are the resume candidates;
+    `Blocked on:` is a separate field that determines whether a next action is
+    runnable, not a phase. This on-disk state is the authority, and it is the same
     set whichever worktree or workspace this session started in — no overview is
     required to resume.
 
@@ -102,26 +103,30 @@ L2. Additionally read the global `state_root/.state/overview.md` for each
     would have to be present (`state_root/.state/works/<work-id>/`).
 
 L2b. **Settle every `reviewing` stream before offering the next task.** A
-    `reviewing` stream has finished executing and proposed its pull request(s);
-    it is waiting only on merge evidence. For each one, check the recorded PR(s)
-    with `gh pr view <n> --json state,mergedAt`; with no PR recorded, fall back
-    to whether its branch is merged into the default branch, or to patch
-    equivalence. On merge evidence, set its lifecycle to `completed`, reconcile
+    `reviewing` stream has finished executing and recorded its applicable
+    submission. For coding work, check the recorded PR(s) with
+    `gh pr view <n> --json state,mergedAt`; with no PR recorded, fall back to
+    whether its changes are present on the default branch. For non-coding work,
+    check for explicit acceptance naming the accepter, artifact, and revision,
+    plus a promotion receipt listing every promoted durable path or evidenced
+    `not required`. On applicable landing evidence, clear the submission-wait
+    blocker, retain only an independently unresolved blocker with a concrete
+    owner or durable carrier, set its phase to `completed`, and reconcile
     its `overview.md` row, then use the graphical or structured user-input tool to ask whether to remove that
     stream's source tree from disk — routing any removal to
     [coding:cleanup](../../../coding/skills/cleanup/SKILL.md), which owns
     worktree inventory and per-target approval. Never run `git worktree remove`
     here, and never treat a merged branch alone as authorization to delete.
-    A stream with no merge evidence yet stays `reviewing` and is reported as
+    A stream with no applicable landing evidence yet stays `reviewing` and is reported as
     such. Only then continue to L3.
 
 L3. Offer the continuable streams through the graphical or structured user-input tool, grouped by the
     checkout each is worked in and defaulting to this one's streams; `reviewing`
-    streams that L2b could not settle, plus `completed` and `retiring` streams,
+    streams that L2b could not settle, plus `completed` streams,
     are not resumable, so exclude them and name them so the user sees why.
     Within each group, surface the **unblocked** streams first — those with a
     runnable next action and no decision still blocking it — as the recommended
-    next work, and annotate a `blocked` stream with the decision it is waiting on
+    next work, and annotate a stream carrying `Blocked on:` with the decision it is waiting on
     so the user sees why it is not yet runnable.
     Because only one stream is worked at a time, take a single selection. If the
     chosen stream's `Location` is a **different** checkout, switch the working
@@ -129,9 +134,10 @@ L3. Offer the continuable streams through the graphical or structured user-input
     code is resumed from inside the checkout that owns it, even though the state
     is shared. Verify the selected stream's
     `state_root/.state/works/<work-id>/state.md` exists and its on-disk
-    lifecycle is continuable, dropping any stale option.
+    phase is continuable, dropping any stale option.
 
-L4. For each selected stream, read its on-disk `.state/works/<work-id>/`
+L4. For each selected stream, read its on-disk
+    `state_root/.state/works/<work-id>/`
     state directly: `state/working.md` first when present, then `state.md`
     (including its `## Continuation` section: current task, next owner, next
     action, and continuation intent), its linked detail files, decisions, and the
@@ -140,7 +146,8 @@ L4. For each selected stream, read its on-disk `.state/works/<work-id>/`
     the current owner, and the next action; there is no separate validation step.
     Treat repository and runtime evidence as authoritative over stale local
     memory. No anchor application, disposable tree, or bootstrap is needed — the
-    work state and specification are already present in this source tree.
+    work state is already present under the default source tree; the recorded
+    `Location` affects only which source checkout is used for implementation.
 
 L5. Verify each selected stream's **source anchor** against the current checkout
     before handing work off. Read the anchor from that stream's `## Continuation`
@@ -155,8 +162,8 @@ L5. Verify each selected stream's **source anchor** against the current checkout
     to match. An anchor mismatch stops that
     stream only — other selected streams continue.
 
-L6. Reconcile a work directory this session did not write before treating it as
-    this tree's own. A `lease.json` left by another owner is never inherited:
+L6. Reconcile a centralized work directory this session did not write before
+    taking coordinator ownership. A `lease.json` left by another owner is never inherited:
     treat it as stale and claim the stream through the explicit `takeover` lease
     verb below, journaling the returned payload. Reconcile the stream's row into
     the default tree's `overview.md` with its current `Location`, and leave its
@@ -220,27 +227,32 @@ resolver failure, an unparseable `state.md`), stop that stream and recommend
     `done` — meet the completion obligations before moving on. State is already
     durable, the state contract persists it continuously, so this
     step only promotes, publishes, and parks the stream for review:
-    - **Durable docs (every work type).** Promote confirmed implementation and
-      decisions to the repo's versioned `docs/` per the state lifecycle's
-      promotion contract — its provenance front matter and closure promotion
-      receipt — respecting the state gate before any `docs/` write.
-      This applies to coding and non-coding streams alike; only stable knowledge
-      is promoted, never transient task state.
+    - **Durable promotion (work-type aware).** Inventory stable facts that must
+      outlive `.state/` and promote each to its authoritative destination,
+      including versioned `docs/` when documentation is the durable form.
+      Record the paths in the closure promotion receipt. When the stream
+      produced no stable durable fact, record evidenced `not required`; never
+      promote transient task state merely to manufacture a document.
     - **Pull requests (coding streams only).** When the completed stream's
-      continuation intent is code implementation, ensure the promoted `docs/` are
-      saved into the change so the working tree is clean, then delegate to an
+      continuation intent is code implementation, delegate the saved code
+      change to an
       executor agent running the relevant change-publication capability: it opens
       a **single pull request** for a small change or an ordered **stack** for
       dependent changes, and it owns monitoring the resulting PRs' reviews,
       comments, and CI. Confirm the capability is available before routing; if it
       is unavailable, report the equivalent action and the exact saved change to
       publish. Record the resulting PRs. A non-coding stream produces no pull
-      request and is named as skipped.
-    - **Park at `reviewing`.** Set the stream's lifecycle to `reviewing`, record
-      the PR reference(s) in `state.md`, and reconcile its `overview.md` row.
-      Finishing the work is not the same as the work having landed: only merge
-      evidence makes a stream `completed`, and L2b is where a later run collects
-      it. A non-coding stream with nothing to merge goes straight to `completed`.
+      request and is named as skipped. A coding PR does not require a promoted
+      document; any independently required durable promotion remains evidenced
+      by its receipt.
+    - **Park at `reviewing`.** Set the stream's phase to `reviewing`, record
+      the applicable submission in `state.md`, and reconcile its `overview.md`
+      row. Finishing the work is not the same as the work having landed: only
+      coding merge/default-branch evidence or non-coding explicit acceptance
+      plus a promotion receipt listing durable paths or evidenced `not required`
+      makes a stream `completed`, and L2b is where a later run collects
+      it. Non-coding work also enters `reviewing`; having nothing to merge does
+      not bypass explicit acceptance or the promotion receipt.
 
 13. Drive each selected stream toward completion. After a stream's hand-off
     returns, re-read its on-disk `state.md`: if its required executable leaves
@@ -248,7 +260,7 @@ resolver failure, an unparseable `state.md`), stop that stream and recommend
     stream reaches `reviewing`, re-surface the next **unblocked** stream — the
     one with a runnable next action and no blocking decision — as the recommended
     next work and continue from step 10 for it. Repeat until every selected
-    stream reaches `reviewing`/`completed`/`retiring` or hits a genuine blocker the
+    stream reaches `reviewing`/`completed` or hits a genuine blocker the
     user must resolve. The loop stays user-gated — selection and consequential
     decisions remain the user's — and bounded: stop and report when no selected
     stream makes progress or an escalation is unresolved, rather than looping
@@ -256,15 +268,15 @@ resolver failure, an unparseable `state.md`), stop that stream and recommend
     instead.
 
 14. Return every created or materially rewritten path in `generated_files`,
-   including promoted `docs/` paths. Do not run file sizing; the PM checks only
+   including durable promotion paths when any were required. Do not run file sizing; the PM checks only
    eligible work Markdown inside the target `.state/`.
 
 ## Verification
 
-- Exactly one stream was resumed; `completed` and `retiring` streams were
+- Exactly one stream was resumed; `completed` streams were
   excluded and named, and only the user-selected stream was resumed.
 - Every `reviewing` stream was settled before the next task was offered: its
-  PR(s) were checked for merge evidence, a merged stream became `completed` with
+  applicable landing evidence was checked, a landed stream became `completed` with
   its `overview.md` row reconciled, and any source-tree removal was offered to
   the user and routed to `coding:cleanup` rather than run here.
 - Resumption enumerated the centralized `state_root/.state/works/`, used
@@ -291,19 +303,19 @@ resolver failure, an unparseable `state.md`), stop that stream and recommend
   workflow; no plan was authored inline.
 - No pull-request work ran in the main session: creation and monitoring were
   delegated to an executor agent, and non-coding streams opened none.
-- Durable knowledge was promoted to `docs/` for every completed stream under the
-  promotion contract, while `.state/` stayed the persisted per-tree memory.
+- Every stable durable fact was promoted to its authoritative destination, or
+  the receipt evidenced `not required`; `.state/` stayed operational work memory.
 - No stream was written under a live foreign lease; every expired lease was
   claimed through the explicit `takeover` verb and journaled.
 
 ## Completion
 
 Prefix the unchanged implementation-skill reports with the workspace root, the
-selected source tree, the selected streams and each one's work directory, any
+selected source checkout, the selected streams and each one's centralized work directory, any
 divergent-anchor streams deferred to a re-run, the implementation skill chosen
 per stream from its declared continuation intent, the lead role's chosen topology
 (team or workflow) per stream, contradictions, decisions, materialized spec
-paths, promoted durable `docs/` paths, the pull requests the executor opened per
+paths, durable promotion paths or evidenced `not required`, the pull requests the executor opened per
 completed coding stream (URLs and single-PR-or-stack shape, with non-coding
 streams named as skipped), any claimed foreign leases, and `generated_files`.
 On rejection, name the invalid overview entry, stream, or source,

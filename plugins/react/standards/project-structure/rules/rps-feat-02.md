@@ -25,7 +25,7 @@ export const InvoiceList: FC = () => {
 
 // ✅ GOOD: split
 // src/features/billing/components/InvoiceList.tsx
-export interface InvoiceListProps { invoices: Invoice[] }
+export type InvoiceListProps = { invoices: Invoice[] };
 export const InvoiceList: FC<InvoiceListProps> = ({ invoices }) => (
   <ul className="invoice-list">{invoices.map((i) => <li key={i.id}>{i.number}</li>)}</ul>
 );

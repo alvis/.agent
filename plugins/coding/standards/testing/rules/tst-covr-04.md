@@ -1,4 +1,4 @@
-# TST-COVR-04: Delete Zero-Gain Tests
+# TST-COVR-04: Delete Redundant Zero-Gain Tests
 
 ## Intent
 
@@ -20,7 +20,7 @@ it("should process valid user B", fn); // coverageDelta === 0
 ## Edge Cases
 
 - When existing code matches prior violation patterns such as `coverageDelta === 0 // keep`, refactor before adding new behavior.
-- Retain a zero-gain test only when it verifies a uniquely critical behavior not captured elsewhere.
+- Retain a zero-gain test when it verifies any distinct behavior not captured elsewhere.
 
 ## Related
 

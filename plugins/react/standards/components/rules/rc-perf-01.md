@@ -22,11 +22,15 @@ export const BadComponent = ({ user }) => {
 };
 
 // ✅ GOOD: hoist or memoize
+import type { ComponentPropsWithoutRef, FC } from 'react';
+
 const PROFILE_STYLE = { margin: 10 };
 const PROFILE_OPTIONS = { showEmail: true };
 
-export const GoodComponent = ({ user }) => (
-  <UserProfile style={PROFILE_STYLE} options={PROFILE_OPTIONS} />
+export type GoodComponentProps = ComponentPropsWithoutRef<typeof UserProfile>;
+
+export const GoodComponent: FC<GoodComponentProps> = (profileProps) => (
+  <UserProfile {...profileProps} style={PROFILE_STYLE} options={PROFILE_OPTIONS} />
 );
 ```
 

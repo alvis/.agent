@@ -5,7 +5,7 @@
 
 ## Key Principles
 
-- 100% line coverage with ABSOLUTE MINIMUM tests (one test per unique path)
+- 100% statements, branches, functions, and lines with the minimum tests that preserve distinct behavioral evidence
 - TDD: write failing test -> implement -> refactor
 - Test descriptions: `it("should ...")`, symbol-scoped suites: `describe("fn:symbol")`, general suites: plain description
 - All mocks typed with `satisfies Partial<typeof import("...")>` or `satisfies Partial<RealType>` — never `Record<string, unknown>` or inline structural types
@@ -70,7 +70,7 @@ AAA spacing: blank lines between arrange/act/assert. No `// Arrange` / `// Act` 
 
 ### Coverage (TST-COVR)
 
-- **TST-COVR-01**: 100% line coverage required (excluding barrel/type-only files).
+- **TST-COVR-01**: 100% statements, branches, functions, and lines required (excluding approved barrel/type-only files).
 - **TST-COVR-02**: Critical failure, fallback, and validation branches require full coverage.
 - **TST-COVR-03**: One-test-at-a-time workflow: add one test, run coverage, decide next.
 - **TST-COVR-04**: Remove tests that add zero new coverage and no distinct behavior protection.
@@ -145,8 +145,8 @@ Pick the form by *what you assert*, not by call count:
 0. Before measuring, remove dead code — unused constants, regexps, no-value
    wrappers (`GEN-DESN-04`, `FUNC-ARCH-03`). Coverage applies to living code only.
 1. Write one test -> run coverage -> check delta
-2. Zero coverage gain? Delete the test
-3. Repeat until 100% line coverage
+2. Zero coverage gain? Keep the test only when it provides distinct behavioral evidence; otherwise delete it
+3. Repeat until statements, branches, functions, and lines all reach 100%
 
 ## Quick Reference
 
@@ -177,7 +177,7 @@ Pick the form by *what you assert*, not by call count:
 3. Need a mock? Only if dependency is IO/external/control-sensitive (`TST-MOCK-01`).
 4. Need hoisted mocks? Use only for call spying or error-path overrides (`TST-MOCK-02`).
 5. Reusing a hoisted/mock symbol in `vi.mock` factory? Export it directly, do not re-wrap with nested `vi.fn` (`TST-MOCK-15`).
-6. Adding a test now? Run coverage before and after, keep only positive-delta tests (`TST-COVR-03`, `TST-COVR-04`).
+6. Adding a test now? Run coverage before and after; keep positive-delta tests and zero-gain tests with distinct behavioral evidence (`TST-COVR-03`, `TST-COVR-04`).
 7. Structuring a test file? Enforce naming, canonical layout, and AAA spacing (`TST-STRU-01`, `TST-STRU-02`, `TST-STRU-03`).
 8. Needs an env var? Validate at file top with `throw`; never `runIf`/`skipIf` (`TST-CORE-11`).
 9. Asserting static data? Ask what it fails on — a legitimate data change means it's a change-detector; only a genuinely wrong value means it's a property worth keeping (`TST-CORE-10`).

@@ -9,7 +9,7 @@
 - No type-escape casts (`as unknown as`, `as never`) in production code
 - Strict import ordering: built-in, third-party, project modules, then type-only imports
 - Separate code and type imports; never mix in one statement
-- Named exports and named imports by default
+- Default exports only for documented external or runtime contracts; otherwise use named exports and imports
 - Top-level symbol ordering: imports, re-exports, types, constants, classes, functions
 - `const` by default; `let` only when reassignment is unavoidable
 
@@ -40,19 +40,19 @@
 
 - **TYP-MODL-01**: File order: imports, re-exports, types, constants, classes, functions.
 - **TYP-MODL-02**: Within each group, place public/root orchestration before helper/leaf details.
-- **TYP-MODL-03**: Use named exports by default. Default exports only when an external contract requires it.
+- **TYP-MODL-03**: Use named exports unless a documented external or runtime contract requires a default export.
 - **TYP-MODL-04**: In barrel files, use `export * from '#subpath'` for barrel sources; use explicit named exports for leaf sources.
 
 ### Parameters (TYP-PARM)
 
 - **TYP-PARM-01**: Never destructure optional objects directly in signatures without safe defaults or guarded merging. (→ `FUNC-SIGN-04`)
-- **TYP-PARM-02**: Exported functions with non-trivial input/output must use named interfaces or types. (→ `FUNC-SIGN-05`)
+- **TYP-PARM-02**: Exported functions with non-trivial input/output must use named contracts whose declaration form follows TYP-TYPE-01. (→ `FUNC-SIGN-05`)
 - **TYP-PARM-03**: Property ordering: required fields first, optional fields second, callback/function fields last.
-- **TYP-PARM-04**: Class dependency contracts (`XXXParams`/`XXXDependencies`/`XXXConfig`) name capabilities, not infrastructure handles. ✅ `Readonly<{ readUserById(id: string): Promise<User>; writeAuditEvent(event: AuditEvent): Promise<void> }>` ❌ `Readonly<{ database: Database; logger: Logger }>`.
+- **TYP-PARM-04**: Class dependency contracts (`XXXParams`/`XXXDependencies`/`XXXConfig`) name capabilities, not infrastructure handles. Define the named plain-object contract as an `interface`, with actions such as `readUserById` and `writeAuditEvent` instead of handles such as `database` and `logger`.
 
 ### Type System (TYP-TYPE)
 
-- **TYP-TYPE-01**: Use `interface` for object shape contracts; `type` for unions, intersections, mapped types, and computed types.
+- **TYP-TYPE-01**: Use `interface` for plain object shape contracts; `type` for unions, intersections, mapped types, and computed types. React component props are the explicit type-alias exception required by `RC-STRUCT-02`.
 - **TYP-TYPE-02**: Public interfaces and exported contract types must include compliant JSDoc.
 - **TYP-TYPE-03**: Use `readonly` where appropriate and `#field` for runtime-enforced privacy.
 - **TYP-TYPE-04**: Constrain generics with meaningful bounds; prefer built-in utility types when they reduce duplication.
@@ -76,8 +76,9 @@
 
 | Scenario | Use |
 |----------|-----|
-| Object shape contract, extendable API | `interface` |
+| Plain object shape, regardless visibility | `interface` |
 | Union, intersection, mapped, computed type | `type` |
+| React component props (`RC-STRUCT-02`) | exported `type` alias |
 
 ### Error Handling Strategy
 

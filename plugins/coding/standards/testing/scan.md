@@ -22,10 +22,10 @@ If a violation is detected, load the matching rule guide at `./rules/<rule-id>.m
 - DO NOT assert log output via scattered `toHaveBeenCalledWith(...)` or count-only checks; capture the logger as `vi.fn<LogFn>()` / `satisfies Partial<Logger>` and assert the full call sequence with `expect(log.mock.calls).toEqual([...])` [`TST-CORE-09`]
 - DO NOT write tests that restate static content — a value whose source of truth lives elsewhere: constant exports (frozen `Set`/`Map`/`Record`/array/scalar/`RegExp`), rosters, manifests, config maps, copy text, exact counts (`expect(templates).toHaveLength(23)`), barrel re-export identity (`expect(barrel.X).toBe(X)`), or exhaustive test-local lists of accepted category/grammar/template instances. Derive structural oracles from the authoritative classifier, grammar, schema, or template, independently of the behavior under test; iterating a copied list does not make it systematic. Encode compile-time shape via TypeScript types (`satisfies`, `as const`) in source, or test the consumer function that uses the content. EXCEPTION: a test asserting a **systematic property** that holds over the set regardless of the values (bound/cap, uniqueness, ordering, referential integrity, schema validity, round-trip preservation, and others) is NOT a violation and must not be removed. Decide by what the assertion fails on — fails when the data legitimately changes ⇒ change-detector, remove; fails only when the data is genuinely wrong ⇒ property, keep. The matcher never decides it: `assertEqual(len(rules), 30)` violates and `assertEqual(len(ids), len(set(ids)))` complies [`TST-CORE-10`]
 - DO NOT silently skip tests on missing env/config; `describe.runIf(...)`, `it.skipIf(process.env.X)`, or `if (!env.X) return` at suite/test level are forbidden — gate with a file-level `throw` so missing config hard-fails [`TST-CORE-11`]
-- DO NOT merge with line coverage below 100% required threshold [`TST-COVR-01`]
+- DO NOT merge with statements, branches, functions, or lines below 100% [`TST-COVR-01`]
 - DO NOT leave critical branch paths untested [`TST-COVR-02`]
 - DO NOT batch multiple tests before checking coverage [`TST-COVR-03`]
-- DO NOT keep zero-coverage-gain tests [`TST-COVR-04`]
+- DO NOT keep zero-coverage-gain tests unless they provide distinct behavioral evidence [`TST-COVR-04`]
 - DO NOT use mutable shared fixtures [`TST-DATA-01`]
 - DO NOT assert object/array fields one-by-one [`TST-DATA-02`]
 - DO NOT create factories without real variation needs [`TST-DATA-03`]
@@ -70,10 +70,10 @@ If a violation is detected, load the matching rule guide at `./rules/<rule-id>.m
 | `TST-CORE-09` | Log output asserted with scattered calls / count-only / untyped mock | `expect(log).toHaveBeenCalledWith('x')` + `expect(log).toHaveBeenCalledTimes(2)`; `const log = vi.fn()` without generic |
 | `TST-CORE-10` | Test asserts static content or uses an enumerated structural oracle instead of a systematic property | `expect(SUPPORTED_MIME_TYPES.has('image/png')).toBe(true)`; `expect(ROLES).toEqual(['admin', 'user'])`; `expect(templates).toHaveLength(23)`; `expect(EMOJIS).toContain(firstChar)`; `expect(headings).toEqual(['Summary', 'Context'])`; `expect(barrel.UserService).toBe(UserService)` |
 | `TST-CORE-11` | Test silently skips on missing env/config | `describe.runIf(process.env.TEST_DATABASE_URL)("fn:fetchUser", ...)`; `it.skipIf(!process.env.TEST_DATABASE_URL)("should ...", ...)`; `if (!process.env.TEST_DATABASE_URL) return` inside `describe("fn:fetchUser", ...)` |
-| `TST-COVR-01` | Line coverage is below 100% required threshold | `lines: 98 // required: 100` |
+| `TST-COVR-01` | Statements, branches, functions, or lines are below 100% | `branches: 98 // required: 100` |
 | `TST-COVR-02` | Critical branch path is untested | `if (err) throw err // untested` |
 | `TST-COVR-03` | Multiple tests written before coverage check | `it.each(cases)(...)` |
-| `TST-COVR-04` | Zero-coverage-gain test is kept | `coverageDelta === 0 // keep` |
+| `TST-COVR-04` | Zero-coverage-gain test without distinct behavioral evidence is kept | `coverageDelta === 0 // duplicate behavior` |
 | `TST-DATA-01` | Shared fixture is mutable | `let user = { id: "u1" }`; `let service: UserService;` |
 | `TST-DATA-02` | Object/array assertion is field-by-field | `expect(result.id).toBe("1")`; `expect(result.mime).toBe('application/octet-stream');` |
 | `TST-DATA-03` | Factory exists without real variation need | `const mk = () => new Service()`; `const createDefaultUser = () => ({ id: "u1", role: "user" })` used once |

@@ -41,7 +41,7 @@ If a violation is detected, load the matching rule guide at `./rules/<rule-id>.m
 | `FUNC-SIGN-01` | Missing explicit return type | `function parse(x){ return x }`; `function getUserById(id: string) {` |
 | `FUNC-SIGN-02` | Positional signature is overly long | `createUser(n,e,r,w,d)` |
 | `FUNC-SIGN-03` | Parameter names are non-standard | `fn(payload, cfg, extra)` |
-| `FUNC-SIGN-04` | Optional destructuring is unsafe | `const { a } = maybeOpts`; `function run({ id }: Options | undefined) {}`; `type Options = { model: string }` — Options field must be optional; `function run(opts: Options): R` — options param must be optional |
+| `FUNC-SIGN-04` | Optional destructuring is unsafe | `const { a } = maybeOpts`; `function run({ id }: Options | undefined) {}`; `interface Options { model: string }` — Options field must be optional; `function run(opts: Options): R` — options param must be optional |
 | `FUNC-SIGN-05` | Exported contract type is missing | `export function createUser(p:any)` |
 | `FUNC-SIGN-06` | Conditional spread for optional keys when consumer is undefined-tolerant | `{ ...(opts.filter ? { filter: opts.filter } : {}) }`; `{ ...(x !== undefined ? { x } : {}) }`; `{ ...(x != undefined ? { x } : {}) }` inside a `{ ... }` object literal whose consumer is Prisma / `JSON.stringify` / React props / destructuring with defaults |
 | `FUNC-SIGN-07` | Multi-positional constructor params, or param object stored whole as a `#dependencies` / `#deps` / `#internals` bag | `constructor(repo: Repo, log: Log, cache: Cache)`; `class C { #deps: Deps; constructor(deps: Deps) { this.#deps = deps; } }` |

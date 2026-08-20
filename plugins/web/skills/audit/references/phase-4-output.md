@@ -1,5 +1,7 @@
 # Canonical review rendering
 
+<report>
+
 Render actionable Markdown from `<audit-dir>/report-final.json`, or from
 `report.json` with explicit partial coverage when manual adjudication is not
 complete. Raw data remains evidence; canonical work review files are the human
@@ -23,7 +25,9 @@ Before rendering:
 ## Classification and writing
 
 Apply `review-template.md` and classify each finding exactly once. Map
-`critical|high|medium|low` to `P0|P1|P2|P3`, group by canonical review area,
+`critical|high|medium|low` to `P0|P1|P2|P3`; retain `info` as advisory raw
+evidence without a canonical priority ID unless stronger evidence raises its
+severity. Group actionable findings by canonical review area,
 then priority and stable source key. Before allocating an ID, load the applicable
 existing area file and reuse the canonical ID already paired with that source
 key. Allocate only genuinely new IDs using the area's canonical prefix and its
@@ -78,3 +82,5 @@ review/evidence paths, and coverage limitations rather than a competing report.
 Keep per-page and per-viewport data in JSON. Canonical findings cite every
 affected page. Sort the concise handoff's worst pages from lowest score upward,
 but retain all details in source evidence and review findings.
+
+</report>

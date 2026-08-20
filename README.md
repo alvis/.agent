@@ -37,12 +37,13 @@ Five rules are constitutional:
 Practical consequences you will see day to day:
 
 - **`.state/` is an operational projection, not the record of record.**
-  It is ignored working memory — rich, continuously persisted, and
-  reconstructible — held centrally in the default source tree, so every
+  It is ignored working memory — rich, continuously persisted, and not
+  byte-reconstructible — held centrally in the default source tree, so every
   worktree and workspace shares one view of the work. Every state change, discovery, and decision is stored
   immediately in the journal and its owning state file; accepted decisions,
   approvals, and published artifact identities also live in versioned
-  `docs/` and external anchors (issue, PR, Notion) via promotion records.
+  `docs/` and external anchors (issue, PR, Notion) via promotion records. The
+  projection becomes disposable only after durable promotion and closure.
 - **Completed work stays completed.** When a decision or spec change
   invalidates a finished task, its row keeps `✓ done` and gains
   `validity: stale (<reason>)`; new remediation tasks carry the rework. The
@@ -152,7 +153,7 @@ discipline:
 9. **Promote and retire.** Stable knowledge promotes to versioned `docs/`
    with provenance; every accepted decision gets an explicit disposition
    (promote to ADR / product / production record, retain in receipt, or
-   archive); only then is the operational projection deleted.
+   archive); only then is it removed from the live index and permanently archived.
 
 ### Golden development lifecycle
 
@@ -169,7 +170,7 @@ discipline:
 | 9. Reconcile the spec | Let implementation run the applicable Notion completion gate or local source/carrier recheck. | A change in specification content invalidates plan/code/review evidence; done tasks keep their status and gain stale validity with remediation tasks. |
 | 10. Save and finalize | On deferred `needs_save`, run the exact returned `/coding:commit --paths-from=... --manifest-sha256=...`; on `ready_for_finalization`, skip save; on `no_change`, stop. Then `/coding:finalize-commits` once. | The closed-set save preserves unrelated staged and dirty developer work. |
 | 11. Publish | If no PR was already published, run `/coding:pr create` only when the GitHub and `gh` prerequisites are satisfied; use `/coding:pr update` for an existing PR. | It creates or updates draft PRs and monitors CI. A human decides when a green draft becomes ready. |
-| 12. Close or pause | After acceptance and decision dispositions, propose the pull request(s) and set the work `reviewing`; it becomes `completed` only on merge evidence, which `/essential:takeover` checks on a later run. Or run `/essential:handover`. | Every required executable leaf must be done. A pause leaves the whole stream in `.state/works/<work-id>/`, ready for `/essential:takeover`. |
+| 12. Close or pause | After execution, review, and decision dispositions, set the work `reviewing` with its external landing or acceptance wait as a blocker. Coding work becomes `completed` on merge/default-branch evidence; non-coding work becomes `completed` on explicit acceptance plus a promotion receipt listing durable paths or evidenced `not required`. `/essential:takeover` checks the applicable landing evidence on a later run. Or run `/essential:handover`. | Every required executable leaf must be done. Coding work records its pull request(s); non-coding work records its reviewed deliverables and required accepter. Completion clears the resolved submission blocker and retains only independently unresolved blockers. A pause leaves the whole stream in `.state/works/<work-id>/`, ready for `/essential:takeover`. |
 
 When the target is a standalone or non-TypeScript repository, verify each
 selected skill against the repository's native commands before use.
@@ -222,9 +223,10 @@ or PR publication only after the local flow is understood.
 - To pause, run `/essential:handover`; to resume, `/essential:takeover`. The
   pause writes nothing but state, so it always completes — a stream whose code
   is still an uncommitted working copy is paused and resumed like any other.
-- `.state/` is ignored, so one reflexive `git clean -fdx` deletes it.
-  Keep a copy outside the repository; `essential:doctor` checks a restored
-  tree's structural integrity before it is resumed.
+- `.state/` is ignored, so one reflexive `git clean -fdx` deletes it. Active
+  state is not byte-reconstructible: keep a copy outside the repository until
+  durable promotion and closure; `essential:doctor` checks a restored tree's
+  structural integrity before it is resumed.
 - Handover and takeover write only under the default source tree's
   `.state/` (and the active tree's `docs/` at promotion). A continuation file anywhere else — `/tmp`, `.local/`, the repo
   root — is a bug, including when output is too large for a response.

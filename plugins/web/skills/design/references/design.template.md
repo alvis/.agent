@@ -294,7 +294,7 @@ Flat elements simply omit `box-shadow` — there is no "level 0" token.
 
 ### Touch Targets
 
-- Minimum interactive size: `{{44px}}` (WCAG 2.5.5 AAA)
+- Minimum interactive size: `{{44px}}` (stricter project rule, not WCAG AA)
 - Minimum spacing between targets: `{{8px}}`
 - Mobile CTAs: full-width below the sm breakpoint
 

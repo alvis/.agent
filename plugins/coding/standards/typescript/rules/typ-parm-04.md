@@ -14,11 +14,11 @@ interface ContextEngineDependencies {
   readonly getCurrentDate: () => Date;
 }
 
-type ContextEngineParams = Readonly<{
-  readContextSource(sourceId: string): Promise<ContextSource>;
-  writeContextReceipt(receipt: ContextReceipt): Promise<void>;
-  getCurrentDate(): Date;
-}>;
+interface ContextEngineParams {
+  readonly readContextSource: (sourceId: string) => Promise<ContextSource>;
+  readonly writeContextReceipt: (receipt: ContextReceipt) => Promise<void>;
+  readonly getCurrentDate: () => Date;
+}
 ```
 
 ### Why Capabilities Scale
@@ -41,11 +41,11 @@ const engine = new ContextEngine({
 
 ```typescript
 // ❌ BAD: infrastructure containers hide what the class actually needs
-type ContextEngineDependencies = Readonly<{
-  database: Database;
-  clock: Clock;
-  logger: Logger;
-}>;
+interface ContextEngineDependencies {
+  readonly database: Database;
+  readonly clock: Clock;
+  readonly logger: Logger;
+}
 
 class ContextEngine {
   readonly #database: Database;
@@ -66,4 +66,4 @@ This shape hides the real surface area, gives the class the entire keyring of ev
 
 ## Related
 
-TYP-PARM-02, TYP-PARM-03, TYP-TYPE-03, FUNC-SIGN-05, FUNC-SIGN-07, FUNC-ARCH-04, NAM-TYPE-03, NAM-FUNC-01
+TYP-PARM-02, TYP-PARM-03, TYP-TYPE-01, TYP-TYPE-03, FUNC-SIGN-05, FUNC-SIGN-07, FUNC-ARCH-04, NAM-TYPE-03, NAM-FUNC-01

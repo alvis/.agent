@@ -1,8 +1,9 @@
-# TST-COVR-01: 100% Line Coverage Required
+# TST-COVR-01: 100% Coverage Required
 
 ## Intent
 
-Line coverage must be 100% for target code, excluding approved ignore-file exceptions (barrel/type-only files).
+Statements, branches, functions, and lines must each reach 100% for target
+code, excluding approved ignore-file exceptions (barrel/type-only files).
 
 ## Fix
 
@@ -19,10 +20,10 @@ global: { lines: 100, statements: 100 }
 ## Requirements
 
 <IMPORTANT>
-- **100% line coverage** (excluding barrel and type files)
-- **100% branch coverage** for critical paths
+- **100% statements, branches, functions, and lines** (excluding barrel and type files)
 - Write tests ONE AT A TIME with coverage verification after each
-- If a test adds ZERO coverage improvement, DELETE IT immediately
+- If a test adds zero coverage improvement, keep it only when it provides
+  distinct behavioral evidence; otherwise delete it immediately
 - Remove dead code BEFORE measuring coverage — the 100% threshold applies to
   living code only. Never keep an unused symbol, no-value wrapper, or
   change-detector test to satisfy the threshold; delete the dead subject

@@ -17,7 +17,7 @@ This standard enforces requirements beyond common design practices:
 | Contrast "looks fine"                      | **WCAG AA floor: 4.5:1 normal text, 3:1 large text and UI components**   |
 | Spacing is eyeballed                       | **4px/8px base grid; all spacing values must land on grid**               |
 | Hardcoded values are common                | **Design tokens (CSS variables) required; hardcoded values flagged**      |
-| Accessibility is a nice-to-have            | **WCAG AA floor: keyboard nav, focus indicators, ARIA, touch targets**   |
+| Accessibility is a nice-to-have            | **WCAG AA floor plus a stricter project rule: 44px touch targets**       |
 | Some states can be skipped                 | **All 5 required: loading, empty, error, success, permission**           |
 | Navigation structure varies                | **Organized by user mental model; ≤7 top-level items; location indicated** |
 | Button labels like "OK" / "Submit" are fine | **Action-verb labels; layered help text; error = problem + cause + fix** |

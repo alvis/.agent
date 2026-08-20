@@ -4,8 +4,8 @@
 /essential:handover
 # Indexes every state_root/.state/works/<work-id>/ stream — the default
 # source tree's, whichever checkout you run from — refreshes each continuable
-# stream (initialized/active/blocked), leaves reviewing/completed/retiring
-# streams as index rows, and updates the global .state/overview.md beside
+# stream (planned/working, including separately blocked streams), leaves
+# reviewing/completed streams as awaiting/index-only rows, and updates the global .state/overview.md beside
 # them. No file is written outside .state/.
 ```
 
@@ -21,18 +21,19 @@
 # Resume. Offers every incomplete stream in the centralized works/, read from
 # on-disk state files, and reads overview.md for each stream's Location. Picking
 # a stream worked in another checkout switches the working directory there
-# first. It settles reviewing streams — merged PR means completed — before
+# first. It settles reviewing streams against their applicable landing evidence before
 # offering the next task. One stream at a time.
 ```
 
-A `reviewing`, `completed`, or `retiring` stream is **not** an error: it stays
-an index row and gets no refresh. Invalid work IDs and a missing Essential contract path are
+A `reviewing` or `completed` stream is **not** an error: it stays an awaiting
+or index-only row and gets no refresh. An archived stream lives outside
+`works/` and is not indexed. Invalid work IDs and a missing Essential contract path are
 explicit errors. A generic coding stream may omit a specification. There is no
 prefix-based or root-file compatibility fallback.
 
 ## Two streams
 
-`web-auth` (`active`) and `legacy-import` (`completed`) get one `overview.md`
+`web-auth` (`working`) and `legacy-import` (`completed`) get one `overview.md`
 row each; only `web-auth` has its `state.md` and `state/working.md` rewritten. A
 later takeover offers `web-auth` for selection and excludes `legacy-import` by
 name. When two continuable streams sit on **different** source anchors, takeover

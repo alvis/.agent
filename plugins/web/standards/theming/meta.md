@@ -25,7 +25,7 @@ The shared library ships a base CSS-variable contract with safe hardcoded fallba
 ```css
 /* ✅ GOOD: library declares the contract with a safe default */
 .ui-button {
-  background: var(--button-primary-bg, var(--color-brand, #111827));
+  background: var(--button-primary-bg, var(--ui-accent, #111827));
 }
 
 /* ❌ BAD: library hardcodes a brand color with no escape hatch */
@@ -36,11 +36,17 @@ The shared library ships a base CSS-variable contract with safe hardcoded fallba
 
 ### Three-Tier Fallback Chain
 
-Every component-level style resolves through `var(--component-specific, var(--semantic-token, hardcoded-default))`. The component token is the most specific override knob, the semantic token is the brand-wide palette, and the hardcoded default keeps the library shippable in isolation. A missing client theme MUST NEVER produce a broken UI.
+Every component-level style resolves through `var(--component-specific,
+var(--active-semantic-or-ui-token, hardcoded-default))`. The component token is
+the most specific override knob; mode-sensitive color uses an active `--ui-*`
+token; the literal keeps the library shippable in isolation. Per `CSS-MODE-04`,
+every active UI token aliases the corresponding raw light/dark token in each
+mode branch. Components never bypass it for `--theme-light-*`,
+`--theme-dark-*`, or a static brand color.
 
 ```css
 /* ✅ GOOD: three-tier resolution */
-background: var(--button-primary-bg, var(--color-brand, #111827));
+background: var(--button-primary-bg, var(--ui-accent, #111827));
 
 /* ❌ BAD: no semantic fallback, no hardcoded default */
 background: var(--button-primary-bg);
@@ -114,7 +120,7 @@ This standard enforces requirements beyond typical Tailwind / CSS-in-JS conventi
 | Standard Practice                                                          | Our Stricter Requirement                                                                                          |
 |----------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------|
 | Library ships a finished theme with brand colors                           | **Library ships a CSS-variable contract with safe defaults; client owns the theme**                               |
-| `var(--token)` with no fallback                                            | **Three-tier fallback: `var(--component, var(--semantic, hardcoded))`**                                           |
+| `var(--token)` with no fallback                                            | **Three-tier fallback: `var(--component, var(--active semantic/UI token, literal))`**                            |
 | Brand or visual variants (`blue`, `rounded`, `example`)                       | **Variants are semantic intent only (`primary`, `secondary`, `ghost`, `danger`)**                                  |
 | CSS variables named by position or color (`--ink-0`, `--c-violet`, `--color-accent-violet`) | **CSS variables named by role (`--color-ink-heading`, `--color-accent`); positional indices and color words anywhere in the name are forbidden** |
 | Mint size-tier tokens that re-implement Tailwind's scale (`--radius-md`, `--shadow-sm`, `--text-body-lg`) | **Use Tailwind utilities for default sizes (`rounded-md`, `shadow-sm`, `text-lg`); mint custom tokens only when they carry a role (`--radius-card`, `--shadow-elevated`)** |

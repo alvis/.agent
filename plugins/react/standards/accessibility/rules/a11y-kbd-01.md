@@ -13,7 +13,15 @@ Ensure all interactive elements are keyboard accessible. Custom controls must re
 
 ```typescript
 // ✅ GOOD: keyboard accessible custom element
-export const CustomButton: FC<Props> = ({ onClick, children }) => {
+import type { ComponentPropsWithoutRef, FC, PropsWithChildren } from 'react';
+
+export type CustomButtonProps = PropsWithChildren<
+  Omit<ComponentPropsWithoutRef<'div'>, 'onClick' | 'onKeyDown' | 'role' | 'tabIndex'>
+> & {
+  onClick?: () => void;
+};
+
+export const CustomButton: FC<CustomButtonProps> = ({ onClick, children, ...buttonProps }) => {
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
@@ -23,6 +31,7 @@ export const CustomButton: FC<Props> = ({ onClick, children }) => {
 
   return (
     <div
+      {...buttonProps}
       role="button"
       tabIndex={0}
       onClick={onClick}

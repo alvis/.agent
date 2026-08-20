@@ -40,7 +40,9 @@ export const Button: FC<ButtonProps> = ({ leadingIcon, children, ...props }) => 
 import { Button, type ButtonProps } from '@company/ui';
 import { LockIcon } from './LockIcon';
 
-export const CheckoutButton: FC<Omit<ButtonProps, 'leadingIcon'>> = (props) => (
+export type CheckoutButtonProps = Omit<ButtonProps, 'leadingIcon'>;
+
+export const CheckoutButton: FC<CheckoutButtonProps> = (props) => (
   <Button leadingIcon={<LockIcon aria-hidden />} variant="primary" {...props} />
 );
 

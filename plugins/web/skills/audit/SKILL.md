@@ -95,6 +95,7 @@ discovery.
    - `docs.md`: inaccurate or missing durable/user-facing design documentation;
    - `style.md`: mechanical token or repository-style violations.
 
+   Map `critical|high|medium|low` to `P0|P1|P2|P3`; keep `info` advisory.
    Write/update only applicable detail files. Preserve rule IDs, severity,
    route, viewport, selector, evidence paths, score, recommendation, acceptance
    check, and canonical finding disposition. Return zero counts for absent

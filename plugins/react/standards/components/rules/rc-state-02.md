@@ -14,7 +14,9 @@ When the same value is threaded through 3+ component layers, replace prop drilli
 // ✅ GOOD: context for deep prop drilling
 const UserContext = createContext<User | null>(null);
 
-export const UserProvider: FC<{ children: ReactNode }> = ({ children }) => {
+export type UserProviderProps = PropsWithChildren;
+
+export const UserProvider: FC<UserProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   return <UserContext.Provider value={user}>{children}</UserContext.Provider>;
 };

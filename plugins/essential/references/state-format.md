@@ -28,7 +28,7 @@ Root state metadata contains at least:
 - State role: `root`
 - Work ID: `eng-421-example`
 - Phase: `working`
-- Blocked on: `operator ruling on the retention window`
+- Blocked on: `accessibility review`
 - Charter: [goal.md](goal.md)
 - Plan source: `state.md`
 - Plan revision: `3`
@@ -80,12 +80,14 @@ the point where someone would re-pack it.
 | --- | --- |
 | `planned` | user-confirmed work ID, `--bootstrap` run, charter written |
 | `working` | an owner exists and at least one required leaf is runnable |
-| `reviewing` | every required leaf `done` **and** the pull request(s) recorded |
-| `completed` | recorded pull request(s) observed merged, or the changes observed on the default branch |
+| `reviewing` | every required leaf `done` and the applicable submission recorded: pull request(s) for coding work; reviewed deliverables and required accepter for non-coding work |
+| `completed` | coding work observed merged or present on the default branch; non-coding work explicitly accepted with a promotion receipt listing durable paths or evidenced `not required` |
 | `archived` | completed or parked; the directory has left `works/` |
 
 `- Blocked on:` is orthogonal to phase, and it is **nullable**: write the line
-only when the stream is stopped.
+only when the stream is stopped. In `planned` or `working`, it names an
+execution blocker. In `reviewing`, it may name the external landing or
+acceptance wait even though every required executable leaf is already `done`.
 
 | Line | Meaning |
 | --- | --- |
@@ -103,15 +105,16 @@ Duration is never typed into this field. It is derived at read time from
 `Last progress` — the last journal `status` event, or the marked `state.md`
 fallback ([overviews.md](overviews.md)) — so a stored day count cannot rot
 against the events that define it. Nor is a next action a value here: "due to
-be moved to archive" is derived from phase `completed`, recorded merge
-evidence, and the days since `Last progress`, and the doctor's `retention`
+be moved to archive" is derived from phase `completed`, recorded landing
+evidence, and the days since that landing evidence; the doctor's `retention`
 check computes it. A computed next action in a fact field is the defect this
 field exists without.
 
 `initialized`, `active`, `blocked`, and `retiring` are retired words —
 `initialized` is phase `planned`, `active` is `working`, `blocked` is
 `Blocked on: <who or what>` at whatever phase the stream actually sits in, and
-`retiring` is phase `completed` with `Blocked on: retention`. A file written
+`retiring` is phase `completed` with no retention blocker; archival readiness
+derives from landing evidence and elapsed time. A file written
 under the single `Lifecycle status` field keeps it until the coordinator's next
 explicit rewrite, which maps it through that list under the lazy-migration
 rule, never on read.
@@ -203,11 +206,15 @@ An executable task may become `working`, `done`, or `failed` only after every
 own dependency and every predecessor of its parent is `done`; a task that
 cannot be attempted is `blocked`, never `failed`.
 
-A stream with a runnable required executable leaf carries no `Blocked on:`
-line; a `Blocked on:` value needs unfinished required work and no runnable
-required leaf. Phase `reviewing` requires every required executable leaf to be
-`done` and the stream's pull request(s) recorded; `completed` is terminal,
-reachable only from `reviewing`, only on merge evidence.
+A `planned` or `working` stream with a runnable required executable leaf
+carries no `Blocked on:` line; its execution blocker requires unfinished
+required work and no runnable required leaf. Phase `reviewing` requires every
+required executable leaf to be `done` and the stream's applicable submission
+recorded, and MAY carry the named external landing/acceptance wait as its
+blocker. `completed` is terminal, reachable only from `reviewing`, only on the
+applicable landing evidence. That transition clears a resolved submission
+blocker and retains only a separate unresolved blocker whose owner and carrier
+remain independently valid.
 [stream-completion.md](stream-completion.md) states both in full. Passing
 tests do not reach `completed` while review, sync, publication, or history
 anchoring remains required.
@@ -215,7 +222,8 @@ anchoring remains required.
 ## Completion receipt
 
 A stream entering phase `completed` adds `## Completion receipt` to
-`state.md`, holding the merge evidence, every promoted `docs/` path, and every
+`state.md`, holding the applicable landing evidence, a promotion receipt that
+lists every promoted durable path or evidences `not required`, and every
 outlives-me item with the owner that took it. Its `overview.md` row is
 generated from this section, so parity is not a copy step — it is the check
 that nothing consequential was ever overview-only, and the row can be dropped

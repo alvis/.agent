@@ -75,7 +75,7 @@ locate the active workspace and `.state/`; on `requires_ignore` or
    Classify every observation:
    - **defect** — broken structure the doctor flagged (dangling
      dependencies, contradictory statuses, lease conflicts, broken links,
-     an inferred `Location`, a `completed` stream with no merge evidence or
+     an inferred `Location`, a `completed` stream with no applicable landing evidence or
      with unowned outlives-me debt, a stream with no charter at all, a
      `state.md` whose phase does not parse);
    - **format drift** — valid but older shapes that would migrate at the
@@ -141,19 +141,19 @@ none rewrites what a record already claims about the past.
 | `check` | Offer |
 |---|---|
 | `overview-monolith` | Move environment narrative into `.state/environment.md` and symptom→cause→do-this-instead lines into `.state/traps.md`, creating either when missing. `Goal` and `Requirements` are authored, never derived: carry them byte-for-byte. Drop a preamble paragraph only where the current table contradicts it, and say which. |
-| `lifecycle-vocabulary` | Rewrite the field as phase plus a nullable `Blocked on:` line — `initialized`→`planned`, `active`→`working`, `blocked`→`Blocked on: <who or what>` at the phase the stream actually sits in, `retiring`→`completed` + `Blocked on: retention`. Never an unnamed blocker: name it, or write `unknown`. |
+| `lifecycle-vocabulary` | Rewrite the field as phase plus a nullable `Blocked on:` line — `initialized`→`planned`, `active`→`working`, `blocked`→`Blocked on: <who or what>` at the phase the stream actually sits in, and `retiring`→`completed` with no retention blocker because archival readiness is derived. Never an unnamed blocker: name it, or write `unknown`. |
 | `motion-vocabulary` | Rewrite the retired `- Motion:` line — `running`→drop the line (nothing is blocking the stream), `idle <N>d`→`Blocked on: unknown` (no reason was ever recorded, and inventing one would be false), `waiting: X`→`Blocked on: X`, bare `waiting:`→`Blocked on: unknown`, anything else by hand as the named blocker or `unknown`. Duration is never typed: it derives from `Last progress`. |
-| `last-progress` | Derive the value from the last genuine journal `status` event. Where the journal is absent, a stub, or older than what `state.md` records, fall back to `state.md`'s dated lifecycle or merge evidence and mark the cell `(from state.md)` — an unmarked fallback is false freshness in a different costume. |
+| `last-progress` | Derive the value from the last genuine journal `status` event. Where the journal is absent, a stub, or older than what `state.md` records, fall back to `state.md`'s dated lifecycle or landing evidence and mark the cell `(from state.md)` — an unmarked fallback is false freshness in a different costume. |
 | `journal-segments` | Resolve the journal to its newest `NN-journal-*.md` segment before reading or appending; `journal.md` is an index there and its tail is not an event. |
 | `journal-freshness` | Record the missing transition, or take the marked `state.md` fallback. Never write a `status` line to make a stale stream look fresh. |
 | `location` | Record the absolute path plus tree kind, or `-`. An inferred anchor is replaced by `-`, never kept: inferring manufactures a fact the tree never stated. |
 | `overview-budget` | Replace the cell with one imperative sentence under 200 characters and move the narrative into the stream's `state/working.md`. |
-| `retention` (`warning`) | Move `works/<id>/` to `.state/archive/<id>/` **first**, then drop the overview row. While the stream sits in `works/` the row is its only index, so dropping it first hides live work; the order is not negotiable. |
+| `retention` (`warning`) | Once the applicable landing evidence has aged three days, move `works/<id>/` to `.state/archive/<id>/` **first**, then drop the overview row. While the stream sits in `works/` the row is its only index, so dropping it first hides live work; the order is not negotiable. |
 | `retention` (`info`) | A completed stream at `Blocked on: <named blocker>` **does not archive**, however old: `archive/` is resolver-skipped, so archiving drops its open question out of `Awaiting you`. Answer the named blocker, or give its answer a carrier that outlives the stream; the stream archives then and not before. `Blocked on: unknown` names no question, so it holds nothing and archives on the ordinary schedule. |
 | `state-metadata` | Split `Phase` and any `Blocked on:` onto their own lines, or add `Phase`. The reader is anchored one key per line, so a packed `- Phase: \`x\` · Blocked on: \`y\`` parses as neither — and `retention`, `merge-evidence`, `blocked-on` and `outlives-me` then skip the stream in silence and report a clean zero for it. `Blocked on:` is nullable: absent means not blocked, and is never added to satisfy a shape. |
 | `work-id-naming` | **Report only.** A work ID is an identity and is never renamed or reused; the fix is forward-only, on the next stream. |
 | `charter-provenance` | Add `Charter: approved \| reconstructed \| absent` to `goal.md`, recording what is true. Mark `approved` only where the user approved it; reconstruct from recorded history otherwise and leave it `reconstructed` until they do. |
-| `merge-evidence` | Record the merged pull request(s) or the observation on the default branch; where neither holds, return the stream to `reviewing`. An author's assertion is never merge evidence. |
+| `merge-evidence` | Preserve this check ID. For coding work, record merged pull request(s) or the observation on the default branch. For non-coding work, record explicit acceptance and a promotion receipt listing every promoted durable path or evidenced `not required`. Without the applicable landing evidence, return the stream to `reviewing`; an author's assertion alone is never evidence. |
 | `outlives-me` | Give every item an owner: promote it, open a successor stream, or file it in `.state/backlog.md` as id, one clause, source stream, owner or `unowned`. Filing is a rehoming that survives the row drop, not a deletion. |
 
 Two rules bind every migration above:

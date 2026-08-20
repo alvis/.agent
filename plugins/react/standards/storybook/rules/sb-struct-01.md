@@ -47,8 +47,13 @@ export const WithClick: Story = {
 // PaymentFlow.demo.stories.tsx - complex multi-component scenarios
 const meta = {
   title: 'Demos/E-Commerce/PaymentFlow',
+  component: PaymentForm,
   parameters: { layout: 'fullscreen' },
-};
+  tags: ['autodocs'],
+} satisfies Meta<typeof PaymentForm>;
+
+export default meta;
+type Story = StoryObj<typeof meta>;
 
 export const CompleteCheckout: Story = {
   render: () => (

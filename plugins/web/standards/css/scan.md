@@ -27,7 +27,7 @@ If a violation is detected, load the matching rule guide at `./rules/<rule-id>.m
 
 ### Two-Tier Tokens
 
-- DO NOT reference tier-1 raw mode tokens (`--theme-light-bg`, `--theme-dark-fg`, etc.) from component CSS — components consume only tier-2 active UI tokens (`--ui-bg`, `--ui-fg`) [`CSS-MODE-04`]
+- DO NOT reference tier-1 raw mode tokens (`--theme-light-bg`, `--theme-dark-fg`, etc.) from component CSS — styled declarations use component override → active tier-2 UI token → literal fallback [`CSS-MODE-04`]
 - DO NOT skip the tier-2 alias and consume tier-1 raw tokens directly inside a `[data-theme]` branch [`CSS-MODE-04`]
 - DO NOT inline mode-conditional values inside component selectors (e.g. `.card { background: #fff; } [data-theme="dark"] .card { background: #000; }`) — the alias lives in `@layer theme`, not on components [`CSS-MODE-04`]
 
@@ -38,4 +38,4 @@ If a violation is detected, load the matching rule guide at `./rules/<rule-id>.m
 | `CSS-MODE-01` | Wrong selector contract for color mode | `html.dark { … }`; `:root[data-mode="dark"] { … }`; `[data-color-scheme="dark"] { … }` |
 | `CSS-MODE-02` | JS-driven or attribute-defaulted system detection | `document.documentElement.classList.toggle('dark', mql.matches)`; `<html data-theme="light">` shipped as the default |
 | `CSS-MODE-03` | Color-mode tokens outside `@layer theme` or missing `color-scheme` | `:root { --ui-bg: #fff; }` at top level (unlayered); `:root[data-theme="dark"] { --ui-bg: #000; }` without `color-scheme: dark` |
-| `CSS-MODE-04` | Components read raw tier-1 tokens or inline mode conditionals | `.card { background: var(--theme-dark-bg); }`; `[data-theme="dark"] .card { background: #000; }` instead of `.card { background: var(--ui-bg); }` |
+| `CSS-MODE-04` | Components read raw tier-1 tokens or inline mode conditionals | `.card { background: var(--theme-dark-bg); }`; `[data-theme="dark"] .card { background: #000; }` instead of `.card { background: var(--card-bg, var(--ui-bg, #ffffff)); }` |

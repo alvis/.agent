@@ -46,8 +46,13 @@ type SerializedUser = Serialized<User>;
 ### Factory Pattern with Types
 
 ```typescript
+interface HandlerOptions {
+  method: string;
+  path: string;
+}
+
 interface HandlerFactory<T extends Handler> {
-  create(options: { path: string; method: string }): T;
+  create(options: HandlerOptions): T;
 }
 
 const apiHandlerFactory: HandlerFactory<ApiHandler> = {

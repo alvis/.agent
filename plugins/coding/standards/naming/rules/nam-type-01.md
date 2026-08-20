@@ -17,7 +17,7 @@ enum UserRole { Admin, Editor, Viewer }
 
 ```typescript
 interface CreateUserRequest { name: string; email: string; }
-type ApiResult<T> = { ok: boolean; value: T };
+interface ApiResult<T> { ok: boolean; value: T; }
 class ValidationError extends Error { /* ... */ }
 ```
 
@@ -28,8 +28,8 @@ class ValidationError extends Error { /* ... */ }
 | Domain models | Plain noun | `User`, `Order`, `Product` |
 | Request types | `*Request` suffix | `CreateUserRequest`, `UpdateOrderRequest` |
 | Response types | `*Response` suffix | `ApiResponse<T>`, `CreateUserResponse` |
-| Generic types | Single letter (T, K, V) | `Container<T>`, `Map<K, V>` |
-| Union types | Descriptive noun | `UserRole`, `Status`, `ApiResult<T>` |
+| Generic types | Single letter (T, K, V) | `Container<T>`, `Map<K, V>`, `ApiResult<T>` |
+| Union types | Descriptive noun | `UserRole`, `Status` |
 | Function types | Descriptive | `Validator<T>`, `EventHandler<T>` |
 
 ### Disallowed Prefixes

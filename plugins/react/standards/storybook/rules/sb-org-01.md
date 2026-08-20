@@ -13,10 +13,15 @@ Story titles must reflect component file structure for clear navigation in the S
 ```typescript
 // ✅ GOOD: path reflects file location
 // File: components/forms/Button.stories.tsx
-export default {
+import type { Meta } from '@storybook/react';
+
+const meta = {
   title: 'Components/Forms/Button',
   component: Button,
-} as Meta<typeof Button>;
+  tags: ['autodocs'],
+} satisfies Meta<typeof Button>;
+
+export default meta;
 
 // ❌ BAD: flat structure loses context
 export default {
@@ -29,7 +34,6 @@ export default {
 components/
   Button/
     Button.tsx
-    Button.spec.tsx
     Button.stories.tsx
   Forms/
     PaymentForm/
