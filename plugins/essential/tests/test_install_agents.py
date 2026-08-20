@@ -1631,10 +1631,11 @@ def test_source_checkout_installs_every_discovered_agent(tmp_path: Path) -> None
             (source_template.path / "frontmatter/meta.json").read_text(encoding="utf-8")
         )
         expected_projection = INTELLIGENCE_LEVELS[metadata["intelligence"]]["claude"]
-        installed_projection = {
-            field: agent[field] for field in ("model", "effort") if field in agent
-        }
-        assert installed_projection == expected_projection
+        for field in ("model", "effort"):
+            if field in expected_projection:
+                assert agent[field] == expected_projection[field]
+            else:
+                assert field not in agent
         assert "intelligence" not in agent
         assert "intelligenceLevel" not in agent
     expected_direction = (
