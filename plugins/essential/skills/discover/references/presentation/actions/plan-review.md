@@ -101,8 +101,8 @@ Save the board before presenting it, then compile a self-contained copy with the
 builder and present that file:
 
 ```bash
-scripts/build_artifact.py examples/src/plan-review          # self-contained full document
-scripts/build_artifact.py examples/src/plan-review --artifact  # head-less fragment for the Artifact tool
+scripts/build-artifact.ts examples/src/plan-review          # self-contained full document
+scripts/build-artifact.ts examples/src/plan-review --artifact  # head-less fragment for the Artifact tool
 ```
 
 The builder inlines the Tailwind runtime plus `discovery.css` and `discovery.js`

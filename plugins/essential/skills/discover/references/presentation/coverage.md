@@ -120,7 +120,7 @@ When adding or replacing a page:
    owner; and
 6. keep the action-specific structural hooks aligned with the visible
    composition; and
-7. run `scripts/test_html_templates.py --stage complete` before presenting the
+7. run `scripts/test-html-templates.ts --stage complete` before presenting the
    examples, then inspect every page at desktop and narrow widths.
 
 The coverage suite is a demonstration library, not a requirement that generated

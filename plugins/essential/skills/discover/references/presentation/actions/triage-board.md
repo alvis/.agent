@@ -78,8 +78,8 @@ Compile the board to a self-contained file and hand that to the user; never
 present a raw source directory. From the discover skill root:
 
 ```bash
-scripts/build_artifact.py examples/src/triage-board            # file:// document
-scripts/build_artifact.py examples/src/triage-board --artifact # Artifact fragment
+scripts/build-artifact.ts examples/src/triage-board            # file:// document
+scripts/build-artifact.ts examples/src/triage-board --artifact # Artifact fragment
 ```
 
 The builder inlines the Tailwind runtime, `discovery.css`, and `discovery.js`,

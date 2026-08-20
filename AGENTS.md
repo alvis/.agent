@@ -126,7 +126,7 @@ Enforced mechanically — each with the file that enforces it.
 | `SKILL.md` body < 500 lines | `plugins/governance/skills/write-skill/scripts/quick_validate.ts` |
 | Skill `description` 25–60 words (warning) | same |
 | No placeholder text (`[TODO]`, `[Description]`, …) and no unresolved local links | same |
-| Agent metadata `description` ≤ 1024 chars | `plugins/essential/skills/install-agents/scripts/stitch_agent.py` |
+| Agent metadata `description` ≤ 1024 chars | `plugins/essential/skills/install-agents/scripts/stitch_agent.ts` |
 | Agent metadata `name` matches `^[a-z0-9]+(?:-[a-z0-9]+)*$` and equals its directory name | same |
 | Agent metadata `intelligence` exists in `plugins/essential/skills/install-agents/references/intelligence-levels.json`; harness model/effort fields are derived | same |
 | Agent harness overlays **omit `tools`** (agents inherit runtime capabilities) | same |
@@ -173,19 +173,17 @@ Run every Python script and test through `uv`, pinning the interpreter with
 `--python`. `uv` fetches the requested version when it is absent, so the same command
 works on any machine.
 
-One command validates this repository, with no install step:
+Two commands validate this repository, with no install step:
 
 ```bash
-uvx pytest                                                              # everything
-uvx pytest plugins/essential/tests/test_install_agents.py
+bunx vitest@^4.0.0 run --globals --exclude '**/fixtures/**'
+uvx --python 3.13 pytest
 ```
 
-Every mechanical gate is a pytest test, so the suite and the gates cannot drift
-apart: the byte budgets, the skill policy gate, agent-template stitching, and
-the doc-path gate each fail as a named test beside the script that owns them.
-`.github/workflows/ci.yml` runs that same one command on every pull request and
-on pushes to `master`. Tests are configured by the root `pytest.ini`; there is
-no `package.json`.
+Mechanical gates are colocated `*.spec.ts` or remaining pytest tests, so the suites
+and gates cannot drift apart. `.github/workflows/ci.yml` runs both commands on every
+pull request and push to `master`. Pytest uses the root `pytest.ini`; Vitest uses the
+versioned runner directly.
 
 `claude plugin validate --strict .` checks the manifest and frontmatter schema
 against the installed CLI. It stays out of both the suite and CI, which is why

@@ -68,7 +68,7 @@ from the sections actually present.
 
 Every board — including a generated user artifact — is authored as modular
 sources: a `page.html` shell plus one file per section under `sections/`,
-composed with `scripts/build_artifact.py`. Never author one giant HTML file, and
+composed with `scripts/build-artifact.ts`. Never author one giant HTML file, and
 never reinvent the shell markup from scratch. Always start from the committed
 starter scaffold `templates/src/page/` (its `page.html` shell plus starter
 `sections/`): copy the whole directory into the session workspace, then fill its
@@ -229,9 +229,9 @@ compile a self-contained file with the builder before presenting it.
 
 ```bash
 # self-contained full document (file:// viewing, any host)
-scripts/build_artifact.py <board-source>
+scripts/build-artifact.ts <board-source>
 # head-less fragment ready to hand straight to the claude.ai Artifact tool
-scripts/build_artifact.py <board-source> --artifact
+scripts/build-artifact.ts <board-source> --artifact
 ```
 
 The builder composes the `page.html` shell with its `sections/` files, then

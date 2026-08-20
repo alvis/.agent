@@ -107,8 +107,8 @@ Build journals are throwaway review surfaces. Compile the modular source into a
 self-contained file and present that, never the raw source directory:
 
 ```bash
-scripts/build_artifact.py examples/src/build-journal            # file:// document
-scripts/build_artifact.py examples/src/build-journal --artifact # Artifact fragment
+scripts/build-artifact.ts examples/src/build-journal            # file:// document
+scripts/build-artifact.ts examples/src/build-journal --artifact # Artifact fragment
 ```
 
 The builder inlines the Tailwind runtime plus `discovery.css`/`discovery.js` and

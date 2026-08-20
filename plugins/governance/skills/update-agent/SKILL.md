@@ -107,9 +107,9 @@ stated behavior change. `create-agent` owns genuinely new roles.
 
 - Run Essential's deterministic stitch helper twice for every selected source set,
   writing only separate temporary outputs, and inspect both generated definitions:
-  `uv run --python 3.13 plugins/essential/skills/install-agents/scripts/stitch_agent.py plugins/<owner>/agents/<name> --harness claude --output <temporary-claude-path>`
+  `bun run plugins/essential/skills/install-agents/scripts/stitch_agent.ts plugins/<owner>/agents/<name> --harness claude --output <temporary-claude-path>`
   and
-  `uv run --python 3.13 plugins/essential/skills/install-agents/scripts/stitch_agent.py plugins/<owner>/agents/<name> --harness codex --output <temporary-codex-path>`.
+  `bun run plugins/essential/skills/install-agents/scripts/stitch_agent.ts plugins/<owner>/agents/<name> --harness codex --output <temporary-codex-path>`.
 - Always parse all three JSON files with
   `uv run --python 3.13 python -m json.tool`, check for
   placeholders, and validate the key surface, intelligence level,
