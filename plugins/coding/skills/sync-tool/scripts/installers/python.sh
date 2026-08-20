@@ -9,7 +9,7 @@
 #   - Windows (MINGW/MSYS/CYGWIN): winget install python3
 #
 # Honors DRY_RUN=1 (echo planned cmd) and FORCE=1 (reinstall even if present).
-# Verification: sync.py checks that python3 is present after install.
+# Verification: sync.ts checks that python3 is present after install.
 # Exits 0 on success; non-zero with stderr message on failure.
 #
 # Self-contained: no shared shell library.
