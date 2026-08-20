@@ -74,7 +74,7 @@ owns revisions to existing standards.
 - Resolve every local Markdown link from its containing file. Verify
   dependent-standard targets exist and no dependency cycle is introduced.
 - Run `claude plugin validate --strict plugins/<plugin>` and
-  `python3 "${GOVERNANCE_CREATE_STANDARD_SKILL_DIR}/../write-skill/scripts/quick_validate.py" plugins/<plugin>`
+  `bun run "${GOVERNANCE_CREATE_STANDARD_SKILL_DIR}/../write-skill/scripts/quick_validate.ts" plugins/<plugin>`
   for repository policy checks.
 - Exercise at least one violating and one compliant example per rule group
   against the scan/write guidance.

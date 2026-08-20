@@ -85,7 +85,7 @@ the promised outcome actually happened, not merely that steps ran. -->
 - Run the checks that demonstrate the promised outcome.
 - Validate the skill with
   `uvx --python 3.13 --from skills-ref agentskills validate "<skill-root>"`.
-- Run `<loaded-write-skill-root>/scripts/quick_validate.py --portable` against
+- Run `bun run <loaded-write-skill-root>/scripts/quick_validate.ts --portable` against
   the skill directory; it validates a containing Claude plugin when resolvable.
 
 ## Completion

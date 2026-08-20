@@ -19,4 +19,4 @@ patterns).
 
 `standards/` holds authoring and delegation policy, `references/` holds the
 context catalog and check format, and each authoring skill owns its templates.
-Validation entry point: `skills/write-skill/scripts/quick_validate.py`.
+Validation entry point: `skills/write-skill/scripts/quick_validate.ts`.

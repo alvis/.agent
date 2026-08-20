@@ -10,7 +10,7 @@ verification commands live in `SKILL.md`.
   frontmatter, and supporting-file contract.
 - Claude Code's validator owns Claude manifest and frontmatter schema
   correctness only.
-- `quick_validate.py` owns repository policies only; it must not duplicate the
+- `quick_validate.ts` owns repository policies only; it must not duplicate the
   evolving Claude schema. Its default run delegates schema validation to
   Claude; `--policy-only` is the bounded path when that validator is not
   available.
@@ -51,7 +51,7 @@ verification commands live in `SKILL.md`.
 2. Validate the portable core and load `references/harnesses.md`. Run only
    the applicable checks for the target harnesses. Report unavailable commands
    as not run or blocked rather than substituting a private validator.
-3. Resolve `scripts/quick_validate.py` from the loaded `write-skill` root and
+3. Resolve `scripts/quick_validate.ts` from the loaded `write-skill` root and
    invoke `--portable` separately for each enumerated skill file or directory.
    Review body length, description budget, root-contained references, and
    placeholders. Use `--policy-only` only when Claude validation is

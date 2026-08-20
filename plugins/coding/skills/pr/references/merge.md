@@ -245,7 +245,7 @@ chain before continuing.
   ```bash
   bash "$CODING_PR_SKILL_DIR/scripts/test-jj-range-push.sh"
   claude plugin validate --strict plugins/coding
-  uv run --python 3.13 plugins/governance/skills/write-skill/scripts/quick_validate.py plugins/coding/skills/pr
+  bun run plugins/governance/skills/write-skill/scripts/quick_validate.ts plugins/coding/skills/pr
   ```
 
 ## Completion
