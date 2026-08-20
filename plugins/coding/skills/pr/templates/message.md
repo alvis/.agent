@@ -3,7 +3,7 @@ Default PR message template for `coding:pr create` and `coding:pr update`
 (`coding:commit --create-pr` delegates to `create`).
 
 `coding:standards/git/` owns conformance findings. Validate rendered output
-with `scripts/scan-pr-message.py`; this file alone owns the bundled shape.
+with `bun run scripts/scan-pr-message.ts`; this file alone owns the bundled shape.
 
 This is the **default** PR template used when the repo has no GitHub PR
 template of its own checked in (e.g. `.github/PULL_REQUEST_TEMPLATE.md`).

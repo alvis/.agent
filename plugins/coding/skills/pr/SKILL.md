@@ -23,7 +23,7 @@ owned by `coding:review-code`.
 Each action reference owns its directions. Scan each implementation diff and
 rendered PR body against `coding:standards/git/`. Author PR bodies through
 [templates/message.md](templates/message.md), then validate them with
-[scripts/scan-pr-message.py](scripts/scan-pr-message.py). Render anchored
+[scripts/scan-pr-message.ts](scripts/scan-pr-message.ts). Render anchored
 review comments through [templates/inline-review.md](templates/inline-review.md)
 and the overall verdict through
 [templates/overall-review.md](templates/overall-review.md).

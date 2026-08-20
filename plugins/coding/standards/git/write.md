@@ -48,10 +48,10 @@
 
 - Author PR bodies from
   [message.md](../../skills/pr/templates/message.md), then run
-  [scan-pr-message.py](../../skills/pr/scripts/scan-pr-message.py) with the
+  [scan-pr-message.ts](../../skills/pr/scripts/scan-pr-message.ts) with Bun and the
   exact head/base OIDs, zone, archetype, generated paths, and selected
   template.
-- Run [classify-pr-size.py](../../skills/pr/scripts/classify-pr-size.py) against
+- Run [classify-pr-size.ts](../../skills/pr/scripts/classify-pr-size.ts) with Bun against
   the exact committed base/head pair.
 - Use each detailed rule guide for the smallest correction that makes the
   implementation diff or rendered message pass its mechanical and semantic

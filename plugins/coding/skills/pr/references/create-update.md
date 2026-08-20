@@ -51,7 +51,7 @@ the bundled body shape.
 ### Select the PR archetype
 
 For each head, choose the `--archetype` value accepted by
-`scripts/scan-pr-message.py` that best describes its implementation surface.
+`scripts/scan-pr-message.ts` that best describes its implementation surface.
 This controls conditional body evidence and scanner behavior only; repository
 labels come only from the receiving repository's live inventory below.
 
@@ -646,8 +646,7 @@ passes its base; text-only callers default to the first parent. Never invoke `gh
    is not a policy authority:
 
    ```bash
-   SIZE_JSON=$(uv run --python 3.13 \
-     "${CODING_PR_SKILL_DIR}/scripts/classify-pr-size.py" \
+   SIZE_JSON=$(bun run "${CODING_PR_SKILL_DIR}/scripts/classify-pr-size.ts" \
      --repo "$REPO_ROOT" --base "$BASE_OID" --head "$HEAD_OID")
    ```
 
@@ -772,8 +771,7 @@ passes its base; text-only callers default to the first parent. Never invoke `gh
    run:
 
    ```bash
-   if ! MESSAGE_SCAN=$(uv run --python 3.13 \
-     "${CODING_PR_SKILL_DIR}/scripts/scan-pr-message.py" \
+   if ! MESSAGE_SCAN=$(bun run "${CODING_PR_SKILL_DIR}/scripts/scan-pr-message.ts" \
      --body-file - --template "$TEMPLATE" --zone "$ZONE" \
      --archetype "$ARCHETYPE" --head-oid "$HEAD_OID" \
      --base-oid "$BASE_OID" --allow-pending-reviewers \
@@ -797,7 +795,7 @@ passes its base; text-only callers default to the first parent. Never invoke `gh
 ## Verification and Completion
 
 - The title matches the Conventional Commits regex and the rendered body passes
-  [scan-pr-message.py](../scripts/scan-pr-message.py). Every emitted body has
+  [scan-pr-message.ts](../scripts/scan-pr-message.ts). Every emitted body has
   behavioral Goal and Requirements sections and emoji-prefixed headings with
   no `[ Optional ]` authoring markers; a repo template is verbatim, or the
   bundled default has no placeholder or dropped-section stub. The same

@@ -269,8 +269,7 @@ Classify each size zone with the canonical read-only helper, then derive `ZONE`
 from `SIZE_JSON`:
 
 ```bash
-SIZE_JSON=$(uv run --python 3.13 \
-  "${CODING_PR_SKILL_DIR}/scripts/classify-pr-size.py" \
+SIZE_JSON=$(bun run "${CODING_PR_SKILL_DIR}/scripts/classify-pr-size.ts" \
   --repo "$REVIEW_DIR" --base "$BASE_OID" --head "$HEAD_OID")
 ```
 

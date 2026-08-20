@@ -13,8 +13,7 @@ operators.
 Calculate the active size zone with the canonical classifier:
 
 ```bash
-uv run --python 3.13 \
-  "${CODING_PR_SKILL_DIR}/scripts/classify-pr-size.py" \
+bun run "${CODING_PR_SKILL_DIR}/scripts/classify-pr-size.ts" \
   --repo "$REPO_ROOT" --base "$BASE_OID" --head "$HEAD_OID"
 ```
 

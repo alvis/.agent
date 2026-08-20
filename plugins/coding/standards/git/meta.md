@@ -21,9 +21,9 @@ message shapes. Those directions and templates are not standards.
 
 - [size-thresholds.json](../../skills/pr/assets/size-thresholds.json) is the
   sole numeric PR-size authority.
-- [classify-pr-size.py](../../skills/pr/scripts/classify-pr-size.py) scans an
+- [classify-pr-size.ts](../../skills/pr/scripts/classify-pr-size.ts) scans an
   exact committed base/head diff for size.
-- [scan-pr-message.py](../../skills/pr/scripts/scan-pr-message.py) scans a
+- [scan-pr-message.ts](../../skills/pr/scripts/scan-pr-message.ts) scans a
   rendered PR body against its selected template, exact revision, and
   conditional evidence.
 
