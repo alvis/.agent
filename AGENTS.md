@@ -132,7 +132,7 @@ Enforced mechanically — each with the file that enforces it.
 | Agent harness overlays **omit `tools`** (agents inherit runtime capabilities) | same |
 | Codex overlay values are scalar TOML fields; nickname candidates derive from metadata; shared prose makes no promise from Claude-only isolation | same |
 | `memory` is `"project"`; body has exactly one `## Memory` section | same |
-| Every injected payload ≤ 2,000 bytes, per plugin | `scripts/contract_footprint.py`, declared in `plugins/<p>/tests/test_contract_footprint.py` |
+| Every injected payload ≤ 2,000 bytes, per plugin | `scripts/contract_footprint.ts`, declared in `plugins/<p>/tests/test_contract_footprint.py` |
 | Every plugin's unconditional hook read chain ≤ 40,960 bytes | same |
 | `.state/` work Markdown flagged over 16,384 bytes | `plugins/essential/scripts/check-markdown-size` |
 | Subagent-dispatch/direct-message body ≤ 4,096 characters | `plugins/essential/references/orchestration.md` |

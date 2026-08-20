@@ -16,6 +16,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+      - name: vitest
+        run: bunx vitest@^4.0.0 run --globals --exclude '**/fixtures/**'
       # setup-uv publishes no floating major tag past v7, so this pins exactly.
       - uses: astral-sh/setup-uv@v9.0.0
       - name: uvx pytest
