@@ -22,13 +22,11 @@ entrypoints.
 Before dispatch, run:
 
 ```bash
-plugins/coding/scripts/pyrun.sh \
-  plugins/coding/scripts/scan_potential_violations.py \
+bun run plugins/coding/scripts/scan_potential_violations.ts \
   <discovered-files> --category all --before 5 --after 10
 ```
 
-The wrapper resolves Python 3.13+ and may route repair through
-`coding:sync-tool`. Surface a hard install failure. Candidate output is not a
+Surface a hard Bun runtime failure. Candidate output is not a
 finding until the assigned reviewer validates it.
 
 ## Areas
