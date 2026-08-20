@@ -4,49 +4,49 @@
 
 `plugins/web/skills/audit` is a hybrid audit system:
 
-- A Python CLI owns crawl planning, browser control, interaction replay, deduplication, report shaping, and JSON emission.
+- A TypeScript CLI running on Bun owns crawl planning, browser control, interaction replay, deduplication, report shaping, and JSON emission.
 - Injected browser-side JavaScript owns the actual DOM/CSS/layout audits.
 - `agent-browser` is the execution substrate for page control and JavaScript evaluation.
 
 The overall design is intentionally split so that:
 
-- Python can coordinate a site-level crawl and normalize outputs.
+- TypeScript can coordinate a site-level crawl and normalize outputs.
 - JavaScript can inspect real rendered DOM, CSSOM, geometry, and computed styles inside the page.
 
 ## 🧱 Top-Level Shape
 
 ```mermaid
 flowchart LR
-    U["User / skill orchestration"] --> CLI["Python CLI<br/>audit_cli.cli"]
+    U["User / skill orchestration"] --> CLI["Bun CLI<br/>audit_cli/cli.ts"]
     CLI --> Q["Queue + discovery<br/>crawl/, discover/"]
-    CLI --> B["Browser driver<br/>drive/browser.py"]
-    CLI --> S["Local script server<br/>drive/inject.py"]
+    CLI --> B["Browser driver<br/>drive/browser.ts"]
+    CLI --> S["Local script server<br/>drive/inject.ts"]
 
     B --> AB["agent-browser batch CLI"]
     S --> JS["Injected audit scripts<br/>scripts/*.js"]
     JS --> AGG["window.runDesignAudit()"]
     AGG --> CLI
 
-    CLI --> FLAG["AI flagging<br/>report/flag_ai.py"]
-    CLI --> SCORE["Site scoring<br/>report/aggregate.py"]
-    CLI --> OUT["report.json<br/>report/emit.py"]
+    CLI --> FLAG["AI flagging<br/>report/flag_ai.ts"]
+    CLI --> SCORE["Site scoring<br/>report/aggregate.ts"]
+    CLI --> OUT["report.json<br/>report/emit.ts"]
 ```
 
 ## 🗂️ Directory Map
 
-| Path | Responsibility |
-| --- | --- |
-| [`../../../scripts/audit-cli/audit_cli/cli.py`](../../../scripts/audit-cli/audit_cli/cli.py) | CLI entrypoint, crawl orchestration, report assembly |
-| [`../../../scripts/audit-cli/audit_cli/crawl/page.py`](../../../scripts/audit-cli/audit_cli/crawl/page.py) | Per-page, per-viewport runtime pipeline |
-| [`../../../scripts/audit-cli/audit_cli/crawl/queue.py`](../../../scripts/audit-cli/audit_cli/crawl/queue.py) | Same-origin BFS queue and interaction dedup |
-| [`../../../scripts/audit-cli/audit_cli/discover/interactions.py`](../../../scripts/audit-cli/audit_cli/discover/interactions.py) | AX snapshot based interaction planning |
-| [`../../../scripts/audit-cli/audit_cli/discover/routes.py`](../../../scripts/audit-cli/audit_cli/discover/routes.py) | Source route discovery across frameworks |
-| [`../../../scripts/audit-cli/audit_cli/discover/sitemap.py`](../../../scripts/audit-cli/audit_cli/discover/sitemap.py) | `sitemap.xml` and `robots.txt` discovery |
-| [`../../../scripts/audit-cli/audit_cli/drive/browser.py`](../../../scripts/audit-cli/audit_cli/drive/browser.py) | Thin `agent-browser batch` wrapper |
-| [`../../../scripts/audit-cli/audit_cli/drive/inject.py`](../../../scripts/audit-cli/audit_cli/drive/inject.py) | Hosts and injects JS scripts |
-| [`../../../scripts/audit-cli/audit_cli/report/*.py`](../../../scripts/audit-cli/audit_cli/report) | Scoring, AI routing, JSON emission |
-| [`../../../scripts/audit-cli/audit_cli/types.py`](../../../scripts/audit-cli/audit_cli/types.py) | Contract dataclasses |
-| [`scripts/*.js`](../scripts) | In-browser audit modules |
+| Path                                                                                                                             | Responsibility                                                                 |
+| -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| [`../../../scripts/audit-cli/audit_cli/cli.ts`](../../../scripts/audit-cli/audit_cli/cli.ts)                                     | Executable and importable CLI entrypoint, crawl orchestration, report assembly |
+| [`../../../scripts/audit-cli/audit_cli/crawl/page.ts`](../../../scripts/audit-cli/audit_cli/crawl/page.ts)                       | Per-page, per-viewport runtime pipeline                                        |
+| [`../../../scripts/audit-cli/audit_cli/crawl/queue.ts`](../../../scripts/audit-cli/audit_cli/crawl/queue.ts)                     | Same-origin BFS queue and interaction dedup                                    |
+| [`../../../scripts/audit-cli/audit_cli/discover/interactions.ts`](../../../scripts/audit-cli/audit_cli/discover/interactions.ts) | AX snapshot based interaction planning                                         |
+| [`../../../scripts/audit-cli/audit_cli/discover/routes.ts`](../../../scripts/audit-cli/audit_cli/discover/routes.ts)             | Source route discovery across frameworks                                       |
+| [`../../../scripts/audit-cli/audit_cli/discover/sitemap.ts`](../../../scripts/audit-cli/audit_cli/discover/sitemap.ts)           | `sitemap.xml` and `robots.txt` discovery                                       |
+| [`../../../scripts/audit-cli/audit_cli/drive/browser.ts`](../../../scripts/audit-cli/audit_cli/drive/browser.ts)                 | Thin `agent-browser batch` wrapper                                             |
+| [`../../../scripts/audit-cli/audit_cli/drive/inject.ts`](../../../scripts/audit-cli/audit_cli/drive/inject.ts)                   | Hosts and injects JS scripts                                                   |
+| [`../../../scripts/audit-cli/audit_cli/report`](../../../scripts/audit-cli/audit_cli/report)                                     | TypeScript scoring, AI routing, and JSON emission modules                      |
+| [`../../../scripts/audit-cli/audit_cli/types.ts`](../../../scripts/audit-cli/audit_cli/types.ts)                                 | Readonly wire-contract interfaces                                              |
+| [`scripts/*.js`](../scripts)                                                                                                     | In-browser audit modules                                                       |
 
 ## 🛣️ End-to-End Runtime Flow
 
@@ -56,12 +56,12 @@ sequenceDiagram
     participant CLI as audit_cli
     participant Queue as CrawlQueue
     participant Driver as BrowserDriver
-    participant Server as serve_audit_scripts
+    participant Server as serveAuditScripts
     participant Page as Browser page
     participant JS as Injected JS
 
-    User->>CLI: python3 -m audit_cli audit <target>
-    CLI->>CLI: _check_agent_browser()
+    User->>CLI: bun audit_cli/cli.ts audit <target>
+    CLI->>CLI: checkAgentBrowser()
     CLI->>Queue: seed target URL
     CLI->>Queue: add source routes / sitemap URLs / manual seeds
     CLI->>Server: start localhost script server
@@ -95,10 +95,10 @@ sequenceDiagram
 
 ### 🔌 Entrypoint And Process Model
 
-[`cli.py`](../../../scripts/audit-cli/audit_cli/cli.py) exposes:
+[`cli.ts`](../../../scripts/audit-cli/audit_cli/cli.ts) is both executable and importable:
 
-- `python3 -m audit_cli`
-- `audit-cli`
+- `bun audit_cli/cli.ts audit <target>` executes the command.
+- TypeScript consumers can import its exported parser, preflight, and orchestration functions.
 
 The only implemented subcommand is `audit`.
 
@@ -124,18 +124,18 @@ This means the CLI is designed to combine runtime discovery with source-derived 
 
 The code currently defines four default viewports, not three:
 
-| Kind | Label | Size |
-| --- | --- | --- |
-| `mobile` | `Mobile 390x844` | `390x844` |
-| `tablet` | `Tablet 820x1180` | `820x1180` |
-| `desktop` | `Desktop 1440x900` | `1440x900` |
-| `wide` | `Wide 1920x1080` | `1920x1080` |
+| Kind      | Label              | Size        |
+| --------- | ------------------ | ----------- |
+| `mobile`  | `Mobile 390x844`   | `390x844`   |
+| `tablet`  | `Tablet 820x1180`  | `820x1180`  |
+| `desktop` | `Desktop 1440x900` | `1440x900`  |
+| `wide`    | `Wide 1920x1080`   | `1920x1080` |
 
 `--viewport all` runs all four.
 
 ### 🧭 Queue Semantics
 
-[`queue.py`](../../../scripts/audit-cli/audit_cli/crawl/queue.py) implements:
+[`queue.ts`](../../../scripts/audit-cli/audit_cli/crawl/queue.ts) implements:
 
 - Same-origin BFS URL storage
 - URL normalization
@@ -151,7 +151,7 @@ That interaction-level dedup is important because the crawler tries to avoid re-
 
 ### 🧼 URL Normalization
 
-`normalize_url()` canonicalizes URLs by:
+`normalizeUrl()` canonicalizes URLs by:
 
 - lowercasing scheme and host
 - removing fragments
@@ -164,7 +164,7 @@ This keeps crawl identity stable without over-normalizing dynamic query-based pa
 
 ### 🤖 `BrowserDriver`
 
-[`drive/browser.py`](../../../scripts/audit-cli/audit_cli/drive/browser.py) is deliberately thin. It does not maintain a persistent REPL. Instead, every action shells out to:
+[`drive/browser.ts`](../../../scripts/audit-cli/audit_cli/drive/browser.ts) is deliberately thin. It does not maintain a persistent REPL. Instead, every action shells out to:
 
 ```bash
 agent-browser batch --bail --json
@@ -194,13 +194,13 @@ The driver has two ownership modes:
 
 That means the current implementation optimizes for browser-session ownership boundaries, not for fully browser-managed multi-page navigation when attached to an external session.
 
-Tests in [`test_browser_cdp_url.py`](../../../tests/audit-cli/test_browser_cdp_url.py) and [`test_cli_cdp_url.py`](../../../tests/audit-cli/test_cli_cdp_url.py) pin this behavior.
+Tests in [`browser_cdp_url.spec.ts`](../../../scripts/audit-cli/audit_cli/drive/browser_cdp_url.spec.ts) and [`cli-cdp-url.spec.ts`](../../../scripts/audit-cli/audit_cli/cli-cdp-url.spec.ts) pin this behavior.
 
 ## 🚚 Script Serving And Injection
 
 ### 🖥️ Localhost Script Server
 
-[`drive/inject.py`](../../../scripts/audit-cli/audit_cli/drive/inject.py) starts a temporary `ThreadingHTTPServer` rooted at the shared `scripts/` directory.
+[`drive/inject.ts`](../../../scripts/audit-cli/audit_cli/drive/inject.ts) starts a temporary Node HTTP server rooted at the shared `scripts` directory.
 
 This exists for a concrete reason:
 
@@ -233,7 +233,7 @@ For each file, the injector:
 Only after all modules are ready does it call:
 
 ```js
-window.runDesignAudit({ viewport, viewportLabel })
+window.runDesignAudit({ viewport, viewportLabel });
 ```
 
 ### 🧰 Dormant And Legacy Files
@@ -241,11 +241,10 @@ window.runDesignAudit({ viewport, viewportLabel })
 Two script-side files are not part of the current active path:
 
 - [`scripts/navigation-audit.js`](../scripts/navigation-audit.js): implemented, but not injected and not referenced by the aggregator
-- [`scripts/serve.py`](../scripts/serve.py): a standalone legacy file server; current CLI uses `serve_audit_scripts()` instead
 
 ## 📄 Per-Page Audit Pipeline
 
-[`crawl/page.py`](../../../scripts/audit-cli/audit_cli/crawl/page.py) is the runtime heart of the system.
+[`crawl/page.ts`](../../../scripts/audit-cli/audit_cli/crawl/page.ts) is the runtime heart of the system.
 
 For each page and each viewport it performs:
 
@@ -270,13 +269,13 @@ The follow-up runs are for UI that only exists after interaction, such as:
 - hover-only feedback
 - modals
 
-The Python layer therefore behaves like a small state explorer wrapped around deterministic JS audits.
+The TypeScript layer therefore behaves like a small state explorer wrapped around deterministic JS audits.
 
 ## 🫳 Interaction Discovery And Replay
 
 ### 🪪 Snapshot-Driven Discovery
 
-[`discover/interactions.py`](../../../scripts/audit-cli/audit_cli/discover/interactions.py) does not inspect DOM directly. It works from the `agent-browser snapshot -i --json` accessibility tree.
+[`discover/interactions.ts`](../../../scripts/audit-cli/audit_cli/discover/interactions.ts) does not inspect DOM directly. It works from the `agent-browser snapshot -i --json` accessibility tree.
 
 This makes interaction planning resilient to framework differences and aligns with `agent-browser`’s element addressing model (`@e<uid>`).
 
@@ -329,7 +328,7 @@ When `all_pages=True`:
 
 The hover pass is separate from the baseline audit scripts.
 
-Python:
+TypeScript:
 
 1. captures a bundle of computed style values
 2. hovers the element
@@ -353,7 +352,7 @@ This synthetic finding becomes `DES-STAT-01`.
 
 ### 🪟 Modal Pass
 
-For each click replay, Python compares visible modal count before and after the click.
+For each click replay, TypeScript compares visible modal count before and after the click.
 
 If the count increases:
 
@@ -373,14 +372,7 @@ If dismissal still fails, `_dismiss()` escalates:
 All active audit modules expose a global `window.run...` function and return the same general shape:
 
 ```js
-{
-  auditId,
-  label,
-  issueCount,
-  issues,
-  manualReview,
-  stats
-}
+({ auditId, label, issueCount, issues, manualReview, stats });
 ```
 
 That uniform contract is what allows the aggregator to stay generic.
@@ -437,7 +429,7 @@ Key checks:
 - touch target size
 - repeated generic CTA labels such as “learn more”
 
-This script does not handle hover states or modal accessibility. Those are layered in later by Python plus `modal-audit.js`.
+This script does not handle hover states or modal accessibility. Those are layered in later by TypeScript plus `modal-audit.js`.
 
 ### 📱 `mobile-layout-audit.js`
 
@@ -537,7 +529,7 @@ Key checks:
 - missing accessible name
 - missing visible close affordance
 
-Escape dismissal is intentionally not implemented here; Python determines that by observing runtime behavior after pressing `Escape`.
+Escape dismissal is intentionally not implemented here; TypeScript determines that by observing runtime behavior after pressing `Escape`.
 
 ### 🧮 `design-audit-aggregator.js`
 
@@ -561,20 +553,20 @@ Its active `CATEGORY_MAP` currently includes only these categories:
 - `spatial`
 - `css`
 
-So even though `modal-audit.js` is injected, it is not part of the baseline category sweep. It is a replay-only helper invoked directly by Python.
+So even though `modal-audit.js` is injected, it is not part of the baseline category sweep. It is a replay-only helper invoked directly by TypeScript.
 
-## 🔗 Python ↔ JavaScript Contract Boundary
+## 🔗 TypeScript ↔ JavaScript Contract Boundary
 
 ```mermaid
 flowchart TD
     JS1["Each audit module returns<br/>{auditId,label,issues,manualReview,stats}"]
     JS2["design-audit-aggregator.js<br/>returns unified contractVersion 2.0 report"]
-    PY1["inject.py parses JSON<br/>from agent-browser eval envelope"]
-    PY2["cli.py walks categories[*].issues"]
-    PY3["flag_ai.py converts issue -> Finding"]
-    PY4["emit.py writes contract_version 3.0 report.json"]
+    TS1["inject.ts parses JSON<br/>from agent-browser eval envelope"]
+    TS2["cli.ts walks categories[*].issues"]
+    TS3["flag_ai.ts converts issue -> Finding"]
+    TS4["emit.ts writes contract_version 3.0 report.json"]
 
-    JS1 --> JS2 --> PY1 --> PY2 --> PY3 --> PY4
+    JS1 --> JS2 --> TS1 --> TS2 --> TS3 --> TS4
 ```
 
 There are two report contracts in play:
@@ -591,9 +583,9 @@ Returned by `window.runDesignAudit()`:
 - `manualReview`
 - warnings/skips
 
-### 🟦 Python Emitted Contract
+### 🟦 TypeScript Emitted Contract
 
-Written by [`types.Report`](../../../scripts/audit-cli/audit_cli/types.py):
+Written from the [`Report`](../../../scripts/audit-cli/audit_cli/types.ts) interface:
 
 - `contract_version: "3.0"`
 - `target`
@@ -606,13 +598,13 @@ Written by [`types.Report`](../../../scripts/audit-cli/audit_cli/types.py):
 - `cross_origin_candidates`
 - `warnings`
 
-The Python contract is richer in shape but only partially populated today.
+The TypeScript contract is richer in shape but only partially populated today.
 
 ## 📦 Report Data Model
 
 ### 🧊 Immutable Core Types
 
-[`types.py`](../../../scripts/audit-cli/audit_cli/types.py) defines frozen dataclasses for:
+[`types.ts`](../../../scripts/audit-cli/audit_cli/types.ts) defines readonly interfaces for:
 
 - `Finding`
 - `Evidence`
@@ -639,7 +631,7 @@ These are meant to be stable wire-contract objects, not mutable runtime accumula
 
 ### 🔄 Raw Issue To `Finding`
 
-`build_finding_from_issue()` maps JS issue objects into typed findings:
+`buildFindingFromIssue()` maps JS issue objects into typed findings:
 
 - For AI routing, the current typed-finding adapter maps `critical` to `p0`,
   `high` to `p1`, and every remaining input to `p2`.
@@ -651,7 +643,7 @@ These are meant to be stable wire-contract objects, not mutable runtime accumula
 
 ### 🤔 AI Review Routing
 
-[`flag_ai.py`](../../../scripts/audit-cli/audit_cli/report/flag_ai.py) marks findings for subjective review if any of these are true:
+[`flag_ai.ts`](../../../scripts/audit-cli/audit_cli/report/flag_ai.ts) marks findings for subjective review if any of these are true:
 
 1. The rule is one of the 11 AI-grounded design rules.
 2. The issue confidence is below `0.7`.
@@ -663,7 +655,7 @@ This is policy-only routing. The current CLI flags `needs_ai_review`, `ai_prompt
 
 ### ⚖️ Shared Scoring Formula
 
-Both the JS aggregator and Python port implement the same scoring model:
+Both the JS aggregator and TypeScript port implement the same scoring model:
 
 - severity weights:
   - `critical=22`
@@ -677,18 +669,18 @@ Both the JS aggregator and Python port implement the same scoring model:
 - category score is `round(100 - penalty)`
 - overall score is the average of category scores
 
-Parity is enforced by [`test_aggregate_score_parity.py`](../../../tests/audit-cli/test_aggregate_score_parity.py).
+Parity is enforced by [`aggregate_score_parity.spec.ts`](../../../scripts/audit-cli/audit_cli/report/aggregate_score_parity.spec.ts).
 
-### 🧮 Current Python Aggregation Caveat
+### 🧮 Current TypeScript Aggregation Caveat
 
-The Python CLI does not aggregate directly from the JS category summaries.
+The TypeScript CLI does not aggregate directly from the JS category summaries.
 
 Instead it:
 
 1. flattens typed page findings
-2. converts them back into JS-like issues via `_viewport_payload()`
+2. converts them back into JS-like issues via `viewportPayload()`
 3. assigns them all to a synthetic `mixed` category
-4. feeds that into `aggregate_report()`
+4. feeds that into `aggregateReport()`
 
 So:
 
@@ -699,7 +691,7 @@ That is the actual current behavior.
 
 ## 🧭 Source Discovery Architecture
 
-[`discover/routes.py`](../../../scripts/audit-cli/audit_cli/discover/routes.py) supports framework-specific route harvesting for:
+[`discover/routes.ts`](../../../scripts/audit-cli/audit_cli/discover/routes.ts) supports framework-specific route harvesting for:
 
 - Next.js App Router and Pages Router
 - Vite + React Router
@@ -713,7 +705,7 @@ Dynamic segments are replaced with `sample-slug` and annotated with the warning:
 
 `dynamic route — supply real id via --seeds`
 
-Tests in [`test_discover_routes.py`](../../../tests/audit-cli/test_discover_routes.py) pin that behavior.
+Tests in [`routes.spec.ts`](../../../scripts/audit-cli/audit_cli/discover/routes.spec.ts) pin that behavior.
 
 ## 🧪 Test Strategy
 
@@ -721,7 +713,7 @@ The test suite mostly protects contracts rather than end-to-end browser behavior
 
 Key covered invariants:
 
-- JS and Python scoring parity
+- JS and TypeScript scoring parity
 - report serialization and pruning
 - AI flag routing logic
 - interaction dedup and cross-origin classification
@@ -739,11 +731,11 @@ That means the architecture is validated most strongly at seams:
 Several parts of the type system or skill design exist ahead of the current implementation:
 
 - `RecurringElement` exists in the contract but is not populated.
-- `Page.title` is currently emitted as `None`.
+- `Page.title` is currently emitted as `null`.
 - `Page.areas` is currently empty.
 - `Finding.pages` and `Finding.viewports` are defined but not filled.
 - `AiVerdict` exists but the CLI does not merge real AI verdicts during execution.
-- `copy_crop()` exists in `emit.py`, but the current CLI path does not capture or copy crop assets.
+- `copyCrop()` exists in `emit.ts`, but the current CLI path does not capture or copy crop assets.
 - `navigation-audit.js` is implemented but not wired into injection or aggregation.
 
 These are important because the skill-level narrative in [`SKILL.md`](../SKILL.md) describes a fuller human-review workflow than the current CLI code alone performs.
@@ -753,7 +745,7 @@ These are important because the skill-level narrative in [`SKILL.md`](../SKILL.m
 The architecture is built around one central idea:
 
 - keep deterministic inspection in browser-executed JavaScript
-- keep crawl/state orchestration in Python
+- keep crawl/state orchestration in TypeScript
 
 That split is defensible because rendered UI defects depend on:
 
@@ -762,19 +754,19 @@ That split is defensible because rendered UI defects depend on:
 - real geometry
 - actual DOM and accessibility trees
 
-Those are expensive or lossy to reconstruct outside the page. The Python layer therefore acts as a coordinator, not as an auditor of layout itself.
+Those are expensive or lossy to reconstruct outside the page. The TypeScript layer therefore acts as a coordinator, not as an auditor of layout itself.
 
 ## 🔭 Practical Mental Model
 
 The cleanest way to think about the system is:
 
-1. `cli.py` decides where to go.
+1. `cli.ts` decides where to go.
 2. `BrowserDriver` decides how to manipulate the live page.
-3. `inject.py` loads the browser-side auditors.
+3. `inject.ts` loads the browser-side auditors.
 4. `scripts/*.js` decide what is wrong with the rendered page.
-5. `../../../scripts/audit-cli/audit_cli/crawl/page.py` explores state changes the baseline missed.
-6. `flag_ai.py` marks uncertain or subjective findings.
-7. `aggregate.py` scores the resulting finding set.
-8. `emit.py` writes the contract to disk.
+5. `../../../scripts/audit-cli/audit_cli/crawl/page.ts` explores state changes the baseline missed.
+6. `flag_ai.ts` marks uncertain or subjective findings.
+7. `aggregate.ts` scores the resulting finding set.
+8. `emit.ts` writes the contract to disk.
 
 If you keep that division in mind, the codebase is easy to navigate.
