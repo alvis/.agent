@@ -21,7 +21,7 @@
   ],
   "scanners": [
     {
-      "path": "../../scripts/scan_potential_violations.py",
+      "path": "../../../scripts/scan_potential_violations.py",
       "needs_coding_scanlib": true
     }
   ],

@@ -1,0 +1,11 @@
+{
+  "manager": "alvis-opencode-v1",
+  "schema_version": 1,
+  "skill_separator": "-",
+  "canonical_skill": "plugin:skill",
+  "canonical_command": "/plugin:skill",
+  "projected_skill": "plugin-skill",
+  "projected_command": "/plugin-skill",
+  "canonical_bundle_path": "@plugin:path",
+  "projected_bundle_path": "alvis/plugins/<plugin>/<path>"
+}

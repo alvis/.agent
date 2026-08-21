@@ -1,7 +1,7 @@
 ---
 name: design
 version: 5.0.0
-description: Design or redesign a web interface with coherent visual direction, responsive layout, typography, color, motion, and accessible states. Own the visual contract and orchestration: maintain ranked variant boards, route authorized production edits to Frontend Implementer, and drive independent evaluation with visual-diff confirmation. Use for new pages, component polish, mockups, or facelifts.
+description: "Design or redesign a web interface with coherent visual direction, responsive layout, typography, color, motion, and accessible states. Own the visual contract and orchestration: maintain ranked variant boards, route authorized production edits to Frontend Implementer, and drive independent evaluation with visual-diff confirmation. Use for new pages, component polish, mockups, or facelifts."
 requirements:
   intelligence: high
 argument-hint: "[page/component/site] [--facelift] [--style=<style>] [--variants=<N>] [--skip-directions] [--quick]"
