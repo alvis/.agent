@@ -108,7 +108,7 @@ withheld until its required specialist is installed. Open `/hooks` after
 installation and trust the bundled plugin hooks; Codex skips new or changed
 context-injection hooks until their definitions are reviewed.
 
-The core lifecycle expects Claude Code or Codex, Bash, `jq`, Git, and Python 3,
+The core lifecycle expects Claude Code or Codex, Bash, `jq`, Git, and Bun,
 plus the target project's own build and test tools. The publication path
 additionally expects an authenticated `gh`; it prefers `jj` where the
 repository is jj-colocated and uses Git directly everywhere else.
@@ -361,18 +361,13 @@ Only the main agent names persistent teammates. It chooses one of the three shor
 
 ## Testing
 
-One command, from the repository root, with nothing to install:
+One command validates this repository, with nothing to install: the Vitest
+command canonicalized in the Validation section of the root `AGENTS.md`.
 
-```bash
-uvx pytest
-```
-
-`uvx` fetches pytest on demand and `pytest.ini` supplies the configuration. That
-single command is the whole gate: alongside the unit tests it enforces the
-injected-payload byte budgets, the skill policy limits, agent-template
-stitching, and documentation path resolution, and CI runs exactly it. Sources
-need Python 3.10+ — on an older interpreter the suite stops and tells you to run
-`uvx --python 3.13 pytest`.
+That single command is the whole gate: alongside the unit tests it enforces the
+injected-payload byte budgets, the skill policy limits, agent-template stitching,
+documentation path resolution, and the preserved-Python inventory gate, and CI runs
+exactly it on Ubuntu and macOS.
 
 The one check that stays outside, because it needs the installed CLI:
 

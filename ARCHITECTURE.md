@@ -115,6 +115,6 @@ Paths may name files or directories. The engine scans supported JavaScript, Type
 2. Reuse or add a narrow predicate in `plugins/coding/scripts/scanlib/predicates.ts`.
 3. Test candidates as structured `Match` values. Add a golden fixture only when changing the rendered command-line interface itself.
 4. Reference the owning standard in `ruleRefs` and list the rule as scanner-backed in its `scan.md`.
-5. Run `bun x --bun vitest@3.2.4 run --globals plugins/coding/scripts/scan_potential_violations.spec.ts`, then the fixture-excluded repository Vitest suite.
+5. Run the scanner spec, then the fixture-excluded repository suite — both with the Vitest command canonicalized in the Validation section of the root `AGENTS.md`.
 
 Prefer a mechanical signal that is cheap to explain and verify. If recognizing the condition requires semantic interpretation, keep that decision in review rather than encoding a brittle verdict in the scanner.

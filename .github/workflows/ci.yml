@@ -1,5 +1,5 @@
 # repository quality gate — see AGENTS.md "Hard limits" for what it enforces.
-# every gate is a pytest test, so CI runs the one command a contributor runs.
+# every gate is a Vitest spec, so CI runs the one command a contributor runs.
 # `claude plugin validate` is deliberately not wired in.
 name: ci
 
@@ -13,13 +13,12 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
       - name: vitest
         run: bunx vitest@^4.0.0 run --globals --exclude '**/fixtures/**'
-      # setup-uv publishes no floating major tag past v7, so this pins exactly.
-      - uses: astral-sh/setup-uv@v9.0.0
-      - name: uvx pytest
-        run: uvx --python 3.13 pytest

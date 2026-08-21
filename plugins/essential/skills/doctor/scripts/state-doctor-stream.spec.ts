@@ -1,12 +1,5 @@
 import { spawnSync } from "node:child_process";
-import {
-  mkdir,
-  mkdtemp,
-  readFile,
-  rm,
-  unlink,
-  writeFile,
-} from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -53,9 +46,7 @@ class Workspace {
     this.workDir = join(root, ".state/works/demo");
   }
   static async create(): Promise<Workspace> {
-    const value = new Workspace(
-      await mkdtemp(join(tmpdir(), "state-doctor-stream-")),
-    );
+    const value = new Workspace(await mkdtemp(join(tmpdir(), "state-doctor-stream-")));
     await mkdir(join(value.workDir, "state"), { recursive: true });
     await value.writeCharter();
     return value;
@@ -74,11 +65,7 @@ class Workspace {
       `# Charter\n\n- Charter: \`${provenance}\`\n- Charter revision: \`1\`\n\n## Goal\n\nDemonstrate the doctor.\n`,
     );
   }
-  async writeState(
-    rows: string,
-    metadata = "",
-    lifecycle = "working",
-  ): Promise<void> {
+  async writeState(rows: string, metadata = "", lifecycle = "working"): Promise<void> {
     await writeFile(
       join(this.workDir, "state.md"),
       `# Work state\n\n- State role: \`root\`\n- Work ID: \`demo\`\n- Lifecycle status: \`${lifecycle}\`\n- State revision: \`3\`\n${metadata}\n## Tasks\n\n${header}${rows}`,
@@ -89,12 +76,30 @@ class Workspace {
   }
 }
 
-const checks = (findings: Finding[]): Set<string> =>
-  new Set(findings.map(({ check }) => check));
+const checks = (findings: Finding[]): Set<string> => new Set(findings.map(({ check }) => check));
 const selected = (findings: Finding[], check: string): Finding[] =>
   findings.filter((finding) => finding.check === check);
-const dateDaysAgo = (days: number): string =>
-  new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
+// Local-calendar date `days` days back: state-doctor's days_since() counts
+// whole days from the LOCAL midnight of the written date (time.mktime on a
+// "%Y-%m-%d" struct), so the fixture must be built on the same calendar
+// basis. The previous UTC-based form diverged by one day for every local
+// hour before the UTC offset elapsed.
+const dateDaysAgo = (days: number): string => {
+  const local = new Date();
+  local.setDate(local.getDate() - days);
+  const month = String(local.getMonth() + 1).padStart(2, "0");
+  const day = String(local.getDate()).padStart(2, "0");
+  return `${local.getFullYear()}-${month}-${day}`;
+};
+// Mirror of days_since() for deriving the exact expected count from a date
+// the fixture wrote, so the assertion stays exact across DST transitions.
+// Residual TOCTOU: this clock read happens after workspace.run(), whose
+// doctor process reads its own clock — straddling local midnight between
+// the two could shift the derived count by one. The window is bounded by a
+// single doctor invocation (milliseconds), and the producer stays
+// byte-frozen, so its clock cannot be mocked across the process boundary.
+const wholeDaysSince = (dateText: string): number =>
+  Math.floor((Date.now() - new Date(`${dateText}T00:00:00`).getTime()) / 86_400_000);
 const statusLine = (date: string, payload: string): string =>
   `- ${date}T09:00:00Z PM@pm rev:1 status demo: ${payload}`;
 
@@ -103,10 +108,7 @@ async function writeJournal(
   lines: string[],
   name = "journal.md",
 ): Promise<void> {
-  await writeFile(
-    join(workspace.workDir, "state", name),
-    `# Journal\n\n${lines.join("\n")}\n`,
-  );
+  await writeFile(join(workspace.workDir, "state", name), `# Journal\n\n${lines.join("\n")}\n`);
 }
 function overviewRow({
   workId = "demo",
@@ -118,18 +120,12 @@ function overviewRow({
 } = {}): string {
   return `| Work ID | Phase | Blocked on | Last progress | Headline | Next action | Location | Links |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| ${workId} | ${phase} | ${blockedOn} | ${progress} | Demo. | ${nextAction} | ${location} | - |\n`;
 }
-async function writeOverview(
-  root: string,
-  body: string,
-  siblings = true,
-): Promise<void> {
+async function writeOverview(root: string, body: string, siblings = true): Promise<void> {
   const state = join(root, ".state");
   await writeFile(join(state, "overview.md"), body);
   if (siblings)
     await Promise.all(
-      ["environment.md", "traps.md"].map((name) =>
-        writeFile(join(state, name), `# ${name}\n`),
-      ),
+      ["environment.md", "traps.md"].map((name) => writeFile(join(state, name), `# ${name}\n`)),
     );
 }
 function runStateDir(root: string): Run {
@@ -145,10 +141,7 @@ async function writeEffectiveAdr(
   await mkdir(decisions, { recursive: true });
   const number = /^\d{4}/.exec(name)?.[0] ?? "0001";
   const path = join(decisions, name);
-  await writeFile(
-    path,
-    `# ADR-${number}: Choice\n\n- Status: \`Accepted\`\n\n${body}`,
-  );
+  await writeFile(path, `# ADR-${number}: Choice\n\n- Status: \`Accepted\`\n\n${body}`);
   await writeFile(
     join(architecture, "README.md"),
     `# Architecture\n\n| Document | Status |\n| --- | --- |\n| [ADR](decisions/${name}) | Accepted |\n`,
@@ -182,21 +175,14 @@ describe("state-doctor stream and lifecycle tail parity", () => {
     );
   });
   it("treats unparseable state as informational and nonfatal", async () => {
-    await writeFile(
-      join(workspace.workDir, "state.md"),
-      "totally free-form notes\n",
-    );
+    await writeFile(join(workspace.workDir, "state.md"), "totally free-form notes\n");
     const result = workspace.run("--strict");
     expect(result.code).toBe(0);
     expect(selected(result.findings, "layout")[0]?.severity).toBe("info");
-    expect(
-      result.findings.filter(({ severity }) => severity === "error"),
-    ).toEqual([]);
+    expect(result.findings.filter(({ severity }) => severity === "error")).toEqual([]);
     expect(
       new Set(
-        result.findings
-          .filter(({ severity }) => severity === "warning")
-          .map(({ check }) => check),
+        result.findings.filter(({ severity }) => severity === "warning").map(({ check }) => check),
       ),
     ).toEqual(new Set(["state-metadata"]));
   });
@@ -239,8 +225,7 @@ describe("state-doctor stream and lifecycle tail parity", () => {
       workspace,
       Array.from(
         { length: 510 },
-        (_, index) =>
-          `- 2026-07-24T00:00:00Z PM@pm rev:1 status AAA: tick ${index}`,
+        (_, index) => `- 2026-07-24T00:00:00Z PM@pm rev:1 status AAA: tick ${index}`,
       ),
     );
     expect(
@@ -268,10 +253,7 @@ describe("state-doctor stream and lifecycle tail parity", () => {
   it("validates ADR filenames and duplicate numeric identities", async () => {
     await writeEffectiveAdr(workspace.root);
     const decisions = join(workspace.root, "docs/architecture/decisions");
-    await writeFile(
-      join(decisions, "choice.md"),
-      "# Invalid\n\n- Status: `Accepted`\n",
-    );
+    await writeFile(join(decisions, "choice.md"), "# Invalid\n\n- Status: `Accepted`\n");
     const archived = join(decisions, "superseded");
     await mkdir(archived);
     await writeFile(
@@ -281,14 +263,11 @@ describe("state-doctor stream and lifecycle tail parity", () => {
     const findings = runStateDir(workspace.root).findings;
     expect(
       findings.some(
-        ({ check, message }) =>
-          check === "adr-layout" && message.includes("filename must use"),
+        ({ check, message }) => check === "adr-layout" && message.includes("filename must use"),
       ),
     ).toBe(true);
     expect(
-      findings.some(({ message }) =>
-        message.includes("ADR numeric identity 0001 is duplicated"),
-      ),
+      findings.some(({ message }) => message.includes("ADR numeric identity 0001 is duplicated")),
     ).toBe(true);
   });
   it("ignores ADR-like content inside HTML comments", async () => {
@@ -297,21 +276,14 @@ describe("state-doctor stream and lifecycle tail parity", () => {
       "0001-choice.md",
       "<!-- - Status: Superseded; TODO <fill this> -->\n",
     );
-    expect(
-      selected(runStateDir(workspace.root).findings, "adr-integrity"),
-    ).toEqual([]);
+    expect(selected(runStateDir(workspace.root).findings, "adr-integrity")).toEqual([]);
   });
   it("reports nested ADR files as layout errors", async () => {
     await writeEffectiveAdr(workspace.root);
     const nested = join(workspace.root, "docs/architecture/decisions/archive");
     await mkdir(nested);
-    await writeFile(
-      join(nested, "0002-nested.md"),
-      "# Nested\n\n- Status: `Accepted`\n",
-    );
-    expect(checks(runStateDir(workspace.root).findings)).toContain(
-      "adr-layout",
-    );
+    await writeFile(join(nested, "0002-nested.md"), "# Nested\n\n- Status: `Accepted`\n");
+    expect(checks(runStateDir(workspace.root).findings)).toContain("adr-layout");
   });
   it("does not let narrative ADR links satisfy the index", async () => {
     await writeEffectiveAdr(workspace.root);
@@ -323,35 +295,29 @@ describe("state-doctor stream and lifecycle tail parity", () => {
   });
   it("rejects absolute successor links", async () => {
     await writeEffectiveAdr(workspace.root, "0002-new-choice.md");
-    const archived = join(
-      workspace.root,
-      "docs/architecture/decisions/superseded",
-    );
+    const archived = join(workspace.root, "docs/architecture/decisions/superseded");
     await mkdir(archived);
     await writeFile(
       join(archived, "0001-old-choice.md"),
       "> **Status:** Superseded\n>\n> **Superseded by:** [ADR](/docs/architecture/decisions/0002-new-choice.md)\n>\n> **What changed:** Replaced.\n",
     );
     expect(
-      selected(runStateDir(workspace.root).findings, "adr-superseded").some(
-        ({ message }) => message.includes("portable relative path"),
+      selected(runStateDir(workspace.root).findings, "adr-superseded").some(({ message }) =>
+        message.includes("portable relative path"),
       ),
     ).toBe(true);
   });
   it("rejects placeholder archive summaries", async () => {
     await writeEffectiveAdr(workspace.root, "0002-new-choice.md");
-    const archived = join(
-      workspace.root,
-      "docs/architecture/decisions/superseded",
-    );
+    const archived = join(workspace.root, "docs/architecture/decisions/superseded");
     await mkdir(archived);
     await writeFile(
       join(archived, "0001-old-choice.md"),
       "> **Status:** Superseded\n>\n> **Superseded by:** [ADR](../0002-new-choice.md)\n>\n> **What changed:** <State whether the decision changed>.\n",
     );
     expect(
-      selected(runStateDir(workspace.root).findings, "adr-superseded").some(
-        ({ message }) => message.includes("What changed"),
+      selected(runStateDir(workspace.root).findings, "adr-superseded").some(({ message }) =>
+        message.includes("What changed"),
       ),
     ).toBe(true);
   });
@@ -363,10 +329,7 @@ describe("state-doctor stream and lifecycle tail parity", () => {
       `# State overview\n\nThe tree carries three jj workspaces and one orphaned checkout.\n\n## Environment\n\nBranch protection is absent on main.\n\n## Streams\n\n${overviewRow()}`,
       false,
     );
-    const findings = selected(
-      runStateDir(workspace.root).findings,
-      "overview-monolith",
-    );
+    const findings = selected(runStateDir(workspace.root).findings, "overview-monolith");
     const messages = findings.map(({ message }) => message).join(" ");
     for (const text of [
       "environment.md is missing",
@@ -375,11 +338,9 @@ describe("state-doctor stream and lifecycle tail parity", () => {
       "preamble line(s)",
     ])
       expect(messages).toContain(text);
-    expect(
-      findings.every(
-        ({ severity, fix }) => severity === "warning" && Boolean(fix),
-      ),
-    ).toBe(true);
+    expect(findings.every(({ severity, fix }) => severity === "warning" && Boolean(fix))).toBe(
+      true,
+    );
   });
   it("accepts canonical overview sections", async () => {
     await workspace.writeState(row("AAA"));
@@ -388,31 +349,26 @@ describe("state-doctor stream and lifecycle tail parity", () => {
       `# State overview\n\n- Updated: \`2026-08-06\`\n\n## Goal\n\nShip.\n\n## Requirements\n\nNone.\n\n## Awaiting you\n\n## Streams\n\n${overviewRow()}\n## Recently landed\n`,
     );
     await writeJournal(workspace, [statusLine("2026-07-30", "working")]);
-    expect(checks(runStateDir(workspace.root).findings)).not.toContain(
-      "overview-monolith",
-    );
+    expect(checks(runStateDir(workspace.root).findings)).not.toContain("overview-monolith");
   });
   it.each([
     ["initialized", "phase `planned`"],
     ["active", "phase `working`"],
     ["blocked", "`Blocked on:"],
     ["retiring", "phase `completed`"],
-  ])(
-    "reports retired lifecycle %s as informational drift",
-    async (lifecycle, replacement) => {
-      await workspace.writeState(
-        row("AAA", "✓", "done", "—", "yes", "Merged in PR #42."),
-        "",
-        lifecycle,
-      );
-      const result = workspace.run("--strict");
-      const findings = selected(result.findings, "lifecycle-vocabulary");
-      expect(result.code).toBe(0);
-      expect(findings).toHaveLength(1);
-      expect(findings[0]).toMatchObject({ severity: "info" });
-      expect(findings[0]?.message).toContain(replacement);
-    },
-  );
+  ])("reports retired lifecycle %s as informational drift", async (lifecycle, replacement) => {
+    await workspace.writeState(
+      row("AAA", "✓", "done", "—", "yes", "Merged in PR #42."),
+      "",
+      lifecycle,
+    );
+    const result = workspace.run("--strict");
+    const findings = selected(result.findings, "lifecycle-vocabulary");
+    expect(result.code).toBe(0);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({ severity: "info" });
+    expect(findings[0]?.message).toContain(replacement);
+  });
   it.each([
     ["- Blocked on:\n", "present but empty"],
     ["- Blocked on: ``\n", "present but empty"],
@@ -430,10 +386,7 @@ describe("state-doctor stream and lifecycle tail parity", () => {
     expect(findings[0]?.message).toContain(expected);
   });
   it("accepts a named blocker", async () => {
-    await workspace.writeState(
-      row("AAA"),
-      "- Blocked on: `an operator ruling`\n",
-    );
+    await workspace.writeState(row("AAA"), "- Blocked on: `an operator ruling`\n");
     expect(checks(workspace.run().findings)).not.toContain("blocked-on");
   });
   it("distinguishes absent Blocked on from stale unknown", async () => {
@@ -465,26 +418,21 @@ describe("state-doctor stream and lifecycle tail parity", () => {
     expect(findings).toEqual([]);
   });
   it("reports packed Blocked on metadata", async () => {
-    await workspace.writeState(
-      row("AAA"),
-      "- Blocked on: `operator` · Owner: `PM`\n",
-    );
+    await workspace.writeState(row("AAA"), "- Blocked on: `operator` · Owner: `PM`\n");
     const findings = selected(workspace.run().findings, "blocked-on");
     expect(findings).toHaveLength(1);
-    expect(findings[0]?.message).toContain(
-      "does not parse as a single-value metadata field",
-    );
+    expect(findings[0]?.message).toContain("does not parse as a single-value metadata field");
     expect(findings[0]?.fix).toBeTruthy();
   });
   it("detects both migrations into Blocked on", async () => {
     await workspace.writeState(row("AAA"), "", "blocked");
-    expect(
-      selected(workspace.run().findings, "lifecycle-vocabulary")[0]?.message,
-    ).toContain("`Blocked on:");
+    expect(selected(workspace.run().findings, "lifecycle-vocabulary")[0]?.message).toContain(
+      "`Blocked on:",
+    );
     await workspace.writeState(row("AAA"), "- Motion: `waiting: operator`\n");
-    expect(
-      selected(workspace.run().findings, "motion-vocabulary")[0]?.message,
-    ).toContain("`waiting: X` → `Blocked on: X`");
+    expect(selected(workspace.run().findings, "motion-vocabulary")[0]?.message).toContain(
+      "`waiting: X` → `Blocked on: X`",
+    );
     await writeFile(
       join(workspace.workDir, "state.md"),
       `# Work state\n\n- Work ID: \`demo\`\n- Phase: \`working\` · Motion: \`idle 14d\`\n\n## Tasks\n\n${header}${row("AAA")}`,
@@ -499,18 +447,16 @@ describe("state-doctor stream and lifecycle tail parity", () => {
       workspace.root,
       "# State overview\n\n## Streams\n\n| Work ID | Phase | Headline |\n| --- | --- | --- |\n| demo | working | Demo. |\n",
     );
-    expect(
-      selected(runStateDir(workspace.root).findings, "last-progress")[0]
-        ?.message,
-    ).toContain("no `Last progress` column");
+    expect(selected(runStateDir(workspace.root).findings, "last-progress")[0]?.message).toContain(
+      "no `Last progress` column",
+    );
     await writeOverview(
       workspace.root,
       `# State overview\n\n## Streams\n\n${overviewRow({ progress: "2026-08-06 (0d)" })}`,
     );
-    expect(
-      selected(runStateDir(workspace.root).findings, "last-progress")[0]
-        ?.message,
-    ).toContain("does not match the journal evidence dated 2026-07-30");
+    expect(selected(runStateDir(workspace.root).findings, "last-progress")[0]?.message).toContain(
+      "does not match the journal evidence dated 2026-07-30",
+    );
   });
   it("rejects a Last progress value without a date", async () => {
     await workspace.writeState(row("AAA"));
@@ -520,8 +466,8 @@ describe("state-doctor stream and lifecycle tail parity", () => {
       `# State overview\n\n## Streams\n\n${overviewRow({ progress: "recent" })}`,
     );
     expect(
-      selected(runStateDir(workspace.root).findings, "last-progress").some(
-        ({ message }) => message.includes("carries no date"),
+      selected(runStateDir(workspace.root).findings, "last-progress").some(({ message }) =>
+        message.includes("carries no date"),
       ),
     ).toBe(true);
   });
@@ -531,9 +477,9 @@ describe("state-doctor stream and lifecycle tail parity", () => {
       statusLine("2026-07-20", "working"),
       statusLine("2026-08-06", "initialized"),
     ]);
-    expect(
-      selected(workspace.run().findings, "journal-freshness")[0]?.message,
-    ).toContain("a phase the stream has already left");
+    expect(selected(workspace.run().findings, "journal-freshness")[0]?.message).toContain(
+      "a phase the stream has already left",
+    );
   });
   it("reports a journal stub older than state", async () => {
     await workspace.writeState(
@@ -557,26 +503,19 @@ describe("state-doctor stream and lifecycle tail parity", () => {
       workspace.root,
       `# State overview\n\n## Streams\n\n${overviewRow({ phase: "completed", progress: "2026-07-28 (9d)" })}`,
     );
-    expect(
-      selected(runStateDir(workspace.root).findings, "last-progress")[0]
-        ?.message,
-    ).toContain("does not say so");
+    expect(selected(runStateDir(workspace.root).findings, "last-progress")[0]?.message).toContain(
+      "does not say so",
+    );
     await writeOverview(
       workspace.root,
       `# State overview\n\n## Streams\n\n${overviewRow({ phase: "completed", progress: "2026-07-28 (from state.md)" })}`,
     );
-    expect(checks(runStateDir(workspace.root).findings)).not.toContain(
-      "last-progress",
-    );
+    expect(checks(runStateDir(workspace.root).findings)).not.toContain("last-progress");
   });
   it("follows a segmented journal to its newest-numbered segment", async () => {
     await workspace.writeState(row("AAA"));
     await writeJournal(workspace, [statusLine("2026-08-06", "working")]);
-    await writeJournal(
-      workspace,
-      [statusLine("2026-08-04", "working")],
-      "07-journal-late.md",
-    );
+    await writeJournal(workspace, [statusLine("2026-08-04", "working")], "07-journal-late.md");
     const segment = selected(workspace.run().findings, "journal-segments")[0];
     expect(segment?.message).toContain("07-journal-late.md ends at 2026-08-04");
     expect(segment?.message).toContain("false freshness");
@@ -585,8 +524,8 @@ describe("state-doctor stream and lifecycle tail parity", () => {
       `# State overview\n\n## Streams\n\n${overviewRow({ progress: "2026-08-06 (0d)" })}`,
     );
     expect(
-      selected(runStateDir(workspace.root).findings, "last-progress").some(
-        ({ message }) => message.includes("2026-08-04"),
+      selected(runStateDir(workspace.root).findings, "last-progress").some(({ message }) =>
+        message.includes("2026-08-04"),
       ),
     ).toBe(true);
   });
@@ -612,9 +551,7 @@ describe("state-doctor stream and lifecycle tail parity", () => {
       workspace.root,
       `# State overview\n\n## Streams\n\n${overviewRow({ location: "-" })}`,
     );
-    expect(checks(runStateDir(workspace.root).findings)).not.toContain(
-      "location",
-    );
+    expect(checks(runStateDir(workspace.root).findings)).not.toContain("location");
   });
   it("reports exact Next action budget overflow", async () => {
     await workspace.writeState(row("AAA"));
@@ -623,10 +560,9 @@ describe("state-doctor stream and lifecycle tail parity", () => {
       workspace.root,
       `# State overview\n\n## Streams\n\n${overviewRow({ nextAction: "x".repeat(260) })}`,
     );
-    expect(
-      selected(runStateDir(workspace.root).findings, "overview-budget")[0]
-        ?.message,
-    ).toContain("260 chars, over the 200-char budget by 60");
+    expect(selected(runStateDir(workspace.root).findings, "overview-budget")[0]?.message).toContain(
+      "260 chars, over the 200-char budget by 60",
+    );
   });
   it("requires overdue completed streams to leave works", async () => {
     await workspace.writeState(
@@ -655,36 +591,27 @@ describe("state-doctor stream and lifecycle tail parity", () => {
     ["20260727-feat-trading-venue-routing-v5cfxb", "carries a date prefix"],
     ["feat-trading-venue-routing", "carries a type prefix"],
     ["markets-and-symbols-v5cfxb", "random suffix"],
-    [
-      "a-work-id-that-runs-past-the-thirty-two-byte-bound",
-      "over the 32-byte bound",
-    ],
+    ["a-work-id-that-runs-past-the-thirty-two-byte-bound", "over the 32-byte bound"],
     ["Markets_And_Symbols", "not a plain lowercase-hyphen slug"],
-  ])(
-    "reports nonconforming work ID %s without renaming",
-    async (workId, problem) => {
-      const root = await mkdtemp(join(tmpdir(), "state-doctor-id-"));
-      try {
-        const workDir = join(root, ".state/works", workId);
-        await mkdir(join(workDir, "state"), { recursive: true });
-        await writeFile(
-          join(workDir, "goal.md"),
-          "# Charter\n\n- Charter: `approved`\n",
-        );
-        await writeFile(
-          join(workDir, "state.md"),
-          `# Work state\n\n- Work ID: \`${workId}\`\n- Lifecycle status: \`working\`\n`,
-        );
-        const findings = selected(runStateDir(root).findings, "work-id-naming");
-        expect(findings).toHaveLength(1);
-        expect(findings[0]).toMatchObject({ severity: "info" });
-        expect(findings[0]?.message).toContain(problem);
-        expect(findings[0]?.message).toContain("never renamed");
-      } finally {
-        await rm(root, { recursive: true });
-      }
-    },
-  );
+  ])("reports nonconforming work ID %s without renaming", async (workId, problem) => {
+    const root = await mkdtemp(join(tmpdir(), "state-doctor-id-"));
+    try {
+      const workDir = join(root, ".state/works", workId);
+      await mkdir(join(workDir, "state"), { recursive: true });
+      await writeFile(join(workDir, "goal.md"), "# Charter\n\n- Charter: `approved`\n");
+      await writeFile(
+        join(workDir, "state.md"),
+        `# Work state\n\n- Work ID: \`${workId}\`\n- Lifecycle status: \`working\`\n`,
+      );
+      const findings = selected(runStateDir(root).findings, "work-id-naming");
+      expect(findings).toHaveLength(1);
+      expect(findings[0]).toMatchObject({ severity: "info" });
+      expect(findings[0]?.message).toContain(problem);
+      expect(findings[0]?.message).toContain("never renamed");
+    } finally {
+      await rm(root, { recursive: true });
+    }
+  });
   it("accepts a conforming work ID", async () => {
     await workspace.writeState(row("AAA"));
     expect(checks(workspace.run().findings)).not.toContain("work-id-naming");
@@ -692,13 +619,8 @@ describe("state-doctor stream and lifecycle tail parity", () => {
   it("distinguishes charter provenance drift from missing charter", async () => {
     await workspace.writeState(row("AAA"));
     await workspace.writeCharter("reconstructed");
-    expect(checks(workspace.run().findings)).not.toContain(
-      "charter-provenance",
-    );
-    await writeFile(
-      join(workspace.workDir, "goal.md"),
-      "# Charter\n\n- Charter revision: `1`\n",
-    );
+    expect(checks(workspace.run().findings)).not.toContain("charter-provenance");
+    await writeFile(join(workspace.workDir, "goal.md"), "# Charter\n\n- Charter revision: `1`\n");
     let findings = selected(workspace.run().findings, "charter-provenance");
     expect(findings[0]).toMatchObject({ severity: "warning" });
     expect(findings[0]?.message).toContain("approved | reconstructed | absent");
@@ -713,9 +635,9 @@ describe("state-doctor stream and lifecycle tail parity", () => {
   it("warns for unknown charter provenance", async () => {
     await workspace.writeState(row("AAA"));
     await workspace.writeCharter("assumed");
-    expect(
-      selected(workspace.run().findings, "charter-provenance"),
-    ).toMatchObject([{ severity: "warning" }]);
+    expect(selected(workspace.run().findings, "charter-provenance")).toMatchObject([
+      { severity: "warning" },
+    ]);
   });
   it("rejects unowned completion debt", async () => {
     await workspace.writeState(
@@ -760,9 +682,9 @@ describe("state-doctor stream and lifecycle tail parity", () => {
       "- Merge evidence: `PR #42 merged`\n- Note: three deferred follow-ups, owned by nobody yet\n",
       "completed",
     );
-    expect(
-      selected(workspace.run().findings, "outlives-me")[0]?.message,
-    ).toContain("deferred follow-ups");
+    expect(selected(workspace.run().findings, "outlives-me")[0]?.message).toContain(
+      "deferred follow-ups",
+    );
   });
   it("rejects completed without merge evidence", async () => {
     await workspace.writeState(
@@ -774,35 +696,25 @@ describe("state-doctor stream and lifecycle tail parity", () => {
     const finding = selected(result.findings, "merge-evidence")[0];
     expect(result.code).toBe(1);
     expect(finding).toMatchObject({ severity: "error" });
-    expect(finding?.message).toContain(
-      "a bare commit hash is not merge evidence",
-    );
+    expect(finding?.message).toContain("a bare commit hash is not merge evidence");
     expect(finding?.fix).toContain("reviewing");
   });
-  it.each([
-    "Merged in PR #42.",
-    "Branch observed merged into main.",
-    "See /pull/42.",
-  ])("accepts merge evidence: %s", async (evidence) => {
-    await workspace.writeState(
-      row("AAA", "✓", "done", "—", "yes", evidence),
-      "",
-      "completed",
-    );
-    expect(checks(workspace.run().findings)).not.toContain("merge-evidence");
-  });
+  it.each(["Merged in PR #42.", "Branch observed merged into main.", "See /pull/42."])(
+    "accepts merge evidence: %s",
+    async (evidence) => {
+      await workspace.writeState(row("AAA", "✓", "done", "—", "yes", evidence), "", "completed");
+      expect(checks(workspace.run().findings)).not.toContain("merge-evidence");
+    },
+  );
   it("conditions absent charter severity on phase", async () => {
     await workspace.writeCharter("absent");
     await workspace.writeState(row("AAA"), "", "planned");
-    expect(
-      selected(workspace.run().findings, "charter-provenance")[0],
-    ).toMatchObject({ severity: "info" });
+    expect(selected(workspace.run().findings, "charter-provenance")[0]).toMatchObject({
+      severity: "info",
+    });
     for (const phase of ["working", "reviewing"]) {
       await workspace.writeState(row("AAA"), "", phase);
-      const finding = selected(
-        workspace.run().findings,
-        "charter-provenance",
-      )[0];
+      const finding = selected(workspace.run().findings, "charter-provenance")[0];
       expect(finding).toMatchObject({ severity: "warning" });
       expect(finding?.message).toContain("no recorded success criteria");
     }
@@ -813,11 +725,12 @@ describe("state-doctor stream and lifecycle tail parity", () => {
       "- Merge evidence: `PR #42 merged`\n- Blocked on: `an operator ruling on D4`\n",
       "completed",
     );
-    await writeJournal(workspace, [statusLine(dateDaysAgo(9), "completed")]);
+    const completed = dateDaysAgo(9);
+    await writeJournal(workspace, [statusLine(completed, "completed")]);
     const finding = selected(workspace.run().findings, "retention")[0];
     expect(finding).toMatchObject({ severity: "info" });
     expect(finding?.message).toContain("an operator ruling on D4");
-    expect(finding?.message).toContain("9d ago");
+    expect(finding?.message).toContain(`${wholeDaysSince(completed)}d ago`);
     expect(finding?.message).toContain("Awaiting you");
   });
   it.each(["", "- Blocked on: `unknown`\n"])(
@@ -844,16 +757,9 @@ describe("state-doctor stream and lifecycle tail parity", () => {
     const unreadable = selected(findings, "state-metadata");
     expect(unreadable).toHaveLength(1);
     expect(unreadable[0]).toMatchObject({ severity: "warning" });
-    expect(unreadable[0]?.message).toContain(
-      "does not parse as a single-value metadata field",
-    );
+    expect(unreadable[0]?.message).toContain("does not parse as a single-value metadata field");
     expect(unreadable[0]?.message).toContain("reports a clean zero");
-    for (const silenced of [
-      "retention",
-      "merge-evidence",
-      "blocked-on",
-      "outlives-me",
-    ]) {
+    for (const silenced of ["retention", "merge-evidence", "blocked-on", "outlives-me"]) {
       expect(unreadable[0]?.message).toContain(silenced);
       expect(checks(findings)).not.toContain(silenced);
     }
@@ -865,9 +771,7 @@ describe("state-doctor stream and lifecycle tail parity", () => {
     );
     const findings = selected(workspace.run().findings, "state-metadata");
     expect(findings).toHaveLength(1);
-    expect(findings[0]?.message).toContain(
-      "neither `Phase` nor `Lifecycle status`",
-    );
+    expect(findings[0]?.message).toContain("neither `Phase` nor `Lifecycle status`");
   });
   it("accepts readable lifecycle and Phase fields", async () => {
     await workspace.writeState(row("AAA"), "- Blocked on: `an operator`\n");
@@ -881,8 +785,7 @@ describe("state-doctor stream and lifecycle tail parity", () => {
 });
 
 function migrationTableCheckIds(skillText: string): Set<string> {
-  const section =
-    skillText.split("## Structure migration", 2)[1]?.split(/\r?\n/) ?? [];
+  const section = skillText.split("## Structure migration", 2)[1]?.split(/\r?\n/) ?? [];
   const ids = new Set<string>();
   let delimiter = false;
   let rows = false;
@@ -903,10 +806,7 @@ function migrationTableCheckIds(skillText: string): Set<string> {
   }
   return ids;
 }
-function unemittableCheckIds(
-  skillText: string,
-  doctorText: string,
-): Set<string> {
+function unemittableCheckIds(skillText: string, doctorText: string): Set<string> {
   const emitted = new Set(
     [
       ...doctorText.matchAll(
@@ -914,9 +814,7 @@ function unemittableCheckIds(
       ),
     ].map((match) => match[1]),
   );
-  return new Set(
-    [...migrationTableCheckIds(skillText)].filter((id) => !emitted.has(id)),
-  );
+  return new Set([...migrationTableCheckIds(skillText)].filter((id) => !emitted.has(id)));
 }
 
 describe("doctor skill migration table extraction", () => {
@@ -934,11 +832,7 @@ describe("doctor skill migration table extraction", () => {
     const doctorText = await readFile(doctor, "utf8");
     const fabricated =
       "## Structure migration\n\n| `check` | Offer |\n| --- | --- |\n| `retention` | A real one. |\n| `no-such-check` | An offer for a finding nobody emits. |\n";
-    expect(migrationTableCheckIds(fabricated)).toEqual(
-      new Set(["retention", "no-such-check"]),
-    );
-    expect(unemittableCheckIds(fabricated, doctorText)).toEqual(
-      new Set(["no-such-check"]),
-    );
+    expect(migrationTableCheckIds(fabricated)).toEqual(new Set(["retention", "no-such-check"]));
+    expect(unemittableCheckIds(fabricated, doctorText)).toEqual(new Set(["no-such-check"]));
   });
 });
