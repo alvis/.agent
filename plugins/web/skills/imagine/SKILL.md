@@ -19,27 +19,27 @@ Generate or edit images for the current project — website assets, game assets,
 - Do not use for: web design direction or page layout decisions (`design`) and visual quality audits (`audit`).
 
 <IMPORTANT>
-Never modify `scripts/image_gen.py` or files under `scripts/providers/`. If something is missing, ask the user before doing anything else. Never ask the user to paste an API key in chat — ask them to set it locally and confirm when ready.
+Never modify `scripts/image-gen.ts` or files under `scripts/providers/`. If something is missing, ask the user before doing anything else. Never ask the user to paste an API key in chat — ask them to set it locally and confirm when ready.
 </IMPORTANT>
 
 ## Inputs
 
 - **Required**: a prompt, an edit instruction with an input image, or a reference image for style analysis.
 - **Optional**: reference image(s) for style matching, mask for inpainting, provider/model flags, batch prompt list. All image inputs (`--image`, `--mask`, `--reference`) accept local file paths and `https://` URLs.
-- **Prerequisites**: Python 3 with per-provider packages (prefer `uv`; fall back to `python3 -m pip`):
-  - Google (default): `uv pip install google-genai pillow`, requires `GOOGLE_API_KEY` (create at <https://aistudio.google.com/apikey>)
-  - OpenAI: `uv pip install openai pillow`, requires `OPENAI_API_KEY` (create at <https://platform.openai.com/api-keys>)
-  - Recraft: `uv pip install openai pillow` (same SDK, custom base_url), requires `RECRAFT_API_TOKEN` (create at <https://app.recraft.ai/profile/api>)
+- **Prerequisites**: Bun with package auto-install enabled and network access for inline latest-major imports. Google resolves `@google/genai@1`; OpenAI and Recraft resolve `openai@6`; format conversion and downscaling resolve `sharp@0.34` when needed.
+  - Google (default): requires `GOOGLE_API_KEY` (create at <https://aistudio.google.com/apikey>)
+  - OpenAI: requires `OPENAI_API_KEY` (create at <https://platform.openai.com/api-keys>)
+  - Recraft: requires `RECRAFT_API_TOKEN` (create at <https://app.recraft.ai/profile/api>)
 
-  If a key is missing, walk the user through creating it in the provider UI and setting the environment variable for their OS/shell. If installation is impossible in this environment, name the missing dependency and how to install it locally.
+  If a key is missing, walk the user through creating it in the provider UI and setting the environment variable for their OS/shell. If Bun cannot resolve an inline import, name the package and major version plus the blocked registry or network prerequisite; do not add project dependencies.
 
 Set the CLI path at the start of any generation workflow; all invocations below assume it:
 
 ```bash
-export IMAGINE="${WEB_IMAGINE_SKILL_DIR}/scripts/image_gen.py"
+export IMAGINE="${WEB_IMAGINE_SKILL_DIR}/scripts/image-gen.ts"
 ```
 
-Run `python "$IMAGINE" generate --help` to see all available params for the current provider.
+Run `bun "$IMAGINE" generate --help` to see all available params for the current provider.
 
 ## Provider and command selection
 
@@ -57,8 +57,8 @@ Provider — first match wins:
 
 Command:
 
-- Input image provided, or the user says "edit/retouch/inpaint/mask/translate/localize/change only X" → `generate --image`, e.g. `python "$IMAGINE" generate --image input.png --prompt "Replace the background with a warm sunset gradient"`
-- Reference style to apply → add `--reference`, e.g. `python "$IMAGINE" generate --reference style.png --prompt "A man riding a motorcycle on a white background"`
+- Input image provided, or the user says "edit/retouch/inpaint/mask/translate/localize/change only X" → `generate --image`, e.g. `bun "$IMAGINE" generate --image input.png --prompt "Replace the background with a warm sunset gradient"`
+- Reference style to apply → add `--reference`, e.g. `bun "$IMAGINE" generate --reference style.png --prompt "A man riding a motorcycle on a white background"`
 - Many different prompts/assets → `generate-batch`
 - Else → `generate`
 
@@ -72,7 +72,7 @@ Assume the user wants a new image unless they explicitly ask for an edit. Provid
 4. **Collect inputs** — gather prompt(s), exact text (verbatim), constraints/avoid list, and any input image(s)/mask(s). For multi-image edits, label each input by index and role; for edits, list invariants explicitly.
 5. **Craft the structured prompt** — the primary deliverable; see the next section. Only make implicit details explicit; do not invent new requirements.
 6. **Present the prompt for review** — show it to the user for approval. If the request is prompt-only, stop here and deliver the prompt.
-7. **Execute** — run the bundled CLI (`python "$IMAGINE" ...`) with sensible defaults, or Recraft MCP tools when working within Recraft's ecosystem (see the MCP Tools section of [references/providers/recraft.md](references/providers/recraft.md) for the tool table and the MCP-vs-CLI decision). For batch runs, write a temporary JSONL, run once, then delete. Use `tempfile.gettempdir()/imagine/` for intermediates; write final artifacts under `output/imagine/` when working in this repo; use `--out` or `--out-dir` with stable, descriptive filenames.
+7. **Execute** — run the bundled CLI (`bun "$IMAGINE" ...`) with sensible defaults, or Recraft MCP tools when working within Recraft's ecosystem (see the MCP Tools section of [references/providers/recraft.md](references/providers/recraft.md) for the tool table and the MCP-vs-CLI decision). For batch runs, write a temporary JSONL, run once, then delete. Remote inputs use per-run sibling directories in the system temporary directory with the `imagine_dl_*` prefix; write final artifacts under `output/imagine/` when working in this repo; use `--out` or `--out-dir` with stable, descriptive filenames.
 8. **Inspect & iterate** — for complex edits/generations, inspect outputs and validate subject, style, composition, text accuracy, and invariants/avoid items. Make a single targeted change per iteration; only ask a question if a missing detail blocks success.
 9. **Deliver** — save/return final outputs and note the final prompt + flags used.
 10. Run the verification below; when a check fails, fix the cause (usually one targeted prompt or flag change) and re-run that check. Repeat until every check passes or a concrete blocker remains (missing key, unavailable dependency, provider rejection), then report the blocker instead of looping.

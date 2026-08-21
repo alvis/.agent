@@ -441,7 +441,7 @@ Constraints: crisp silhouette, no halos/fringing; preserve label text exactly; n
 Use `--reference` for the style image:
 
 ```bash
-python "$IMAGINE" generate --reference style.png --prompt "A man riding a motorcycle on a white background"
+bun "$IMAGINE" generate --reference style.png --prompt "A man riding a motorcycle on a white background"
 ```
 
 ```

@@ -1,4 +1,4 @@
-# CLI reference (`scripts/image_gen.py`)
+# CLI reference (`scripts/image-gen.ts`)
 
 This file contains the "command catalog" for the bundled image generation CLI. Keep `SKILL.md` as overview-first; put verbose CLI details here.
 
@@ -8,36 +8,36 @@ This file contains the "command catalog" for the bundled image generation CLI. K
 - `generate-batch`: run many jobs from a JSONL file (one job per line)
 - `edit` (hidden alias): backward-compatible alias for `generate --image`; `--image` is required.
 
-Supports multiple providers: **Google Gemini** (default) and **OpenAI**.
+Supports multiple providers: **Google Gemini** (default), **OpenAI**, and **Recraft**.
 
-Real API calls require **network access** + the appropriate API key (`GOOGLE_API_KEY` or `OPENAI_API_KEY`). `--dry-run` does not.
+Real API calls require **network access** and the selected provider's key (`GOOGLE_API_KEY`, `OPENAI_API_KEY`, or `RECRAFT_API_TOKEN`). `--dry-run` does not.
 
 ## Quick start (works from any repo)
 
 Set a stable path to the skill CLI:
 
 ```
-export IMAGINE="$HOME/.claude/plugins/web/skills/imagine/scripts/image_gen.py"
+export IMAGINE="${WEB_IMAGINE_SKILL_DIR}/scripts/image-gen.ts"
 ```
 
 ### Discover available params
 
 ```
-python "$IMAGINE" generate --help                        # Shows Google params (default)
-python "$IMAGINE" --provider openai generate --help      # Shows OpenAI params
+bun "$IMAGINE" generate --help                        # Shows Google params (default)
+bun "$IMAGINE" --provider openai generate --help      # Shows OpenAI params
 ```
 
 ### Dry-run (no API call; no network required)
 
 ```
-python "$IMAGINE" generate --prompt "Test" --dry-run
-python "$IMAGINE" --provider openai generate --prompt "Test" --dry-run
+bun "$IMAGINE" generate --prompt "Test" --dry-run
+bun "$IMAGINE" --provider openai generate --prompt "Test" --dry-run
 ```
 
 ### Generate with Google (default)
 
 ```
-uv run --with google-genai python "$IMAGINE" generate \
+bun "$IMAGINE" generate \
   --prompt "A cozy alpine cabin at dawn" \
   --aspect-ratio 16:9 \
   --resolution 1K
@@ -46,15 +46,15 @@ uv run --with google-genai python "$IMAGINE" generate \
 ### Generate with OpenAI
 
 ```
-uv run --with openai python "$IMAGINE" --provider openai generate \
+bun "$IMAGINE" --provider openai generate \
   --prompt "A cozy alpine cabin at dawn" \
   --size 1024x1024
 ```
 
-No `uv` installed? Use your active Python env:
+The CLI resolves its inline latest-major imports through Bun; no separate package installation is required:
 
 ```
-python "$IMAGINE" generate --prompt "A cozy alpine cabin at dawn"
+bun "$IMAGINE" generate --prompt "A cozy alpine cabin at dawn"
 ```
 
 ## Provider flag
@@ -64,19 +64,20 @@ Use `--provider` to select which image generation provider to use:
 ```
 --provider google     # Default — Google Gemini (gemini-3.1-flash-image-preview)
 --provider openai     # OpenAI (gpt-image-1.5)
+--provider recraft    # Recraft (recraftv4)
 ```
 
 The `--provider` flag must appear **before** the subcommand:
 
 ```
-python "$IMAGINE" --provider openai generate --prompt "..."
+bun "$IMAGINE" --provider openai generate --prompt "..."
 ```
 
 ## Guardrails (important)
 
-- Use `python "$IMAGINE" ...` (or equivalent full path) for generations/edits/batch work.
-- Do **not** create one-off runners (e.g. `gen_images.py`) unless the user explicitly asks for a custom wrapper.
-- **Never modify** `scripts/image_gen.py` or files under `scripts/providers/`. If something is missing, ask the user before doing anything else.
+- Use `bun "$IMAGINE" ...` (or equivalent full path) for generations/edits/batch work.
+- Do **not** create one-off runners (e.g. `gen-images.ts`) unless the user explicitly asks for a custom wrapper.
+- **Never modify** `scripts/image-gen.ts` or files under `scripts/providers/`. If something is missing, ask the user before doing anything else.
 
 ## Defaults by provider
 
@@ -115,11 +116,11 @@ python "$IMAGINE" --provider openai generate --prompt "..."
 
 All image flags accept local file paths or `https://` URLs. URLs are downloaded to a temp directory that is automatically cleaned up after the command completes.
 
-| Flag | Repeatable | Required | Notes |
-|------|-----------|----------|-------|
-| `--image` | Yes | No (`generate`), Yes (`edit`) | Input image for editing |
-| `--mask` | No | No | Mask image for inpainting (PNG with alpha) |
-| `--reference` | Yes | No | Style reference image |
+| Flag          | Repeatable | Required                      | Notes                                      |
+| ------------- | ---------- | ----------------------------- | ------------------------------------------ |
+| `--image`     | Yes        | No (`generate`), Yes (`edit`) | Input image for editing                    |
+| `--mask`      | No         | No                            | Mask image for inpainting (PNG with alpha) |
+| `--reference` | Yes        | No                            | Style reference image                      |
 
 When `--image` or `--reference` is provided, the CLI uses the edit pathway (OpenAI: `images.edit()`; Google: multi-image `generate_content`).
 
@@ -127,10 +128,10 @@ When `--image` or `--reference` is provided, the CLI uses the edit pathway (Open
 
 ```bash
 # Edit an image from a URL
-python "$IMAGINE" generate --image "https://example.com/photo.jpg" --prompt "Change the background"
+bun "$IMAGINE" generate --image "https://example.com/photo.jpg" --prompt "Change the background"
 
 # Style reference from a URL
-python "$IMAGINE" generate --reference "https://example.com/style.png" --prompt "A landscape in this style"
+bun "$IMAGINE" generate --reference "https://example.com/style.png" --prompt "A landscape in this style"
 ```
 
 ## Quality + input fidelity (OpenAI)
@@ -141,7 +142,7 @@ python "$IMAGINE" generate --reference "https://example.com/style.png" --prompt 
 Example:
 
 ```
-python "$IMAGINE" --provider openai generate --image input.png --prompt "Change only the background" --quality high --input-fidelity high
+bun "$IMAGINE" --provider openai generate --image input.png --prompt "Change only the background" --quality high --input-fidelity high
 ```
 
 ## Style references (`--reference`)
@@ -150,16 +151,17 @@ Use `--reference` to provide one or more style guide images. The model uses the 
 
 ```bash
 # Style-guided generation
-python "$IMAGINE" generate --reference style.png --prompt "A man riding a motorcycle"
+bun "$IMAGINE" generate --reference style.png --prompt "A man riding a motorcycle"
 
 # Style-guided edit (apply style to an existing image)
-python "$IMAGINE" generate --image photo.png --reference style.png --prompt "Apply the reference style"
+bun "$IMAGINE" generate --image photo.png --reference style.png --prompt "Apply the reference style"
 
 # Multiple references
-python "$IMAGINE" generate --reference ref1.png --reference ref2.png --prompt "Blend these styles"
+bun "$IMAGINE" generate --reference ref1.png --reference ref2.png --prompt "Blend these styles"
 ```
 
 **Provider behavior:**
+
 - **Google**: Reference images are prepended to the `contents` list before edit images and the prompt.
 - **OpenAI**: Reference images are combined with edit images and sent to the `images.edit()` endpoint. A style-reference context line is always added to the prompt.
 
@@ -170,21 +172,16 @@ python "$IMAGINE" generate --reference ref1.png --reference ref2.png --prompt "B
 
 In the edit prompt, repeat invariants (e.g., "change only the background; keep the subject unchanged") to reduce drift.
 
-## Optional deps
+## Inline dependencies
 
-Prefer `uv run --with ...` for an out-of-the-box run without changing the current project env; otherwise install into your active env:
-
-```
-uv pip install google-genai pillow   # Google provider
-uv pip install openai pillow         # OpenAI provider
-```
+Bun auto-installs the provider dependencies from the CLI's inline latest-major imports: `@google/genai@1` for Google, `openai@6` for OpenAI and Recraft, and `sharp@0.34` when format conversion or downscaling is requested. Keep package auto-install enabled and allow registry access; do not add project dependencies or pin a second version.
 
 ## Common recipes
 
 ### Google: generate with aspect ratio
 
 ```
-uv run --with google-genai python "$IMAGINE" generate \
+bun "$IMAGINE" generate \
   --prompt "A cozy alpine cabin at dawn" \
   --aspect-ratio 16:9 \
   --resolution 2K
@@ -193,7 +190,7 @@ uv run --with google-genai python "$IMAGINE" generate \
 ### Google: generate + downscaled copy for web
 
 ```
-uv run --with google-genai --with pillow python "$IMAGINE" generate \
+bun "$IMAGINE" generate \
   --prompt "A cozy alpine cabin at dawn" \
   --aspect-ratio 16:9 \
   --downscale-max-dim 1024
@@ -202,7 +199,7 @@ uv run --with google-genai --with pillow python "$IMAGINE" generate \
 ### OpenAI: generate + downscaled copy
 
 ```
-uv run --with openai --with pillow python "$IMAGINE" --provider openai generate \
+bun "$IMAGINE" --provider openai generate \
   --prompt "A cozy alpine cabin at dawn" \
   --size 1024x1024 \
   --downscale-max-dim 1024
@@ -211,12 +208,12 @@ uv run --with openai --with pillow python "$IMAGINE" --provider openai generate 
 Notes:
 
 - Downscaling writes an extra file next to the original (default suffix `-web`, e.g. `output-web.png`).
-- Downscaling requires Pillow (use `uv run --with pillow ...` or install it into your env).
+- Downscaling resolves the CLI's inline `sharp@0.34` import through Bun.
 
 ### Generate with augmentation fields
 
 ```
-python "$IMAGINE" generate \
+bun "$IMAGINE" generate \
   --prompt "A minimal hero image of a ceramic coffee mug" \
   --use-case "landing page hero" \
   --style "clean product photography" \
@@ -233,7 +230,7 @@ cat > /tmp/imagine/prompts.jsonl << 'EOF'
 {"prompt":"Gray wolf in profile in a snowy forest, crisp fur texture","use_case":"wildlife photography print","composition":"100mm, eye-level, shallow depth of field","constraints":"no logos or trademarks; no watermark","aspect_ratio":"1:1"}
 EOF
 
-python "$IMAGINE" generate-batch --input /tmp/imagine/prompts.jsonl --out-dir out --concurrency 5
+bun "$IMAGINE" generate-batch --input /tmp/imagine/prompts.jsonl --out-dir out --concurrency 5
 
 # Cleanup (recommended)
 rm -f /tmp/imagine/prompts.jsonl
@@ -249,25 +246,25 @@ Notes:
 ### Edit (Google — no mask)
 
 ```
-python "$IMAGINE" generate --image input.png --prompt "Replace the background with a warm sunset"
+bun "$IMAGINE" generate --image input.png --prompt "Replace the background with a warm sunset"
 ```
 
 ### Edit (OpenAI — with mask)
 
 ```
-python "$IMAGINE" --provider openai generate --image input.png --mask mask.png --prompt "Replace the background with a warm sunset"
+bun "$IMAGINE" --provider openai generate --image input.png --mask mask.png --prompt "Replace the background with a warm sunset"
 ```
 
 ### Style-guided generation
 
 ```
-python "$IMAGINE" generate --reference style.png --prompt "A cozy alpine cabin at dawn" --aspect-ratio 16:9
+bun "$IMAGINE" generate --reference style.png --prompt "A cozy alpine cabin at dawn" --aspect-ratio 16:9
 ```
 
 ### Style-guided edit
 
 ```
-python "$IMAGINE" generate --image photo.png --reference style.png --prompt "Apply the reference style to this photo"
+bun "$IMAGINE" generate --image photo.png --reference style.png --prompt "Apply the reference style to this photo"
 ```
 
 ## Backward compatibility
@@ -282,7 +279,7 @@ The `edit` subcommand is still supported as a hidden alias for `generate --image
 - Default output is `output.png`; multiple images become `output-1.png`, `output-2.png`, etc.
 - Use `--no-augment` to skip prompt augmentation (style-reference context is always included when `--reference` is used).
 - All image inputs (`--image`, `--mask`, `--reference`) accept local file paths or `https://` URLs.
-- Temp path is OS-agnostic (use `tempfile.gettempdir()/imagine/` for intermediate files).
+- Remote inputs use per-run sibling directories in the system temporary directory with the `imagine_dl_*` prefix; the CLI removes each directory after the command.
 
 ## See also
 
