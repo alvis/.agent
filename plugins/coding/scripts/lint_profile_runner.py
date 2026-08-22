@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """Run the generic lint scanner and optional profile scanners portably."""
 
-from __future__ import annotations
-
 import argparse
 import fnmatch
 import json
@@ -17,7 +15,11 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--profile", type=Path)
     parser.add_argument("--coding-root", type=Path, default=script_dir.parent)
-    parser.add_argument("--generic-scanner", type=Path, default=script_dir / "scan_potential_violations.py")
+    parser.add_argument(
+        "--generic-scanner",
+        type=Path,
+        default=script_dir / "scan_potential_violations.py",
+    )
     parser.add_argument("files", nargs="+")
     return parser.parse_args()
 
@@ -36,8 +38,7 @@ def eligible_files(files: list[str], profile: dict) -> list[str]:
     return [
         file
         for file in files
-        if (not extensions or file.endswith(extensions))
-        and not excluded(file)
+        if (not extensions or file.endswith(extensions)) and not excluded(file)
     ]
 
 
@@ -47,7 +48,9 @@ def scanner_result(
     *,
     env: dict[str, str] | None = None,
 ) -> tuple[dict, int]:
-    result = subprocess.run(command, text=True, capture_output=True, env=env)
+    result = subprocess.run(
+        command, text=True, capture_output=True, env=env, check=False
+    )
     run = {"label": label, "args": command[2:], "exit_code": result.returncode}
     lines = result.stdout.splitlines()
     if lines:
@@ -63,15 +66,19 @@ def scanner_result(
 
 
 def failure(message: str) -> int:
-    print(json.dumps({
-        "violations_found_total": 0,
-        "status": "failure",
-        "report_label": "Coding lint",
-        "files": [],
-        "standards": [],
-        "scanner_runs": [],
-        "error": message,
-    }))
+    print(
+        json.dumps(
+            {
+                "violations_found_total": 0,
+                "status": "failure",
+                "report_label": "Coding lint",
+                "files": [],
+                "standards": [],
+                "scanner_runs": [],
+                "error": message,
+            }
+        )
+    )
     return 2
 
 
@@ -83,7 +90,9 @@ def validate_profile(profile_path: Path | None, profile: dict) -> str | None:
     if not isinstance(profile, dict):
         return "profile must contain a JSON object"
     eligibility = profile.get("eligibility", {})
-    if not isinstance(eligibility, dict) or not isinstance(eligibility.get("extensions", []), list):
+    if not isinstance(eligibility, dict) or not isinstance(
+        eligibility.get("extensions", []), list
+    ):
         return "profile eligibility.extensions must be a list"
     if not isinstance(profile.get("exclusions", []), list):
         return "profile exclusions must be a list"
@@ -91,7 +100,11 @@ def validate_profile(profile_path: Path | None, profile: dict) -> str | None:
         return "profile standards must be a list"
     if not isinstance(profile.get("scanners", []), list):
         return "profile scanners must be a list"
-    root = profile_path.parents[2].resolve()
+    skills_root = next(
+        (parent for parent in profile_path.parents if parent.name == "skills"),
+        None,
+    )
+    root = (skills_root.parent if skills_root else profile_path.parents[2]).resolve()
     resource_base = profile_path.parent.resolve()
     for item in profile.get("standards", []):
         if not isinstance(item, str):
@@ -128,10 +141,14 @@ def main() -> int:
     if validation_error:
         return failure(validation_error)
     files = eligible_files(args.files, profile)
-    standards = [
-        str((profile_path.parent / item).resolve())
-        for item in profile.get("standards", [])
-    ] if profile_path else []
+    standards = (
+        [
+            str((profile_path.parent / item).resolve())
+            for item in profile.get("standards", [])
+        ]
+        if profile_path
+        else []
+    )
     report = {
         "violations_found_total": 0,
         "status": "compliant",
@@ -155,11 +172,16 @@ def main() -> int:
         print(json.dumps(report))
         return exit_code
 
+    scanner_base = profile_path.parent if profile_path else None
     for scanner in profile.get("scanners", []):
-        scanner_path = (profile_path.parent / scanner["path"]).resolve()
+        if scanner_base is None:
+            return failure("profile scanner requires --profile")
+        scanner_path = (scanner_base / scanner["path"]).resolve()
         command = [sys.executable, str(scanner_path)]
         if scanner.get("needs_coding_scanlib"):
-            command.extend(["--scanlib", str((args.coding_root.resolve() / "scripts/scanlib"))])
+            command.extend(
+                ["--scanlib", str(args.coding_root.resolve() / "scripts/scanlib")]
+            )
         command.extend(common)
         run, exit_code = scanner_result(command, scanner_path.stem, env=scanner_env)
         report["scanner_runs"].append(run)

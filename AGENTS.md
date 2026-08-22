@@ -5,10 +5,13 @@ does, delete it — that governs this file and everything shipped from this tree
 
 ## What this repository is
 
-This is the **source** of one plugin marketplace for Claude Code and Codex: the
-plugins under `plugins/` are projected into both harnesses' manifest formats.
-OpenCode and Grok Build are next-phase aims, not supported harnesses today; do
-not claim support or add requirements that depend on either projection.
+This is the **source** of one plugin marketplace with three support tiers:
+Claude Code and Codex are native projections; Grok Build consumes the Claude
+projection through its documented compatibility layer; OpenCode V1 uses the
+best-effort projector in `scripts/install_opencode.py`. OpenCode V2 and
+`opencode2` are unsupported. Qualify non-native support against
+`COMPATIBILITY.md`; never flatten adapter, experimental, external, or unavailable
+behavior into a blanket support claim.
 
 This remains a greenfield project: breaking changes are accepted and expected.
 No legacy compatibility is needed; remove every deprecated symbol.
@@ -27,6 +30,8 @@ Runtime prerequisites: Bash, `jq`, Git, and `uv` (which supplies Python 3.13+), 
 |---|---|
 | Claude marketplace manifest | `.claude-plugin/marketplace.json` |
 | Codex marketplace projection | `.agents/plugins/marketplace.json` |
+| OpenCode V1 projector | `scripts/install_opencode.py` + `scripts/opencode_adapter.js` + `scripts/opencode_contract.json` |
+| Harness compatibility projection | `COMPATIBILITY.md` from `scripts/generate_harness_compatibility.py` |
 | Plugin manifests | `plugins/<p>/.{claude,codex}-plugin/plugin.json` |
 | Skill | `plugins/<p>/skills/<name>/SKILL.md` (+ `references/`, `scripts/`, `assets/`) |
 | Agent | `plugins/<p>/agents/<name>/base.md` + `frontmatter/{meta,claude,codex}.json` |
@@ -58,11 +63,13 @@ every hook command — the `sed` replacement included — carries that exact anc
 quoted. Anchoring on one variable alone makes the hook resolve nothing under the other
 harness, and a `sed | jq` pipeline still exits 0 while emitting nothing. Quoting is
 equally load-bearing: the anchor expands to a path the user chose, so an unquoted
-expansion word-splits on a space and runs its first segment. Adding another harness
-extends this one chain by one segment — read its variable from that harness's own
-documentation rather than guessing a name, and give every command the new chain in
-the same change, since a chain that is current in some commands and stale in others
-fails just as silently.
+expansion word-splits on a space and runs its first segment. Grok consumes this
+Claude-compatible contract. OpenCode does not set either root variable: its
+adapter reads payload sources from the projected bundle and substitutes
+`{{PLUGIN_DIR}}` directly. Do not extend the native chain for a compatibility
+consumer. A future native harness may extend it only from that harness's own
+documentation and in every command in the same change; a partially updated chain
+fails silently.
 
 - `ALLAGENT.md` — injected at `SessionStart` **and** `SubagentStart`; carries that plugin's
   own routing only. Do not rebuild a central roster table in it.
@@ -84,8 +91,8 @@ These plugins are built to one model of how knowledge ages:
 reads, or retires anything. The invariants below are what it forbids while you edit
 these sources, and each is the rule a locally sensible change breaks first.
 
-- **Every current harness, or none.** Claude Code and Codex are one target, not a
-  primary plus a port. Anything shipped from this tree — hook command, script,
+- **Every native harness, or none.** Claude Code and Codex are one target, not a
+  primary plus a port. Anything in their native contract — hook command, script,
   agent or skill projection, installed path, config format, tool name — works under both
   or is not done. Reading one harness's value resolves to nothing under the other
   and almost always fails silent rather than loud, so resolve every harness-specific
@@ -96,6 +103,9 @@ these sources, and each is the rule a locally sensible change breaks first.
   and proves nothing. A feature only one harness has — Claude Code output styles and
   statusline today — is scoped to it in the open, saying which harness and why; what
   this forbids is the unmarked single-harness path in something meant for all of them.
+  Compatibility consumers instead generate from native sources, disclose every
+  gap in `COMPATIBILITY.md`, and reject source shapes an adapter cannot preserve
+  rather than silently dropping them.
 - **One home per fact.** Give every fact exactly one authoritative file. A second mention
   is derived: it names its source and is rewritten from that source, never patched in
   place. This is the rule behind "no central roster in a plugin's
