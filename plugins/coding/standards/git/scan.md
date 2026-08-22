@@ -9,10 +9,10 @@ outcomes and load the matching guide from `rules/`.
 ## Mechanical Scans
 
 - Classify each exact base/head surface with
-  [classify-pr-size.py](../../skills/pr/scripts/classify-pr-size.py); never
+  [classify-pr-size.ts](../../skills/pr/scripts/classify-pr-size.ts) with Bun; never
   estimate a zone or reproduce its arithmetic.
 - Validate a rendered PR message with
-  [scan-pr-message.py](../../skills/pr/scripts/scan-pr-message.py), passing its
+  [scan-pr-message.ts](../../skills/pr/scripts/scan-pr-message.ts) with Bun, passing its
   selected template, exact head/base OIDs, zone, archetype, and generated
   paths. A nonzero result is a standard violation, not an authoring hint.
 

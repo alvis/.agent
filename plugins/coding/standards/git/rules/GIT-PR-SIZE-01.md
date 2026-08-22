@@ -22,7 +22,7 @@ authority, and contract verification checks them against that asset.
 
 ## Fix
 
-Run `../../../skills/pr/scripts/classify-pr-size.py` through Python 3.13 against the
+Run `bun run ../../../skills/pr/scripts/classify-pr-size.ts` against the
 exact base/head pair, then author the body through the canonical PR template.
 Do not add file counts, LOC, or zone bookkeeping to the PR body.
 

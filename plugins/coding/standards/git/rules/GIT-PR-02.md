@@ -19,7 +19,7 @@ authoring marker from every rendered heading.
 
 ## Scan
 
-Run [scan-pr-message.py](../../../skills/pr/scripts/scan-pr-message.py) with the
+Run [scan-pr-message.ts](../../../skills/pr/scripts/scan-pr-message.ts) with Bun and the
 rendered body, selected template, exact head/base OIDs, PR-size zone,
 archetype, and generated paths. Its violations identify this rule or the
 conditional size, archetype, or stack rule that owns the missing evidence.
