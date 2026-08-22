@@ -4,3 +4,4 @@ __pycache__
 plugins/essential/skills/discover/assets/html/vendor/
 .state/
 .venv/
+node_modules/

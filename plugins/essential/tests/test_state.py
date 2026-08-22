@@ -1014,14 +1014,20 @@ def test_allows_jj_repository_without_registered_default(tmp_path: Path) -> None
 # repository ignore contract
 
 
-def test_state_transport_and_work_state_are_ignored() -> None:
+def test_state_transport_and_work_state_are_ignored(tmp_path: Path) -> None:
+    root = tmp_path / "ignore-contract"
+    root.mkdir()
+    subprocess.run(
+        ["git", "init", "-q"], cwd=root, text=True, capture_output=True, check=True
+    )
+    shutil.copyfile(REPOSITORY / ".gitignore", root / ".gitignore")
     paths = (
         ".state/notion/example.mdc",
         ".state/works/test/state.md",
     )
     completed = subprocess.run(
         ["git", "check-ignore", "--no-index", *paths],
-        cwd=REPOSITORY,
+        cwd=root,
         text=True,
         capture_output=True,
         check=False,
