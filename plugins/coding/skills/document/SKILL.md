@@ -69,7 +69,7 @@ independent-review audit checklist, and the retry/rollback criteria.
    not create a duplicate: report the compatibility migration and rename it
    with all links atomically only when repository evidence makes that safe.
 5. Draft from the evidence map. Use real imports, commands, paths, inputs, outputs, and failure cases that were verified against code/tests. Never invent a convenience API. Preserve the existing voice and integrate updates into the owning sections.
-6. Generate a table of contents only when the document benefits from one. Use `${CODING_DOCUMENT_SKILL_DIR}/scripts/toc_width.py` for width calculations; never use a checkout-specific absolute path.
+6. Generate a table of contents only when the document benefits from one. Use `bun run "${CODING_DOCUMENT_SKILL_DIR}/scripts/toc_width.ts"` for width calculations; never use a checkout-specific absolute path.
 7. Create or update `docs/architecture/<architecture-slug>.md` when explicitly
    requested or when the package has multiple public/runtime entry points,
    cross-process or persistent data flow, meaningful dependency layering, or
@@ -97,7 +97,7 @@ independent-review audit checklist, and the retry/rollback criteria.
 - An independent read-only review (delegated) found no unsupported claims,
   wrong archetype, README/architecture overlap, unusable examples, stale text,
   or broken durable-index links.
-- Any generated table of contents was produced with `toc_width.py`, not by hand.
+- Any generated table of contents was produced with `toc_width.ts`, not by hand.
 
 ## Completion
 

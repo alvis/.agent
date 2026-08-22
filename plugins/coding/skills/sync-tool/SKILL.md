@@ -20,7 +20,7 @@ their official upstream sources so any sibling skill (for example
 `coding:commit`, which needs `jj` and `gh`) can rely on them being on `PATH`
 at minimum versions. The registry — order, minimum versions, installer
 contract — lives in [references/tool-registry.md](references/tool-registry.md);
-`scripts/sync.py` executes it.
+`scripts/sync.ts` executes it.
 
 ## Boundaries
 
@@ -50,8 +50,8 @@ contract — lives in [references/tool-registry.md](references/tool-registry.md)
   - `SYNC_TOOL_NO_WAIT=1` (env var) — for `gh` post-install: print the auth
     banner once and exit non-zero instead of polling, so CI and other
     non-interactive callers fail fast.
-- **Prerequisites**: `bash` (Git-Bash/MSYS/Cygwin on Windows), `python3`
-  (3.8+) on `PATH`, and network access to upstream package sources (Homebrew,
+- **Prerequisites**: `bash` (Git-Bash/MSYS/Cygwin on Windows), `bun` on
+  `PATH`, and network access to upstream package sources (Homebrew,
   GitHub releases, apt/dnf, winget, crates.io).
 
 ## Workflow
@@ -59,9 +59,10 @@ contract — lives in [references/tool-registry.md](references/tool-registry.md)
 1. Parse flags, validate any `--only` names against the registry, and resolve
    the tool list (default = full registry, in order; order matters because
    `brew` must precede the other tools on macOS).
-2. Run the pipeline: `python3 "${CODING_SYNC_TOOL_SKILL_DIR}/scripts/sync.py" [flags]`.
-   For each selected tool the script detects the OS via `uname -s`, runs
-   `scripts/installers/<tool>.sh` with the `DRY_RUN`/`FORCE` env vars,
+2. Run the pipeline: `bun run "${CODING_SYNC_TOOL_SKILL_DIR}/scripts/sync.ts" [flags]`.
+   For each selected tool the script detects the OS via `process.platform`, runs
+   `scripts/installers/<tool>.sh` with the `DRY_RUN`/`FORCE` env vars (installers
+   may call `uname -s`),
    verifies `<tool> --version` against the registry minimum, and — for `gh`
    only — polls `gh auth status` until authenticated, aborted, or
    `SYNC_TOOL_NO_WAIT=1` short-circuits. Per-OS install methods are documented
@@ -69,10 +70,10 @@ contract — lives in [references/tool-registry.md](references/tool-registry.md)
 
    ```bash
    # Only sync jj and gh (e.g., from coding:commit)
-   python3 "${CODING_SYNC_TOOL_SKILL_DIR}/scripts/sync.py" --only=jj,gh
+   bun run "${CODING_SYNC_TOOL_SKILL_DIR}/scripts/sync.ts" --only=jj,gh
 
    # Non-interactive: skip the gh auth poll, fail fast
-   SYNC_TOOL_NO_WAIT=1 python3 "${CODING_SYNC_TOOL_SKILL_DIR}/scripts/sync.py" --only=gh
+   SYNC_TOOL_NO_WAIT=1 bun run "${CODING_SYNC_TOOL_SKILL_DIR}/scripts/sync.ts" --only=gh
    ```
 
 3. Review the per-tool status lines: a tool passes when its status is

@@ -1,8 +1,8 @@
 # Platforms
 
 `sync-tool` supports macOS, Linux, and Windows (via Git-Bash / MSYS / Cygwin).
-OS detection is performed twice — once in `scripts/lib.py::detect_os()` for
-Python-side decisions, and once via `uname -s` inside each installer shell
+OS detection is performed twice — once in `scripts/lib.ts::detectOs()` for
+TypeScript-side decisions, and once via `uname -s` inside each installer shell
 script. Both branches must stay in sync.
 
 ## OS detection rules
@@ -47,18 +47,18 @@ with a clear message pointing at <https://rustup.rs> when `cargo` is absent.
 ## Conventions
 
 - **Idempotence**: Re-running an installer with the same env/flags must not
-  cause errors. Already-current installs are detected pre-flight by `sync.py`.
+  cause errors. Already-current installs are detected pre-flight by `sync.ts`.
 - **Dry run**: `DRY_RUN=1` causes installer scripts to echo each planned
   command (`+ <cmd>` to stderr) without executing it.
 - **Force**: `FORCE=1` causes the installer to reinstall/upgrade even when the
-  tool is present at minimum version (`sync.py` skips its own short-circuit).
+  tool is present at minimum version (`sync.ts` skips its own short-circuit).
 - **No interactive auth**: `gh.sh` only polls `gh auth status`; it never invokes
   `gh auth login`. The user is instructed via banner to run `gh auth login` in
   another terminal. `SYNC_TOOL_NO_WAIT=1` lets non-interactive callers fail
   fast with the banner printed once.
 - **Self-contained installers**: There is no shared shell library by design.
   Each installer can be run standalone (`bash installers/jj.sh`) for ad-hoc
-  troubleshooting without depending on `sync.py`.
+  troubleshooting without depending on `sync.ts`.
 
 ## Known platform caveats
 
@@ -68,5 +68,5 @@ with a clear message pointing at <https://rustup.rs> when `cargo` is absent.
 - **Linux without `sudo`**: The apt/dnf branches assume `sudo` is available and
   the user has root privileges. If neither apt nor dnf is present, the tarball
   fallback installs into `$HOME/.local/bin` which does not require root.
-- **Windows under PowerShell/CMD**: `sync.py` is invoked from a POSIX shell;
+- **Windows under PowerShell/CMD**: `sync.ts` is invoked from a POSIX shell;
   PowerShell/CMD are not supported. Use Git-Bash or MSYS2.

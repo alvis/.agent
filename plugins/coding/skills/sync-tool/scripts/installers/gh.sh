@@ -16,7 +16,7 @@
 #   Honors SYNC_TOOL_NO_WAIT=1 → print banner once, exit non-zero.
 #
 # Honors DRY_RUN=1 (echo planned cmd) and FORCE=1 (reinstall even if present).
-# Minimum version: 2.0.0 (verification done by sync.py post-run).
+# Minimum version: 2.0.0 (verification done by sync.ts post-run).
 # Exits 0 on success; non-zero with stderr message on failure.
 #
 # Self-contained: no shared shell library.

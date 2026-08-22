@@ -74,7 +74,7 @@ Table of Contents — DISCIPLINE:
   • Blank lines inside the centering `<div>` are REQUIRED for GitHub's markdown
     parser to render inline links — they do NOT count as multi-line.
   • **TOC budget**: Keep the TOC ≤110 **displayed** characters. Run
-    `python3 scripts/toc_width.py <file>` — it is authoritative. Key counts:
+    `bun run scripts/toc_width.ts <file>` — it is authoritative. Key counts:
     `&emsp;` = 2, emoji/CJK = 2, `&nbsp;`/`&ensp;` = 1, `[caption](url)` drops
     to `caption` only. So `&emsp;&emsp;•&emsp;&emsp;` is 9 displayed chars
     (2+2+1+2+2), not 5. Exclude the `<div>` wrapper from the count; include

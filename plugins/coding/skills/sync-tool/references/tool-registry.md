@@ -23,12 +23,12 @@ To register a new tool (e.g., `rg`):
    - Self-contained — no shared shell helpers.
    - Exit 0 on success; non-zero with a clear stderr message on failure.
    - Prefer the official upstream install method per OS (Homebrew on macOS, official apt repo / dnf / cargo / tarball on Linux, winget on Windows).
-2. **Register it in `scripts/sync.py`**: Append a `ToolEntry(...)` to the `REGISTRY` tuple. Set:
+2. **Register it in `scripts/sync.ts`**: Append a `ToolEntry` object to `REGISTRY`. Set:
    - `name`: the executable name on `PATH`.
    - `installer`: filename in `scripts/installers/`.
-   - `min_version`: minimum acceptable `--version` output.
-   - `version_args`: tuple of args that produce a parseable version string (default `("--version",)`).
-   - `macos_only`: `True` only for tools that genuinely don't apply elsewhere (e.g., `brew`).
+   - `minVersion`: minimum acceptable `--version` output.
+   - `versionArguments`: arguments that produce a parseable version string (default `["--version"]`).
+   - `macosOnly`: `true` only for tools that genuinely don't apply elsewhere (e.g., `brew`).
 3. **Update this file**: Add a row to the table above.
 4. **Update `references/platforms.md`**: Document the per-OS install method for the new tool.
 
