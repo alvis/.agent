@@ -47,13 +47,13 @@ behavior was exercised unless an executable evaluation actually ran.
 
 ## Verification
 
-Resolve `scripts/quick_validate.py` from this skill's root—the directory
+Resolve `scripts/quick_validate.ts` from this skill's root—the directory
 containing this loaded `SKILL.md`—rather than from the process working
 directory. For each affected skill, set `TARGET` to its exact `SKILL.md` or
 skill directory and run one invocation:
 
 ```bash
-uv run --python 3.13 "<loaded-write-skill-root>/scripts/quick_validate.py" --portable "$TARGET"
+bun run "<loaded-write-skill-root>/scripts/quick_validate.ts" --portable "$TARGET"
 ```
 
 Portable mode rejects required Markdown links outside the skill root and checks

@@ -91,7 +91,7 @@ local–Notion pairs. Public modes are `validate-metadata`, `local-to-notion`,
    executable, unknown capability, or placeholder as `transport_unverified`.
    The profile contains no token; read `NOTION_TOKEN` only from the invocation
    environment and never copy it into evidence or reports. Run the bundled
-   dependency-free `scripts/validate-transport-profile.py` with `python3` and
+   dependency-free `scripts/validate-transport-profile.ts` with `bun run` and
    require its `profile_structure_verified` report; it canonicalizes the
    fixed-shape conformance evidence, hashes the exact profile and
    executable bytes, and never runs the executable. Then run only the returned

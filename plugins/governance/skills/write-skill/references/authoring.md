@@ -136,7 +136,7 @@ machine-readable output contracts. Close every tag.
    continue to the marketplace and harness validators below; any other finding
    fails this step. If it is unavailable, check the strict frontmatter and
    directory rules above and report that no standard validator ran.
-2. Run the bundled `scripts/quick_validate.py --portable` as described in the
+2. Run the bundled `scripts/quick_validate.ts --portable` as described in the
    root `SKILL.md`. It checks the self-contained path contract and validates a
    containing Claude plugin only when one is resolvable.
 3. Apply the harness-specific checks in `references/harnesses.md` only when the

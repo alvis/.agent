@@ -85,7 +85,7 @@ chain. Other body dialects require their own explicitly selected
 `--body-author=<plugin:skill>` capability;
 byte-preserving materialization may omit the selector.
 Generate a starter profile with
-`uv run --python 3.13 skills/sync-notion/scripts/validate-transport-profile.py
+`bun run skills/sync-notion/scripts/validate-transport-profile.ts
 --print-template` and attach real conformance evidence before use.
 
 When a spec change lands mid-work, the revalidation sweep marks affected

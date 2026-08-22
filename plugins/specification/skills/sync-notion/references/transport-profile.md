@@ -144,7 +144,7 @@ Run the bundled dependency-free structural verifier before any executable
 probe:
 
 ```bash
-python3 <sync-notion-skill-root>/scripts/validate-transport-profile.py \
+bun run <sync-notion-skill-root>/scripts/validate-transport-profile.ts \
   /absolute/path/to/notion-sync-transport.json
 ```
 
@@ -157,8 +157,8 @@ fingerprints/capabilities. It never executes the transport or reads
 For command help or a starter profile, run:
 
 ```bash
-python3 <sync-notion-skill-root>/scripts/validate-transport-profile.py --help
-python3 <sync-notion-skill-root>/scripts/validate-transport-profile.py --print-template
+bun run <sync-notion-skill-root>/scripts/validate-transport-profile.ts --help
+bun run <sync-notion-skill-root>/scripts/validate-transport-profile.ts --print-template
 ```
 
 The template output is a secret-free JSON envelope with

@@ -215,7 +215,7 @@ Ambiguous evidence always preserves the directory.
 - Every destructive action has explicit approval and verified recovery; the
   post-audit proves every archived source is absent, its content-verified
   archive is present, its overview row is removed, and retained targets remain.
-- Validate with strict plugin validation and `quick_validate.py`; record known
+- Validate with strict plugin validation and `quick_validate.ts`; record known
   baseline warnings rather than masking them.
 
 ## Completion
