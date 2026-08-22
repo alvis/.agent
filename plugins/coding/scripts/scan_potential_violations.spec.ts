@@ -314,12 +314,16 @@ describe("Coding scanner", () => {
     ).toEqual([6]);
   });
 
+  // This test rescans the full fixture tree once per loaded rule through real
+  // subprocess captures. It is the one in this file observed exceeding the
+  // default budget on hosted macOS, so the raise lives on this test alone and
+  // genuine hangs elsewhere still fail fast.
   it("exposes every rule as a category", async () => {
     for (const rule of await loadRules())
       expect(
         (await capture([fixtures, "--category", rule.id])).stdout,
       ).toContain(`  ${rule.id}:`);
-  });
+  }, 30_000);
   it("uses only public kebab-case production rule filenames", () => {
     const publicModules = readdirSync(resolve(here, "scanners")).filter(
       (name) => name.endsWith(".ts") && !name.startsWith("_"),

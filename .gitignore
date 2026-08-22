@@ -1,7 +1,3 @@
-__pycache__
-.mypy_cache
-.pytest_cache
 plugins/essential/skills/discover/assets/html/vendor/
 .state/
-.venv/
 node_modules/

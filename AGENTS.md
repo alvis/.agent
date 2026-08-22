@@ -18,8 +18,10 @@ Edit plugin sources here. Never edit `~/.claude/plugins/` — that is a downstre
 that lags this tree and will mislead you. Refresh it with `claude plugin update`.
 </IMPORTANT>
 
-Runtime prerequisites: Bash, `jq`, Git, and `uv` (which supplies Python 3.13+), plus
-`gh`, and optionally `jj`, for publishing.
+Runtime prerequisites: Bash, `jq`, Git, Bun, and Python 3 — the preserved
+extensionless `state-doctor` script runs under its `python3` shebang, and the
+`plugins/governance` authoring instructions still invoke `uv`-pinned Python —
+plus `gh`, and optionally `jj`, for publishing.
 
 ## Where things live
 
@@ -169,31 +171,30 @@ lowercase kebab, never personalized.
 
 ## Validation
 
-Run every Python script and test through `uv`, pinning the interpreter with
-`--python`. `uv` fetches the requested version when it is absent, so the same command
-works on any machine.
-
-Two commands validate this repository, with no install step:
+One command validates this repository, with no install step:
 
 ```bash
 bunx vitest@^4.0.0 run --globals --exclude '**/fixtures/**'
-uvx --python 3.13 pytest
 ```
 
-Mechanical gates are colocated `*.spec.ts` or remaining pytest tests, so the suites
-and gates cannot drift apart. `.github/workflows/ci.yml` runs both commands on every
-pull request and push to `master`. Pytest uses the root `pytest.ini`; Vitest uses the
-versioned runner directly.
+No root `package.json` and no lockfile exists by design: `bunx` resolves the
+runner into its own cache, so the tree stays zero-dependency and a run leaves
+behind only git-ignored caches. That pin is a range (`^4`), not an exact
+version — minor-version drift between runs is the accepted trade for the
+zero-dependency tree. The fixture exclusion keeps the preserved Python corpus
+payloads from being collected as tests.
+
+Mechanical gates are colocated `*.spec.ts`, so the suites and gates cannot drift
+apart. `.github/workflows/ci.yml` runs that command on every pull request and push
+to `master`, on Ubuntu and macOS. The preserved Python boundary — the four scanner
+corpus fixtures under `plugins/coding/tests/fixtures/` and the extensionless
+`plugins/essential/skills/doctor/scripts/state-doctor` — is enforced mechanically by
+`scripts/repository_inventory.spec.ts`, which walks the checkout and fails if
+any other `.py` appears in it or `pytest.ini` returns.
 
 `claude plugin validate --strict .` checks the manifest and frontmatter schema
 against the installed CLI. It stays out of both the suite and CI, which is why
 you run it by hand before publishing a manifest change.
-
-<IMPORTANT>
-Never invoke a bare `python3`. macOS ships it as 3.9, which fails this repo's sources on
-3.10+ syntax such as `dataclass(slots=True)` — a version error that reads like a real
-test failure. Pin the version with `uv run --python 3.13`.
-</IMPORTANT>
 
 Further suites live in `plugins/<p>/tests/` and beside their scripts.
 
