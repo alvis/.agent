@@ -6,34 +6,34 @@ The coding plugin ships an advisory scanner that finds mechanically recognizable
 
 ```text
 plugins/coding/scripts/
-├── scan_potential_violations.py  # stable command-line entry point
+├── scan_potential_violations.ts  # stable command-line entry point
 ├── scanlib                      # discovery, file selection, execution, and rendering
-│   ├── core.py                  # command-line contract and scan pipeline
-│   ├── jsdoc.py                 # shared JSDoc token and prose extraction
-│   ├── loader.py                # automatic RULE and RULES module discovery
-│   ├── predicates.py            # reusable file applicability gates
-│   ├── prefixes.py              # live standard rule-prefix discovery
-│   └── rule.py                  # scanner extension interface
+│   ├── core.ts                  # command-line contract and scan pipeline
+│   ├── jsdoc.ts                 # shared JSDoc token and prose extraction
+│   ├── loader.ts                # automatic RULE and RULES module discovery
+│   ├── predicates.ts            # reusable file applicability gates
+│   ├── prefixes.ts              # live standard rule-prefix discovery
+│   └── rule.ts                  # scanner extension interface
 └── scanners                     # one independently loadable module per candidate rule
 ```
 
-- **Command-line entry point** (`plugins/coding/scripts/scan_potential_violations.py`): imports the shared engine and returns its status.
-- **Engine** (`plugins/coding/scripts/scanlib/core.py`): parses arguments, walks supported source files, applies rules, and renders contextual matches plus a summary.
-- **Loader** (`plugins/coding/scripts/scanlib/loader.py`): imports every public module under `scanners` and isolates a broken module so one extension cannot disable the advisory pass.
-- **Predicates** (`plugins/coding/scripts/scanlib/predicates.py`): centralizes language, test, index, and suffix selection.
-- **Rule modules** (`plugins/coding/scripts/scanners/*.py`): recognize one mechanically detectable candidate shape and append `Match` values.
-- **Test suite** (`plugins/coding/tests/test_scanner.py`): exercises rule behavior directly and uses golden fixtures only where the rendered command-line interface is the behavior under test.
+- **Command-line entry point** (`plugins/coding/scripts/scan_potential_violations.ts`): imports the shared engine and returns its status.
+- **Engine** (`plugins/coding/scripts/scanlib/core.ts`): parses arguments, walks supported source files, applies rules, and renders contextual matches plus a summary.
+- **Loader** (`plugins/coding/scripts/scanlib/loader.ts`): imports every public module under `scanners` and isolates a broken module so one extension cannot disable the advisory pass.
+- **Predicates** (`plugins/coding/scripts/scanlib/predicates.ts`): centralizes language, test, index, and suffix selection.
+- **Rule modules** (`plugins/coding/scripts/scanners/*.ts`): recognize one mechanically detectable candidate shape and append `Match` values.
+- **Test suite** (`plugins/coding/scripts/scan_potential_violations.spec.ts`): exercises rule behavior directly and uses golden fixtures where the rendered command-line interface is the behavior under test.
 
 ## Pipeline
 
 ```mermaid
 flowchart LR
-    Caller[Lint or review workflow] --> CLI[scan_potential_violations.py]
+    Caller[Lint or review workflow] --> CLI[scan_potential_violations.ts]
     CLI --> Engine[scanlib.core.run]
-    Engine --> Loader[load_rules]
+    Engine --> Loader[loadRules]
     Loader --> Modules[scanners modules]
-    Engine --> Files[iter_files]
-    Files --> Predicate[Rule applies_to]
+    Engine --> Files[iterFiles]
+    Files --> Predicate[Rule appliesTo]
     Predicate --> Scanner[Rule scan]
     Scanner --> Matches[Match candidates]
     Matches --> Renderer[Context and summary renderer]
@@ -56,7 +56,7 @@ sequenceDiagram
     participant Reviewer
 
     Caller->>Engine: paths, category, context widths
-    Engine->>Loader: load_rules()
+    Engine->>Loader: loadRules()
     Loader-->>Engine: rules sorted by order and id
     loop Each supported file and applicable rule
         Engine->>Rule: scan(path, lines, matches)
@@ -71,15 +71,15 @@ sequenceDiagram
 
 Every scanner module exports `RULE` or `RULES`. The loader discovers modules automatically, so adding a scanner requires no dispatcher edit.
 
-```python
-RULE = Rule(
-    id="stable-category-name",
-    label="Reviewer-facing candidate label",
-    scan=scan,
-    order=100,
-    applies_to=candidate_files,
-    rule_refs=("TST-CORE-10",),
-)
+```typescript
+export const RULE: Rule = {
+  id: "stable-category-name",
+  label: "Reviewer-facing candidate label",
+  scan,
+  order: 100,
+  appliesTo: candidateFiles,
+  ruleRefs: ["TST-CORE-10"],
+};
 ```
 
 The interfaces are:
@@ -90,9 +90,9 @@ The interfaces are:
 | `Rule.label` | Heading that describes the candidate without prejudging it |
 | `Rule.scan` | Callable receiving `path`, complete `lines`, and a mutable `matches` list |
 | `Rule.order` | Deterministic report ordering; ties resolve by ID |
-| `Rule.applies_to` | Path predicate evaluated before the file is read for that rule |
-| `Rule.honor_no_tests` | Whether `--no-tests` suppresses the rule for spec files |
-| `Rule.rule_refs` | Traceability to standards; metadata only, never an engine verdict |
+| `Rule.appliesTo` | Path predicate evaluated before the file is read for that rule |
+| `Rule.honorNoTests` | Whether `--no-tests` suppresses the rule for spec files |
+| `Rule.ruleRefs` | Traceability to standards; metadata only, never an engine verdict |
 | `Match` | Immutable `path`, one-based `lineno`, and source `line` rendered with context |
 
 `scan` functions must not edit files, execute project code, or raise findings. They append candidates only. The engine catches file-read errors, isolates module import failures, and returns zero after a completed scan regardless of its match count. Invalid arguments and other operational failures remain errors.
@@ -100,7 +100,7 @@ The interfaces are:
 ## Command-line contract
 
 ```text
-scan_potential_violations.py [paths ...]
+bun run scan_potential_violations.ts [paths ...]
   [--category all|<rule-id>]
   [--before <lines>]
   [--after <lines>]
@@ -111,10 +111,10 @@ Paths may name files or directories. The engine scans supported JavaScript, Type
 
 ## Adding a scanner
 
-1. Add one kebab-equivalent Python module under `plugins/coding/scripts/scanners` that exports a `Rule`.
-2. Reuse or add a narrow predicate in `plugins/coding/scripts/scanlib/predicates.py`.
+1. Add one kebab-case TypeScript module under `plugins/coding/scripts/scanners` that exports a `Rule`.
+2. Reuse or add a narrow predicate in `plugins/coding/scripts/scanlib/predicates.ts`.
 3. Test candidates as structured `Match` values. Add a golden fixture only when changing the rendered command-line interface itself.
-4. Reference the owning standard in `rule_refs` and list the rule as scanner-backed in its `scan.md`.
-5. Run `uvx pytest plugins/coding/tests/test_scanner.py`, then the repository suite with `uvx pytest`.
+4. Reference the owning standard in `ruleRefs` and list the rule as scanner-backed in its `scan.md`.
+5. Run `bun x --bun vitest@3.2.4 run --globals plugins/coding/scripts/scan_potential_violations.spec.ts`, then the fixture-excluded repository Vitest suite.
 
 Prefer a mechanical signal that is cheap to explain and verify. If recognizing the condition requires semantic interpretation, keep that decision in review rather than encoding a brittle verdict in the scanner.

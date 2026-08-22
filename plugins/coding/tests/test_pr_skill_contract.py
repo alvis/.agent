@@ -439,23 +439,23 @@ def test_review_scan_self_resolves_and_propagates_helper_failure(
     scripts = plugin / "scripts"
     scripts.mkdir()
     marker = tmp_path / "review-scan-argv"
-    pyrun = scripts / "pyrun.sh"
-    pyrun.write_text(
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    bun = bin_dir / "bun"
+    bun.write_text(
         "#!/usr/bin/env bash\n"
-        'expected="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)'
-        '/scan_potential_violations.py"\n'
-        '[ "$1" = "$expected" ] || exit 98\n'
         'printf "%s\\n" "$@" > "$REVIEW_SCAN_MARKER"\n'
         "exit 99\n"
     )
-    pyrun.chmod(0o755)
-    scanner = scripts / "scan_potential_violations.py"
+    bun.chmod(0o755)
+    scanner = scripts / "scan_potential_violations.ts"
     scanner.write_text("")
     other_cwd = tmp_path / "elsewhere"
     other_cwd.mkdir()
     env = os.environ.copy()
     env.pop("CLAUDE_PLUGIN_ROOT", None)
     env.pop("CLAUDE_SKILL_DIR", None)
+    env["PATH"] = f"{bin_dir}{os.pathsep}{env['PATH']}"
     env["REVIEW_SCAN_MARKER"] = str(marker)
 
     completed = subprocess.run(
@@ -467,6 +467,7 @@ def test_review_scan_self_resolves_and_propagates_helper_failure(
 
     assert completed.returncode == 99
     assert marker.read_text().splitlines() == [
+        "run",
         str(scanner),
         "--area=security",
         "target path.py",
