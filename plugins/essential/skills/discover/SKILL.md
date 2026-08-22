@@ -154,7 +154,7 @@ owner, or marked blocking.
      with alternatives, render the option set with reasons and a badged
      recommendation — never a bare accept.
    Then compose and compile a self-contained file with
-   `scripts/build_artifact.py`; sources carry no asset links, so the compiled
+   `scripts/build-artifact.ts`; sources carry no asset links, so the compiled
    file is what gets opened. Present it in preference order: the LLM
    environment's built-in local HTML viewer, then a safe cloud artifact viewer,
    then a local browser such as Chrome. Capture the user's answers and section

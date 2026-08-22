@@ -69,15 +69,15 @@ In a fresh session, the roster appears in the selected harness's agent list. For
 For maintainer verification, run the deterministic contract suite:
 
 ```bash
-uvx pytest plugins/essential/tests/test_install_agents.py
+bun test plugins/essential/skills/install-agents/scripts/{stitch_agent,install_agents}.spec.ts
 ```
 
 To inspect one stitched source definition directly, select either harness:
 
 ```bash
-uv run --python 3.13 plugins/essential/skills/install-agents/scripts/stitch_agent.py \
+bun run plugins/essential/skills/install-agents/scripts/stitch_agent.ts \
   plugins/coding/agents/tech-lead --harness claude
-uv run --python 3.13 plugins/essential/skills/install-agents/scripts/stitch_agent.py \
+bun run plugins/essential/skills/install-agents/scripts/stitch_agent.ts \
   plugins/coding/agents/tech-lead --harness codex
 ```
 

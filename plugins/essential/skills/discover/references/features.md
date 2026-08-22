@@ -71,10 +71,10 @@ JSON array
 
 | Feature | Enforced by |
 |---|---|
-| Shell presence, single prompt host, annotatable sections | `scripts/test_html_templates.py` (floor assertions) |
-| Token whitelist, dual-theme completeness, stray hex | `scripts/build_artifact.py` `_validate()` |
-| `${…}` literal guard | `scripts/build_artifact.py` `_validate()` |
-| Self-containment | `scripts/build_artifact.py` `_validate()` |
-| Board-set block, selection annotation, density scale, Mermaid figure wiring | `scripts/test_html_templates.py` (runtime/stylesheet/scaffold assertions) |
-| Mermaid runtime present when a board carries a diagram; no dynamic `import()` | `scripts/build_artifact.py` `_validate()` and `get_mermaid_runtime()` |
+| Shell presence, single prompt host, annotatable sections | `scripts/test-html-templates.ts` (floor assertions) |
+| Token whitelist, dual-theme completeness, stray hex | `scripts/build-artifact.ts` `_validate()` |
+| `${…}` literal guard | `scripts/build-artifact.ts` `_validate()` |
+| Self-containment | `scripts/build-artifact.ts` `_validate()` |
+| Board-set block, selection annotation, density scale, Mermaid figure wiring | `scripts/test-html-templates.ts` (runtime/stylesheet/scaffold assertions) |
+| Mermaid runtime present when a board carries a diagram; no dynamic `import()` | `scripts/build-artifact.ts` `_validate()` and `get_mermaid_runtime()` |
 | Per-card capture + live prompt rebuild | golden examples (`examples/reference/readiness-verdict-board.html`, `examples/reference/decision-browser.html`) + this checklist at review |

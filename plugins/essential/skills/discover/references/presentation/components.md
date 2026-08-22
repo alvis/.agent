@@ -119,7 +119,7 @@ stale `#anchor` links in the container.
 Sources and shells **never link scripts or stylesheets** — no CDN Tailwind tag,
 no `discovery.css` link, no `discovery.js` script, no `{{DISCOVERY_*_URL}}`
 placeholder, external or relatively linked. Keep only the inline
-`<style type="text/tailwindcss">` theme block. `scripts/build_artifact.py`
+`<style type="text/tailwindcss">` theme block. `scripts/build-artifact.ts`
 injects the Tailwind runtime plus discovery.css/js into the final files; a
 source that references any asset is rejected by both the builder and the
 validator.
@@ -581,7 +581,7 @@ in `<run-root>/_shared/board-set.html`:
 ```
 
 Every board's `page.html` then names that file rather than carrying its own
-copy, and `build_artifact.py` rewrites the line from the partial at compose
+copy, and `build-artifact.ts` rewrites the line from the partial at compose
 time:
 
 ```html
@@ -667,7 +667,7 @@ a diagram inherits this board's accent and re-renders on a theme flip. A
 definition that fails to render stays visible with the error beside it rather
 than vanishing with the section's explanation.
 
-`data-mermaid` is also the build marker: `build_artifact.py` inlines the Mermaid
+`data-mermaid` is also the build marker: `build-artifact.ts` inlines the Mermaid
 runtime only into a board that carries one, because that runtime is several
 megabytes. A diagram-free board is byte-identical to what it was before Mermaid
 existed. Mermaid v11 resolves its diagram types statically, so a `file://` board
@@ -1724,7 +1724,7 @@ Examples also expose semantic `data-*` hooks for the structural validator.
 These hooks name the job performed by an element—such as
 `data-option-frame`, `data-idea-card`, `data-interview-step`, or
 `data-readiness-gate`—and are never styling hooks. Their required counts live
-in `scripts/test_html_templates.py` beside the executable check.
+in `scripts/test-html-templates.ts` beside the executable check.
 
 A structural hook is valid only on a substantive visible element. For example,
 an option frame contains a credible artifact and its local reaction control; an

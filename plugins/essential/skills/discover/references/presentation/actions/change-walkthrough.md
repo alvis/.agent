@@ -103,8 +103,8 @@ Save the board before presenting it, then compile a self-contained copy with the
 builder and present that file:
 
 ```bash
-scripts/build_artifact.py examples/src/change-walkthrough          # self-contained full document
-scripts/build_artifact.py examples/src/change-walkthrough --artifact  # head-less fragment for the Artifact tool
+scripts/build-artifact.ts examples/src/change-walkthrough          # self-contained full document
+scripts/build-artifact.ts examples/src/change-walkthrough --artifact  # head-less fragment for the Artifact tool
 ```
 
 The builder inlines the Tailwind runtime plus `discovery.css` and `discovery.js`

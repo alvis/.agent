@@ -125,9 +125,9 @@ anything is written. `update-agent` owns changes to existing definitions.
   `uv run --python 3.13 python -m json.tool`.
 - Run Essential's deterministic stitch helper twice against the source directory,
   writing only to separate temporary outputs, then inspect both artifacts:
-  `uv run --python 3.13 plugins/essential/skills/install-agents/scripts/stitch_agent.py plugins/<owner>/agents/<name> --harness claude --output <temporary-claude-path>`
+  `bun run plugins/essential/skills/install-agents/scripts/stitch_agent.ts plugins/<owner>/agents/<name> --harness claude --output <temporary-claude-path>`
   and
-  `uv run --python 3.13 plugins/essential/skills/install-agents/scripts/stitch_agent.py plugins/<owner>/agents/<name> --harness codex --output <temporary-codex-path>`.
+  `bun run plugins/essential/skills/install-agents/scripts/stitch_agent.ts plugins/<owner>/agents/<name> --harness codex --output <temporary-codex-path>`.
 - Check placeholders, the template key allowlist and required keys, referenced
   files/aliases/skills, duplicate seams, prompt contradictions, and the owning
   plugin routing row, point-form role-specific Collaboration section, and
