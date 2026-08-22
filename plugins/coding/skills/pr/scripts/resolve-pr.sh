@@ -14,7 +14,9 @@ if [ "$#" -eq 3 ]; then
   repo_args=(--repo "$3")
 fi
 
-metadata=$(gh pr view "$pr_input" "${repo_args[@]}" \
+# macOS ships bash 3.2, where "${repo_args[@]}" is an unbound-variable error
+# under set -u when the array is empty; this expansion stays safe on both.
+metadata=$(gh pr view "$pr_input" ${repo_args[@]+"${repo_args[@]}"} \
   --json number,url,title,body,state,isDraft,baseRefName,baseRefOid,\
 headRefName,headRefOid,headRepositoryOwner,changedFiles,additions,deletions,\
 author,statusCheckRollup)
